@@ -34,7 +34,7 @@
   const openFlags = { palette: false, keys: false, detail: false };
 
   /* 爆点风格。三档：
-       'random'  —— 每次点击**独立**随机挑一套（默认；开关是 site-data.js 的 randomBurst）
+       'random'  —— 每次点击**独立**随机挑一套（默认；开关是 content/site.js 的 randomBurst）
        'new'     —— 只用新的那套（核心闪光 + 冲击波 + 火星拖尾，画在 #fx-overlay 上）
        'classic' —— 只用旧的那套（巨大 DOM 圆 + 细环 + 小圆点）
      网址参数优先且能钉死：?fx=new / ?fx=classic / ?fx=random。

@@ -163,11 +163,11 @@
       items.push({
         add: true,
         title: '添加新站点',
-        desc: '往 assets/site-data.js 的 nav 里加一个对象，卡片自己长出来',
+        desc: '往 content/site.js 的 nav 里加一个对象，卡片自己长出来',
         badge: '开发用',
-        tags: ['开发', 'site-data', 'nav', '新增'],
+        tags: ['开发', 'content', 'site', 'nav', '新增'],
         details: [
-          '打开 assets/site-data.js',
+          '打开 content/site.js',
           '往 nav 数组里加一个对象：title / desc / icon / href',
           '想加详情就再写 details 和 tags，预览和搜索都会自动用上',
           'href 填上之后，卡片自动变成真链接'

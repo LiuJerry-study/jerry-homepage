@@ -9,7 +9,7 @@
    5  点击爆点（新：画家在 #fx-overlay 上）  12 启动
    6  标题：逐字浮现 + 点击消散成粒子
 
-   「爆点」有两套，默认**每次点击独立掷一次骰子**（site-data.js 的 randomBurst）：
+   「爆点」有两套，默认**每次点击独立掷一次骰子**（content/site.js 的 randomBurst）：
      新 —— 核心闪光 + 冲击波 + 火星拖尾，整套画在 #fx-overlay 上，没有新 DOM、没有新位图；
      旧 —— 一个最大 2600×2600px 的 DOM 圆 + 细环 + 小圆点，画在卡片后面。
    网址能把风格钉死：?fx=random（随机）/ ?fx=new / ?fx=classic。

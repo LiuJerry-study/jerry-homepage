@@ -9,7 +9,7 @@
    5  点击爆点（新：画家在 #fx-overlay 上）  12 启动
    6  标题：逐字浮现 + 点击消散成粒子
 
-   「爆点」有两套，默认**每次点击独立掷一次骰子**（site-data.js 的 randomBurst）：
+   「爆点」有两套，默认**每次点击独立掷一次骰子**（content/site.js 的 randomBurst）：
      新 —— 核心闪光 + 冲击波 + 火星拖尾，整套画在 #fx-overlay 上，没有新 DOM、没有新位图；
      旧 —— 一个最大 2600×2600px 的 DOM 圆 + 细环 + 小圆点，画在卡片后面。
    网址能把风格钉死：?fx=random（随机）/ ?fx=new / ?fx=classic。
@@ -58,7 +58,7 @@
   const openFlags = { palette: false, keys: false, detail: false };
 
   /* 爆点风格。三档：
-       'random'  —— 每次点击**独立**随机挑一套（默认；开关是 site-data.js 的 randomBurst）
+       'random'  —— 每次点击**独立**随机挑一套（默认；开关是 content/site.js 的 randomBurst）
        'new'     —— 只用新的那套（核心闪光 + 冲击波 + 火星拖尾，画在 #fx-overlay 上）
        'classic' —— 只用旧的那套（巨大 DOM 圆 + 细环 + 小圆点）
      网址参数优先且能钉死：?fx=new / ?fx=classic / ?fx=random。
@@ -1323,11 +1323,11 @@
       items.push({
         add: true,
         title: '添加新站点',
-        desc: '往 assets/site-data.js 的 nav 里加一个对象，卡片自己长出来',
+        desc: '往 content/site.js 的 nav 里加一个对象，卡片自己长出来',
         badge: '开发用',
-        tags: ['开发', 'site-data', 'nav', '新增'],
+        tags: ['开发', 'content', 'site', 'nav', '新增'],
         details: [
-          '打开 assets/site-data.js',
+          '打开 content/site.js',
           '往 nav 数组里加一个对象：title / desc / icon / href',
           '想加详情就再写 details 和 tags，预览和搜索都会自动用上',
           'href 填上之后，卡片自动变成真链接'
