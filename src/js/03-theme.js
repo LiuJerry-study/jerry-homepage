@@ -4,7 +4,14 @@
 
   function applyTheme(theme, persist) {
     html.dataset.theme = theme;
-    if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* 隐私模式忽略 */ } }
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_KEY, theme);
+        /* 同一标签页内也记一份：长页面（博客/作品/简历）读的是这个 key，
+           这样手动切过之后跳页不会打回系统偏好。key 见 scripts/lib/templates.mjs */
+        sessionStorage.setItem('portal-theme-session', theme);
+      } catch (e) { /* 隐私模式忽略 */ }
+    }
     if (themeMeta) themeMeta.setAttribute('content', theme === 'dark' ? '#07130F' : '#F4F9F5');
     const btn = document.getElementById('theme-toggle');
     if (btn) {

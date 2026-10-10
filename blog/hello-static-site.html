@@ -17,22 +17,35 @@
 <meta name="twitter:card" content="summary">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"把个人门户重构成一个静态站点","description":"视觉一行没动，但整个站点换了骨架：源文件拆开、加了零依赖构建脚本，博客和项目终于有真页面了。","datePublished":"2026-10-10","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/blog/hello-static-site.html"}</script>
 <script>
+  /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
     var t = 'light';
     try {
       var q = new URLSearchParams(location.search).get('theme');
+      var saved = null, picked = null;
+      try { saved = localStorage.getItem('portal-theme'); } catch (e) { /* 隐私模式 */ }
+      try { picked = sessionStorage.getItem('portal-theme-session'); } catch (e) { /* 隐私模式 */ }
+
       if (q === 'light' || q === 'dark') {
         t = q;
-      } else {
-        var saved = localStorage.getItem('portal-theme');
-        if (saved === 'light' || saved === 'dark') t = saved;
-        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      } else if (saved === 'light' || saved === 'dark') {
+        t = saved;
+      } else if (picked === 'light' || picked === 'dark') {
+        t = picked;
+      } else if (true) {
+        t = Math.random() < 0.5 ? 'light' : 'dark';
+        try { sessionStorage.setItem('portal-theme-session', t); } catch (e) { /* 忽略 */ }
+      } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+        t = 'dark';
       }
-    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    } catch (e) { /* 老浏览器：用默认浅色 */ }
     document.documentElement.dataset.theme = t;
+    /* 地址栏配色跟着主题走（<meta name="theme-color"> 就在上面，这里能直接改到） */
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="../assets/styles.css?v=798373d7">
+<link rel="stylesheet" href="../assets/styles.css?v=062ffb8a">
 </head>
 
 <body class="page">
@@ -116,6 +129,6 @@ python -m http.server <span class="tok-num">8000</span></code></pre></figure>
     <span class="dot" aria-hidden="true"></span>
     <a href="../rss.xml">RSS</a>
   </footer>
-  <script src="../assets/pages.js?v=798373d7"></script>
+  <script src="../assets/pages.js?v=062ffb8a"></script>
 </body>
 </html>

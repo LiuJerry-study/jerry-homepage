@@ -17,22 +17,35 @@
 <meta name="twitter:card" content="summary">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Canvas 粒子连线：把平方级的比较装进网格","description":"320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。","datePublished":"2026-09-18","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/blog/canvas-particle-grid.html"}</script>
 <script>
+  /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
     var t = 'light';
     try {
       var q = new URLSearchParams(location.search).get('theme');
+      var saved = null, picked = null;
+      try { saved = localStorage.getItem('portal-theme'); } catch (e) { /* 隐私模式 */ }
+      try { picked = sessionStorage.getItem('portal-theme-session'); } catch (e) { /* 隐私模式 */ }
+
       if (q === 'light' || q === 'dark') {
         t = q;
-      } else {
-        var saved = localStorage.getItem('portal-theme');
-        if (saved === 'light' || saved === 'dark') t = saved;
-        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      } else if (saved === 'light' || saved === 'dark') {
+        t = saved;
+      } else if (picked === 'light' || picked === 'dark') {
+        t = picked;
+      } else if (true) {
+        t = Math.random() < 0.5 ? 'light' : 'dark';
+        try { sessionStorage.setItem('portal-theme-session', t); } catch (e) { /* 忽略 */ }
+      } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+        t = 'dark';
       }
-    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    } catch (e) { /* 老浏览器：用默认浅色 */ }
     document.documentElement.dataset.theme = t;
+    /* 地址栏配色跟着主题走（<meta name="theme-color"> 就在上面，这里能直接改到） */
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="../assets/styles.css?v=798373d7">
+<link rel="stylesheet" href="../assets/styles.css?v=062ffb8a">
 </head>
 
 <body class="page">
@@ -101,6 +114,6 @@
     <span class="dot" aria-hidden="true"></span>
     <a href="../rss.xml">RSS</a>
   </footer>
-  <script src="../assets/pages.js?v=798373d7"></script>
+  <script src="../assets/pages.js?v=062ffb8a"></script>
 </body>
 </html>

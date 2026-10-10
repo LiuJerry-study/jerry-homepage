@@ -177,7 +177,21 @@ npm run build / assets / check / serve / deploy
 | 样式 | 同一份 `assets/styles.css` | 同一份 `assets/styles.css` |
 
 两者共用同一套设计令牌和同一份样式表，所以点进博客页不会有"换了个网站"的感觉。
-主题也共用 `localStorage` 的 `portal-theme`，在门户切了暗色，翻到博客页还是暗色。
+
+**主题是整站统一的**，这一点当初踩过坑，现在是这么做的：
+
+- 首绘前定主题的脚本由构建注入（`scripts/lib/templates.mjs` 的 `themeBootScript()`），
+  首页和所有长页面用的是**同一份**，不存在两边逻辑走偏；
+- 优先级：`?theme=` ＞ `localStorage`（手动选过）＞ `sessionStorage`（本标签页掷出的随机结果）
+  ＞ 随机（`randomTheme`）＞ 系统偏好；
+- 随机结果会记进 `sessionStorage`：**同一标签页内**从首页点进博客、再点进简历，主题都一致；
+  换个标签页才会重新掷 —— 这才符合「首次打开随机」的本意；
+- 手动切过就写进 `localStorage`，永久记住，整站优先级最高；
+- 切换方式也统一：首页和长页面都走 `document.startViewTransition` 的**圆形揭示**，
+  从按钮位置揭开（CSS 在第 18 节），不支持该 API 或用户要求减弱动效时直接切换。
+
+> `portal-theme` / `portal-theme-session` 这两个 key 在三处出现
+> （`templates.mjs`、`src/js/03-theme.js`、`src/js/pages.js`），改动时必须三处一起改。
 
 > 一个容易踩的坑：面板的紧凑系数 `--k` 只在舞台里定义。
 > 长页面没定义 `--k` 时，`calc(28px * var(--k))` 这种声明会**整条失效**

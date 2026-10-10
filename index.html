@@ -11,34 +11,41 @@
 <meta property="og:description" content="一个极简的个人门户：简历、博客、作品集的入口。">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234ED8A8'/%3E%3Cstop offset='1' stop-color='%230E9F79'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='32' r='9' fill='white' fill-opacity='.92'/%3E%3C/svg%3E">
-<script src="assets/site-data.js?v=798373d7"></script>
+<script src="assets/site-data.js?v=062ffb8a"></script>
+<!-- 主题要在首次绘制前定下来，否则会闪一下白。
+     这段由构建脚本注入（scripts/lib/templates.mjs 的 themeBootScript），
+     和博客 / 作品 / 简历那些长页面用的是同一份逻辑 —— 保证整站优先级一致。
+     site-data.js 必须加载在它上面那一行：随机主题的开关从那里读。 -->
 <script>
-  /* 主题要在首次绘制前定下来，否则会闪一下白。
-     优先级：网址上的 ?theme=light|dark ＞ 上次的选择 ＞ 随机（site-data.js 的 randomTheme）＞ 系统偏好
-     注意：site-data.js 就加载在上面那一行 —— 这里要读它的开关，所以两句的顺序不能反。 */
+  /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
     var t = 'light';
     try {
       var q = new URLSearchParams(location.search).get('theme');
+      var saved = null, picked = null;
+      try { saved = localStorage.getItem('portal-theme'); } catch (e) { /* 隐私模式 */ }
+      try { picked = sessionStorage.getItem('portal-theme-session'); } catch (e) { /* 隐私模式 */ }
+
       if (q === 'light' || q === 'dark') {
         t = q;
-      } else {
-        var saved = localStorage.getItem('portal-theme');
-        if (saved === 'light' || saved === 'dark') {
-          t = saved;
-        } else if (window.SITE && window.SITE.randomTheme) {
-          /* 随机亮 / 暗：只在「你还没自己选过」的时候掷这一次。
-             手动切过一次主题（按 T 或点右上角）之后就会记住，不再随机。 */
-          t = Math.random() < 0.5 ? 'light' : 'dark';
-        } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
-          t = 'dark';
-        }
+      } else if (saved === 'light' || saved === 'dark') {
+        t = saved;
+      } else if (picked === 'light' || picked === 'dark') {
+        t = picked;
+      } else if (true) {
+        t = Math.random() < 0.5 ? 'light' : 'dark';
+        try { sessionStorage.setItem('portal-theme-session', t); } catch (e) { /* 忽略 */ }
+      } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+        t = 'dark';
       }
-    } catch (e) { /* 隐私模式或老浏览器：用默认浅色 */ }
+    } catch (e) { /* 老浏览器：用默认浅色 */ }
     document.documentElement.dataset.theme = t;
+    /* 地址栏配色跟着主题走（<meta name="theme-color"> 就在上面，这里能直接改到） */
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="assets/styles.css?v=798373d7">
+<link rel="stylesheet" href="assets/styles.css?v=062ffb8a">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","name":"Jerry","url":"https://example.com/"},{"@type":"WebSite","name":"个人门户","url":"https://example.com/","description":"一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。"}]}</script>
 </head>
 
@@ -241,6 +248,6 @@
     </style>
   </noscript>
 
-  <script src="assets/main.js?v=798373d7"></script>
+  <script src="assets/main.js?v=062ffb8a"></script>
 </body>
 </html>

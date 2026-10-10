@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
 import { renderMarkdown, extractExcerpt, frontMatter, escapeHtml as h } from './lib/markdown.mjs';
-import { pageShell, pageHead, tags as tagList, prettyDate, isoDate } from './lib/templates.mjs';
+import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ASSETS_ONLY = process.argv.slice(2).includes('--assets');
@@ -463,6 +463,13 @@ ${POSTS.map((p) => `    <item>
 function buildHome() {
   head('5/5', '首页');
   let html = read('src/pages/index.html');
+
+  // 主题解析：注入和长页面完全同一份脚本（原来首页是手写的一份，两边容易走偏）
+  if (!html.includes('<!--THEME_BOOT-->')) {
+    bad('src/pages/index.html 里找不到 <!--THEME_BOOT--> 标记');
+  } else {
+    html = html.replace('<!--THEME_BOOT-->', themeBootScript(SITE.randomTheme !== false).trim());
+  }
 
   // 资源版本串：改了 CSS/JS 之后，访客不会拿到旧缓存
   for (const asset of ['assets/styles.css', 'assets/site-data.js', 'assets/main.js']) {

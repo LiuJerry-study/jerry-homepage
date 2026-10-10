@@ -17,25 +17,54 @@ export { h };
 const THEME_COLOR = { light: '#F4F9F5', dark: '#07130F' };
 
 /**
- * 首绘前定主题，避免闪白。必须内联在 <head>、且在 CSS 之前。
- * 用的是和 index.html 同一个 localStorage key —— 从门户翻到博客页，主题不会跳。
+ * 首绘前定主题，避免闪白。
+ * 首页（src/pages/index.html）和所有长页面用的是**同一份**，由构建脚本注入，
+ * 所以整站的优先级和结果一定是统一的。
+ *
+ * 优先级：?theme= ＞ localStorage（手动选过）＞ sessionStorage（本标签页掷出的随机结果）
+ *         ＞ 随机（randomTheme）＞ 系统偏好
+ *
+ * 关于 sessionStorage：随机主题只在「从没手动选过」时掷一次，
+ * 掷完把结果记进当前标签页 —— 否则从首页点进博客会突然变成另一个主题。
+ * 换个标签页/新窗口才会重新掷，这符合「首次打开随机」的本意。
+ *
+ * ⚠ 这个 key 在 src/js/03-theme.js 和 src/js/pages.js 里也出现（手动切换时要写进去），
+ *   三处必须一致。
  */
-export const THEME_BOOT = `<script>
+export const THEME_KEY = 'portal-theme';
+export const THEME_SESSION_KEY = 'portal-theme-session';
+
+export function themeBootScript(randomTheme = true) {
+  return `<script>
+  /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
     var t = 'light';
     try {
       var q = new URLSearchParams(location.search).get('theme');
+      var saved = null, picked = null;
+      try { saved = localStorage.getItem('${THEME_KEY}'); } catch (e) { /* 隐私模式 */ }
+      try { picked = sessionStorage.getItem('${THEME_SESSION_KEY}'); } catch (e) { /* 隐私模式 */ }
+
       if (q === 'light' || q === 'dark') {
         t = q;
-      } else {
-        var saved = localStorage.getItem('portal-theme');
-        if (saved === 'light' || saved === 'dark') t = saved;
-        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      } else if (saved === 'light' || saved === 'dark') {
+        t = saved;
+      } else if (picked === 'light' || picked === 'dark') {
+        t = picked;
+      } else if (${randomTheme ? 'true' : 'false'}) {
+        t = Math.random() < 0.5 ? 'light' : 'dark';
+        try { sessionStorage.setItem('${THEME_SESSION_KEY}', t); } catch (e) { /* 忽略 */ }
+      } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+        t = 'dark';
       }
-    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    } catch (e) { /* 老浏览器：用默认浅色 */ }
     document.documentElement.dataset.theme = t;
+    /* 地址栏配色跟着主题走（<meta name="theme-color"> 就在上面，这里能直接改到） */
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>`;
+}
 
 /* --------------------------------------------------------------- 顶栏 */
 
@@ -127,7 +156,7 @@ export function pageShell(o) {
 <html lang="zh-CN" data-theme="light" data-layout="page">
 <head>
 ${meta}
-${THEME_BOOT}
+${themeBootScript(site.randomTheme !== false)}
 <link rel="stylesheet" href="${prefix}assets/styles.css${asset}">
 </head>
 
