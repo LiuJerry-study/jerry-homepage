@@ -1,0 +1,53 @@
+# ==========================================================================
+# systemd 单元：写作后台
+# --------------------------------------------------------------------------
+# 安装步骤：
+#   1. 把密码写进一个只有 root 能读的文件（不要写在单元文件里，单元文件是公开的）：
+#        sudo tee /etc/personal-site-admin.env >/dev/null <<'EOF'
+#        ADMIN_PASSWORD=换成你的密码
+#        ADMIN_HOST=127.0.0.1
+#        ADMIN_PORT=8787
+#        ADMIN_SECURE=1
+#        EOF
+#        sudo chmod 600 /etc/personal-site-admin.env
+#
+#   2. 改下面两处路径（WorkingDirectory 指向仓库，User 指向仓库的属主）：
+#        WorkingDirectory=/srv/personal-site
+#        User=www-data
+#
+#   3. 安装并启动：
+#        sudo cp deploy/personal-site-admin.service /etc/systemd/system/
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable --now personal-site-admin
+#        systemctl status personal-site-admin
+#
+#   注意：这个服务只是"写作工具"，它挂了不影响站点访问 —— 站点是纯静态的，
+#        由 nginx 直接发文件。
+# ==========================================================================
+
+[Unit]
+Description=personal-site 写作后台（本地写内容 + 重新构建静态页）
+Documentation=file:///srv/personal-site/DEPLOY.md
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/personal-site
+EnvironmentFile=/etc/personal-site-admin.env
+
+# 构建脚本只用 Node 内置模块，不需要 npm install
+ExecStart=/usr/bin/node admin/server.mjs
+
+Restart=on-failure
+RestartSec=3
+
+# 基本加固：后台只能写自己的目录，拿不到别的
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

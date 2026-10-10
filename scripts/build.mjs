@@ -22,19 +22,21 @@
      源文件拆开只为好读好改；产物仍是几个普通文件，构建过程零依赖、零配置。
    ========================================================================== */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
 import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h } from './lib/markdown.mjs';
 import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
-import { copyTree, imageSizeOfFile } from './lib/images.mjs';
+import { imageSizeOfFile } from './lib/images.mjs';
+import { loadSiteObject } from './lib/site-config.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ARGS = process.argv.slice(2);
 const ASSETS_ONLY = ARGS.includes('--assets');
 const WITH_DRAFTS = ARGS.includes('--drafts');
+const FORCE = ARGS.includes('--force');       // 忽略增量缓存，全部重算重写
 
 const C = { reset: '\x1b[0m', dim: '\x1b[2m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', bold: '\x1b[1m' };
 const log = (m = '') => console.log(m);
@@ -52,6 +54,27 @@ const exists = (p) => existsSync(abs(p));
 function write(p, text) {
   mkdirSync(dirname(abs(p)), { recursive: true });
   writeFileSync(abs(p), text);
+  return Buffer.byteLength(text);
+}
+
+const STATS = { written: 0, skipped: 0 };
+
+/**
+ * 内容一样就不落盘 —— 这是"增量"的关键：
+ *   · mtime 不变，rsync 就不会传它（部署时只同步真正改过的文件）
+ *   · 也不会因为重写触发编辑器的"文件已变化"提示
+ */
+function writeIfChanged(p, text) {
+  PRODUCED.add(p);
+  const file = abs(p);
+  if (!FORCE) {
+    try {
+      if (readFileSync(file, 'utf8') === text) { STATS.skipped++; return Buffer.byteLength(text); }
+    } catch (e) { /* 文件不存在：照常写 */ }
+  }
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, text);
+  STATS.written++;
   return Buffer.byteLength(text);
 }
 
@@ -115,17 +138,7 @@ const SCRIPT_MANIFEST = [
 
 /* ------------------------------------------------------------ 站点配置 */
 
-/** 在 Node 里跑一遍 content/site.js，取出 window.SITE */
-function loadSite() {
-  const code = read('content/site.js');
-  const sandbox = {};
-  new Function('window', code)(sandbox);
-  const site = sandbox.SITE;
-  if (!site || typeof site !== 'object') throw new Error('content/site.js 没有导出 window.SITE');
-  return site;
-}
-
-const SITE = loadSite();
+const SITE = loadSiteObject(abs('content/site.js'));
 const PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
 
 /* ------------------------------------------------------- 内容读取 */
@@ -149,13 +162,19 @@ function loadMarkdownDir(dir, { prefix }) {
     .filter((f) => f.endsWith('.md') || f.endsWith('.markdown'))
     .map((file) => {
       const slug = file.replace(/\.(md|markdown)$/, '');
-      const { data, content } = frontMatter(read(`${dir}/${file}`));
-      const headings = [];
-      const html = renderMarkdown(content, {
-        headings,
-        html: data.html === true,
-        image: makeImageResolver(prefix),
+      const raw = read(`${dir}/${file}`);
+      const { data, content } = frontMatter(raw);
+      const cached = renderCached(raw, `${dir}/${file}`, null, () => {
+        const headings = [];
+        const html = renderMarkdown(content, {
+          headings,
+          html: data.html === true,
+          image: makeImageResolver(prefix),
+        });
+        return { h: html, g: headings };
       });
+      const html = cached.h;
+      const headings = cached.g;
       const cover = typeof data.cover === 'string' && data.cover ? data.cover : '';
       return {
         slug,
@@ -194,6 +213,39 @@ function loadResume() {
   }
 }
 
+/* --------------------------------------------------- 增量：渲染缓存 */
+
+const CACHE_FILE = '.build-cache/render.json';
+
+/** 渲染器一改，缓存全部失效 —— 用 lib 下几个文件的哈希当版本号 */
+const RENDERER_VERSION = createHash('sha1')
+  .update(['markdown.mjs', 'highlight.mjs', 'templates.mjs', 'images.mjs'].map((f) => read(`scripts/lib/${f}`)).join('\n'))
+  .digest('hex').slice(0, 12);
+
+let renderCache = {};
+if (!FORCE && exists(CACHE_FILE)) {
+  try { renderCache = JSON.parse(read(CACHE_FILE)).entries || {}; } catch (e) { renderCache = {}; }
+}
+const cacheHits = { used: new Set(), hit: 0, miss: 0 };
+
+function saveRenderCache() {
+  const entries = {};
+  for (const k of cacheHits.used) if (renderCache[k]) entries[k] = renderCache[k];
+  write(CACHE_FILE, JSON.stringify({ renderer: RENDERER_VERSION, entries }));
+}
+
+/** 这一篇要不要重新渲染？key 里带渲染器版本和输出位置，改了任何一样都会失效 */
+function renderCached(raw, file, opts, renderFn) {
+  const key = createHash('sha1').update(RENDERER_VERSION + '\n' + file + '\n' + raw).digest('hex');
+  cacheHits.used.add(key);
+  const hit = renderCache[key];
+  if (hit && typeof hit.h === 'string' && Array.isArray(hit.g)) { cacheHits.hit++; return hit; }
+  cacheHits.miss++;
+  const val = renderFn();
+  renderCache[key] = val;
+  return val;
+}
+
 const ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
 const ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
   .map((p) => Object.assign(p, { kind: 'project' }))
@@ -224,17 +276,32 @@ const TAGS = [...TAG_MAP.values()].filter((t) => t.posts.length + t.projects.len
 
 let VERSION = 'dev';
 
-/**
- * 清掉上一次构建产出的目录。
- * 不清的话会出现两种脏数据：
- *   1. 删掉一篇文章，它的 blog/xxx.html 会留在原地（死链照样能打开）；
- *   2. 用 --drafts 构建过一次，草稿页会一直留着。
- * 只删"完全由内容决定"的目录；index.html / 404.html / sitemap.xml 那几个是单文件，直接覆盖。
- */
-function cleanGenerated() {
-  for (const dir of ['blog', 'projects', 'tags', 'assets/images']) {
-    if (exists(dir)) rmSync(abs(dir), { recursive: true, force: true });
-  }
+/* 本次构建实际产出的文件（相对仓库根）。
+   收尾时拿它跟目录里的实际内容比：不在名单里的就是上一轮留下的旧产物，删掉。
+   这样既不会出现「删了文章还留着孤儿页」「--drafts 残留草稿页」，
+   也不会像"先整目录删光再重建"那样把没变的文件 mtime 全冲掉（增量就白做了）。 */
+const PRODUCED = new Set();
+
+/** 删掉不再需要的旧产物；构建中有报错就跳过，免得把站搞残 */
+function pruneGenerated() {
+  if (process.exitCode) { warn('构建有错误，跳过清理旧产物'); return; }
+  const dirs = ['blog', 'projects', 'tags', 'assets/images'];
+  let removed = 0;
+  const walk = (rel) => {
+    for (const name of readdirSync(abs(rel))) {
+      const p = `${rel}/${name}`;
+      if (statSync(abs(p)).isDirectory()) {
+        walk(p);
+        if (!readdirSync(abs(p)).length) { rmSync(abs(p)); }
+      } else if (!PRODUCED.has(p)) {
+        rmSync(abs(p));
+        removed++;
+      }
+    }
+  };
+  for (const d of dirs) if (exists(d)) walk(d);
+  if (removed) ok(`清掉 ${removed} 个上一轮留下的旧产物`);
+  else log(`  ${C.dim}没有多余产物要清${C.reset}`);
 }
 
 function buildAssets() {
@@ -243,9 +310,9 @@ function buildAssets() {
   const js = concat('src/js', SCRIPT_MANIFEST);
   const pages = read('src/js/pages.js');
   VERSION = createHash('sha1').update(css + js + pages).digest('hex').slice(0, 8);
-  ok(`assets/styles.css   ${kb(write('assets/styles.css', css))}`);
-  ok(`assets/main.js      ${kb(write('assets/main.js', js))}`);
-  ok(`assets/pages.js     ${kb(write('assets/pages.js', pages))}`);
+  ok(`assets/styles.css   ${kb(writeIfChanged('assets/styles.css', css))}`);
+  ok(`assets/main.js      ${kb(writeIfChanged('assets/main.js', js))}`);
+  ok(`assets/pages.js     ${kb(writeIfChanged('assets/pages.js', pages))}`);
   ok(`资源版本 v${VERSION}（页面里的 ?v= 就是它）`);
 }
 
@@ -253,9 +320,27 @@ function buildAssets() {
 
 function buildImages() {
   head('2/7', '图片');
-  const n = copyTree(abs('content/images'), abs('assets/images'));
-  if (n) ok(`assets/images/**    ${n} 个文件（来自 content/images/）`);
-  else log(`  ${C.dim}content/images/ 是空的，跳过（正文图片放这里，写 images/xxx.png 即可）${C.reset}`);
+  const srcDir = 'content/images';
+  if (!exists(srcDir)) {
+    log(`  ${C.dim}content/images/ 不存在，跳过（正文图片放这里，写 images/xxx.png 即可）${C.reset}`);
+    return;
+  }
+  let n = 0, skipped = 0;
+  const walk = (rel) => {
+    for (const name of readdirSync(abs(rel))) {
+      const from = `${rel}/${name}`;
+      if (statSync(abs(from)).isDirectory()) { walk(from); continue; }
+      const to = `assets/images/${from.slice(srcDir.length + 1)}`;
+      PRODUCED.add(to);
+      const buf = readFileSync(abs(from));
+      let same = false;
+      try { same = readFileSync(abs(to)).equals(buf); } catch (e) { /* 目标不存在 */ }
+      if (same && !FORCE) { STATS.skipped++; skipped++; }
+      else { mkdirSync(dirname(abs(to)), { recursive: true }); writeFileSync(abs(to), buf); STATS.written++; n++; }
+    }
+  };
+  walk(srcDir);
+  ok(`assets/images/**    拷入 ${n} 个${skipped ? `，跳过 ${skipped} 个没变的` : ''}（来自 content/images/）`);
 }
 
 /* ------------------------------------------------------- 3. 站点配置 */
@@ -276,7 +361,7 @@ function buildSiteData() {
     + `window.SITE.assetVersion = ${JSON.stringify(VERSION)};\n`
     + `window.SITE.searchIndex = 'assets/site-index.js';\n`;
 
-  write('assets/site-data.js', out);
+  writeIfChanged('assets/site-data.js', out);
 
   if (/^https?:\/\/example\.com\/?$/.test(String(SITE.url || ''))) {
     warn(`content/site.js 里的 url 还是占位符 ${SITE.url} —— sitemap / RSS / canonical 里的地址会不对`);
@@ -296,7 +381,7 @@ function buildSiteData() {
     projects: PROJECTS.map((p) => brief(p, `projects/${p.slug}.html`)),
     tags: TAGS.map((t) => ({ t: t.name, u: `tags/${t.slug}.html`, n: t.posts.length + t.projects.length })),
   };
-  ok(`assets/site-index.js ${kb(write('assets/site-index.js', `window.SITE_INDEX=${JSON.stringify(index)};\n`))}（${index.posts.length + index.projects.length} 条）`);
+  ok(`assets/site-index.js ${kb(writeIfChanged('assets/site-index.js', `window.SITE_INDEX=${JSON.stringify(index)};\n`))}（${index.posts.length + index.projects.length} 条）`);
 }
 
 /* --------------------------------------------------------- 页面片段 */
@@ -385,7 +470,7 @@ function buildPages() {
 
   const shell = (o) => {
     const html = pageShell({ site: SITE, asset: VERSION, ...o });
-    write(o.out, html);
+    writeIfChanged(o.out, html);
     return Buffer.byteLength(html);
   };
 
@@ -627,7 +712,7 @@ ${urls.filter((u) => u.last).map((u) => `  <url>
   </url>`).join('\n')}
 </urlset>
 `;
-  write('sitemap.xml', sitemap);
+  writeIfChanged('sitemap.xml', sitemap);
   ok(`sitemap.xml          ${urls.length} 条`);
 
   const feed = POSTS.filter((p) => !p.draft);
@@ -649,10 +734,10 @@ ${feed.map((p) => `    <item>
   </channel>
 </rss>
 `;
-  write('rss.xml', rss);
+  writeIfChanged('rss.xml', rss);
   ok(`rss.xml              ${feed.length} 条`);
 
-  write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
+  writeIfChanged('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
   ok('robots.txt');
 }
 
@@ -686,14 +771,13 @@ function buildHome() {
     html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
   }
 
-  write('index.html', html);
+  writeIfChanged('index.html', html);
   ok('index.html          （来自 src/pages/index.html）');
 }
 
 /* ------------------------------------------------------------ 启动 */
 
 log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'}${WITH_DRAFTS ? ' · 含草稿' : ''})${C.reset}`);
-if (!ASSETS_ONLY) cleanGenerated();
 buildAssets();
 if (!ASSETS_ONLY) buildImages();
 buildSiteData();
@@ -702,8 +786,11 @@ if (!ASSETS_ONLY) {
   buildPages();
   buildSeo();
   buildHome();
-  head('7/7', '清理');
-  ok('完成');
+  head('7/7', '收尾');
+  pruneGenerated();
+  saveRenderCache();
+  ok(`渲染缓存：命中 ${cacheHits.hit} / 未命中 ${cacheHits.miss}`);
+  ok(`落盘 ${STATS.written} 个文件，跳过 ${STATS.skipped} 个没变的`);
 } else {
   log(`\n${C.dim}--assets：跳过图片与页面生成${C.reset}`);
 }

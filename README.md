@@ -21,6 +21,7 @@
 |---|---|
 | **只想看** | 双击 `index.html`。没有构建、没有依赖，直接就能跑 |
 | **改内容 / 写文章** | 改 `content/` 里的文件，然后 `node scripts/build.mjs` |
+| **在浏览器里写** | `npm run admin` → 打开 `http://127.0.0.1:8787/admin`（见「写作后台」） |
 | **发布上线** | 看 [DEPLOY.md](DEPLOY.md)，一条 `bash scripts/deploy.sh` |
 
 ---
@@ -59,7 +60,11 @@ personal-site/
 │  ├─ deploy.sh            构建 → 自检 → rsync
 │  └─ lib/                 Markdown 渲染 / 代码高亮 / 页面模板
 │
-├─ deploy/                 nginx 配置示例 + 部署配置示例
+├─ admin/                  ← 写作后台（独立的可选进程，不参与对外站点）
+│  ├─ server.mjs           密码登录 + 路由 + 静态文件服务
+│  └─ lib/                 内容读写 / 服务端渲染 / 界面
+│
+├─ deploy/                 nginx 配置、systemd 单元、部署配置示例
 └─ proto/                  爆点与标题消散的对照原型页（不属于正式页）
 ```
 
@@ -188,7 +193,9 @@ node scripts/build.mjs            # 完整构建
 node scripts/build.mjs --drafts   # 连草稿一起生成（本地预览草稿用）
 node scripts/build.mjs --assets   # 只重拼 CSS/JS/配置（改样式时最快，发布前别用）
 node scripts/check.mjs            # 上线前自检（死链、占位符、产物、版本串）
+node scripts/build.mjs --force    # 忽略增量缓存，全部重算重写
 node scripts/serve.mjs            # 本地预览 http://127.0.0.1:8000
+ADMIN_PASSWORD=xxx node admin/server.mjs   # 写作后台 http://127.0.0.1:8787
 bash scripts/deploy.sh            # 构建 → 自检 → 同步到服务器
 ```
 
@@ -334,6 +341,34 @@ body
 > 哪些是量出来的、哪些是推理出来的：表里的数字都是量出来的；
 > **没量的是帧时间** —— 无头软渲染环境里的噪声比差别还大，
 > 「到底还卡不卡」只能在自己的机器上感受。`proto/burst-lab.html` 就是为这个准备的。
+
+---
+
+## 写作后台（可选，不装也能用）
+
+浏览器里写内容的那个后台。**它是个独立进程，跟对外站点没有关系**：
+站点仍然是纯静态的，nginx 直接发文件；后台挂了、停了，站点照常访问。
+
+```bash
+ADMIN_PASSWORD=你的密码 npm run admin      # 打开 http://127.0.0.1:8787/admin
+```
+
+| 它能做 | 怎么做的 |
+|---|---|
+| 增删改文章 / 作品 | 直接读写 `content/` 里的 `.md`，原子写（先写 `.tmp` 再 rename） |
+| 改简历 | 编辑 `content/resume.json`，保存前校验 JSON |
+| **实时预览** | 每敲几下就把正文 POST 给服务端，用**构建脚本同一套渲染器**渲染 → 不存在"预览挺好、发布变形" |
+| **整页草稿预览** | `/preview/posts/<文件名>` 渲染完整页面（带 `noindex`），不用发布就能看真实排版 |
+| 保存即发布 | 保存后自动跑一次**增量构建**，页面上立刻更新；构建日志直接显示在编辑器里 |
+| 密码登录 | `httpOnly` 会话 cookie + 失败限流 + 同源校验（详见 [DEPLOY.md](DEPLOY.md) 第 7 节） |
+
+安全上有两条硬规定：
+
+1. **只监听 `127.0.0.1`**，对外一律经 nginx 反代（`deploy/nginx.conf` 里已经配好）；
+2. 后台端口的静态文件服务是**白名单**——只发站点公开文件，
+   `content/`、`admin/`、`.git/`、`package.json` 这些一律 404。
+
+不用后台也完全没问题：内容就是 `content/` 里的文件，用任何编辑器写都行。
 
 ---
 

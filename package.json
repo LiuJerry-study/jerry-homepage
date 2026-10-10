@@ -12,7 +12,9 @@
     "assets": "node scripts/build.mjs --assets",
     "check": "node scripts/check.mjs",
     "serve": "node scripts/serve.mjs",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "admin": "node admin/server.mjs",
+    "build:force": "node scripts/build.mjs --force"
   },
   "dependencies": {},
   "devDependencies": {}

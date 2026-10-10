@@ -180,9 +180,91 @@ bash scripts/deploy.sh
 node scripts/build.mjs --assets   # 只重拼 CSS/JS，不重新生成页面
 ```
 
+> 构建是增量的：内容没变的文件**不会重写**（mtime 不变），所以 rsync 只传真正改过的那几个文件，
+> 几十篇的站点日常发布通常一秒内就传完了。
+>
+> 嫌来回上传麻烦的话，看下一节：在服务器上开一个写作后台，浏览器里写完点保存就发布。
+
 ---
 
-## 7. 回滚 / 备份
+## 7. 用写作后台写内容（可选）
+
+不想每次都「本地写 → 构建 → 上传」的话，可以让服务器自己跑一个写作后台：
+浏览器打开 `/admin`，登录、写 Markdown、实时预览，点保存后**服务器上自动重新构建**，站点立刻更新。
+
+它跟站点是分开的：**后台是个独立进程，挂了也不影响站点访问**（站点始终是 nginx 发静态文件）。
+
+### 7.1 准备
+
+服务器上要有仓库副本（不是只有产物），因为后台要写 `content/` 并跑构建：
+
+```bash
+sudo mkdir -p /srv && cd /srv
+sudo git clone <你的仓库> personal-site
+cd personal-site
+sudo chown -R www-data:www-data /srv/personal-site   # 让后台进程能写 content/ 和产物
+```
+
+> 站点根目录也建议直接指向这个目录（nginx 的 `root /srv/personal-site;`），
+> 这样后台构建完，线上立刻就变了。如果之前用的是 `/var/www/personal-site`，改成这个路径即可。
+
+### 7.2 配置密码并启动
+
+```bash
+sudo tee /etc/personal-site-admin.env >/dev/null <<'EOF'
+ADMIN_PASSWORD=换成一个只有你知道的密码
+ADMIN_HOST=127.0.0.1
+ADMIN_PORT=8787
+ADMIN_SECURE=1
+EOF
+sudo chmod 600 /etc/personal-site-admin.env
+
+sudo cp deploy/personal-site-admin.service /etc/systemd/system/
+sudo nano /etc/systemd/system/personal-site-admin.service    # 改 WorkingDirectory 和 User
+sudo systemctl daemon-reload
+sudo systemctl enable --now personal-site-admin
+systemctl status personal-site-admin
+```
+
+### 7.3 让 nginx 把后台转发出去
+
+`deploy/nginx.conf` 里已经带好了 `/admin/`、`/api/`、`/preview/` 三个反代段落，
+拷过去就能用（不用写作后台就整段删掉）。改完：
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+然后浏览器打开 `https://你的域名/admin`，用刚设的密码登录。
+
+### 7.4 它有哪些安全措施
+
+| 措施 | 说明 |
+|---|---|
+| 密码登录 | `ADMIN_PASSWORD` 只放在服务器上的环境文件里（权限 600），不进仓库 |
+| 会话 cookie | `HttpOnly` + `SameSite=Lax`（HTTPS 下再加 `Secure`），前端 JS 读不到 |
+| 失败限流 | 同一 IP 连续 8 次密码错误，锁 10 分钟 |
+| 同源校验 | 写操作要求 `Origin` 与 `Host` 一致，挡掉跨站表单/脚本 |
+| 只监听本机 | 默认 `127.0.0.1:8787`；对外必须经过 nginx。**不要**设成 `0.0.0.0` 直接暴露 |
+| 静态文件白名单 | 后台端口的静态服务只发站点公开文件；`content/`、`admin/`、`.git/`、`package.json` 一律 404 |
+| 构建失败不毁站 | 保存时先写文件再构建，构建失败会在编辑器里把日志亮出来 |
+
+想再加一层，就在 nginx 的 `location /admin/` 里按 IP 放行：
+
+```nginx
+allow 你的家宽IP; deny all;
+```
+
+### 7.5 每天怎么用
+
+1. 打开 `https://你的域名/admin`；
+2. 写新文章 → 右侧实时预览 → 「保存并重新构建」；
+3. 想先看整页效果，点「整页预览」（`/preview/posts/<文件名>`），它渲染的是**服务器上已保存**的版本，带 `noindex`，不会被搜索引擎收录；
+4. 标成草稿的文章不会出现在列表 / RSS / sitemap / 搜索里；`node scripts/build.mjs --drafts` 才连草稿一起生成。
+
+---
+
+## 8. 回滚 / 备份
 
 站点是可重建的：产物全部由 `content/` + `src/` 生成。
 所以**备份内容源就等于备份整个站点**。
@@ -193,7 +275,7 @@ node scripts/build.mjs --assets   # 只重拼 CSS/JS，不重新生成页面
 
 ---
 
-## 8. 常见问题
+## 9. 常见问题
 
 **改了内容，浏览器还是旧的**
 HTML 是 `no-cache`，正常情况下刷新就有。如果还不对，先确认 `node scripts/build.mjs`
