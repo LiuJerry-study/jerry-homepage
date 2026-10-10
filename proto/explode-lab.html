@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>首屏大字 · 效果对比（现在这套 ｜ 方案 A）</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0C1A14; color: #E8F3EC;
+    font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+
+  .bar { height: 48px; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+    border-bottom: 1px solid rgba(255,255,255,.12); background: #0F231B; }
+  .bar h1 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: .01em; }
+  .bar .hint { color: #8FAE9F; font-size: 12.5px; }
+  .bar .hint b { color: #4ED8A8; font-weight: 600; }
+  .bar .spacer { flex: 1; }
+  .bar a { color: #4ED8A8; text-decoration: none; font-size: 12px;
+    border: 1px solid rgba(78,216,168,.42); padding: 4px 11px; border-radius: 999px; }
+  .bar a:hover { background: rgba(78,216,168,.12); }
+
+  .split { display: flex; height: calc(100% - 48px); }
+  .half { position: relative; flex: 1 1 50%; min-width: 0; }
+  .half + .half { border-left: 1px solid rgba(255,255,255,.14); }
+  .half iframe { display: block; width: 100%; height: 100%; border: 0; background: #F4F9F5; }
+
+  .tag { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 9; pointer-events: none;
+    padding: 4px 11px; border-radius: 999px; font-size: 12px; letter-spacing: .01em; white-space: nowrap;
+    background: rgba(12, 26, 20, .74); color: #E8F3EC; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .tag.b { background: rgba(14, 159, 121, .88); }
+  .tag small { opacity: .72; }
+
+  .foot { position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
+
+  @media (max-width: 860px) {
+    .split { flex-direction: column; }
+    .half + .half { border-left: 0; border-top: 1px solid rgba(255,255,255,.14); }
+    .bar .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="bar">
+    <h1>首屏大字 · 效果对比</h1>
+    <span class="hint">
+      左＝<b>现在这套</b>（正式页，原样）　右＝<b>方案 A · 字形守恒</b>　
+      —— 两边各自点一下标题；右边按 <b>空格</b> 重播、<b>L</b> 自动循环
+    </span>
+    <span class="spacer"></span>
+    <a href="explode-a.html" target="_blank" rel="noopener">单独打开方案 A ↗</a>
+  </header>
+
+  <div class="split">
+    <div class="half">
+      <span class="tag">现在这套 <small>· 正式页原样</small></span>
+      <!-- 直接嵌正式页：左边就是真家伙，没有任何「复刻版」的失真 -->
+      <iframe src="../index.html?theme=light" title="现在这套（正式页）"></iframe>
+    </div>
+    <div class="half">
+      <span class="tag b">方案 A <small>· 字形守恒</small></span>
+      <iframe src="explode-a.html?theme=light" title="方案 A（字形守恒）"></iframe>
+    </div>
+  </div>
+
+</body>
+</html>

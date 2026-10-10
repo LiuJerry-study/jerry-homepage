@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="stage">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>方案 A · 字形守恒（首屏大字原型）</title>
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<script>
+  /* 主题引导：和正式页同一套优先级（网址 ?theme= ＞ 上次选择 ＞ 系统） */
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') t = q;
+      else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) {}
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+
+<!-- 样式全部复用正式页：字体、色板、渐变标题、按钮、首屏排版一模一样 -->
+<link rel="stylesheet" href="../assets/styles.css">
+
+<style>
+  /* 本页只「加」不「改」——为了两边可比，正式页的视觉一个像素都不动 */
+
+  /* 墨迹粒子层：在背景层之上、舞台之下（和正式页的粒子一样待在背景里，
+     所以粒子飞过正文时不会爬到按钮和副标题上面） */
+  #ink-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+
+  /* 聚回落位那一刻：字瞬现（不带入场动画），位置和粒子完全重合，所以看不出交接 */
+  .hero-title.is-here .ch { opacity: 1; transform: none; filter: none; }
+  /* 光标条单独补一个闪烁（is-in 被摘掉之后它本来会消失） */
+  .hero-title.is-here .caret {
+    animation: blink 1.15s steps(1, end) infinite;
+    animation-delay: .1s;
+  }
+
+  .lab-pill {
+    position: fixed; z-index: 20; top: 18px; right: 18px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 14px; border-radius: 999px;
+    background: var(--surface-hi); border: 1px solid var(--border);
+    box-shadow: 0 8px 26px rgba(13, 31, 23, .07);
+    font-size: 12.5px; color: var(--muted);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .lab-pill b { color: var(--ink); font-weight: 600; }
+  .lab-pill .lab-sep { width: 1px; height: 12px; background: var(--border-hi); }
+  @media (max-width: 640px) { .lab-pill { display: none; } }
+</style>
+</head>
+
+<body data-page="home">
+
+  <!-- 背景层：和正式页一份不差（色洗 / 粒子 / 光斑 / 颗粒）。
+       方案 A 的关键之一就是：炸开时**不动这一层**，所以它始终是干净的。 -->
+  <div class="bg" id="bg" aria-hidden="true">
+    <span class="wash"></span>
+    <canvas id="fx-canvas"></canvas>
+    <span class="blob blob-a"></span>
+    <span class="blob blob-b"></span>
+    <span class="noise"></span>
+  </div>
+
+  <!-- 墨迹粒子层（方案 A 专用） -->
+  <canvas id="ink-canvas" aria-hidden="true"></canvas>
+
+  <main class="stage" id="stage" data-dir="1">
+    <section class="panel hero is-active" id="home" data-label="首页">
+      <div class="panel-scroll">
+        <div class="wrap">
+
+          <p class="eyebrow">
+            <span class="pip" aria-hidden="true"></span>
+            <span class="mono">Personal Portal</span>
+            <span class="sep" aria-hidden="true"></span>
+            <span>个人门户</span>
+          </p>
+
+          <h1 class="hero-title" id="hero-title" data-text="未来 由我们创造"
+              title="点一下：字形碎成它自己的墨迹；再点一下立刻聚回来"
+              tabindex="0">未来 由我们创造</h1>
+
+          <p class="hero-sub">
+            一个正在生长的个人空间 · 简历 / 博客 / 作品 陆续上线
+          </p>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary magnetic" href="#portal">
+              进入导航 <span class="btn-ico" aria-hidden="true">↓</span>
+            </a>
+            <a class="btn btn-ghost magnetic" href="#about">关于我</a>
+          </div>
+
+          <p class="hero-tip">
+            <span class="tip-label mono">试试</span>
+            <span>点标题碎成墨迹</span><i aria-hidden="true"></i>
+            <span><kbd>空格</kbd> 重播</span><i aria-hidden="true"></i>
+            <span><kbd>L</kbd> 自动循环</span><i aria-hidden="true"></i>
+            <span><kbd>T</kbd> 换主题</span>
+          </p>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="lab-pill">
+    <span><b>方案 A</b> · 字形守恒</span>
+    <span class="lab-sep" aria-hidden="true"></span>
+    <span>粒子 <b id="lab-n">–</b></span>
+    <span class="lab-sep" aria-hidden="true"></span>
+    <span id="lab-state">待机</span>
+  </div>
+
+<script>
+/* ==========================================================================
+   方案 A · 字形守恒（原型）
+   --------------------------------------------------------------------------
+   和「现在这套」的四点不同：
+
+     现在这套                              方案 A
+     ─────────────────────────────────     ─────────────────────────────────
+     1  粒子起点 = 字框矩形里随机取点        粒子起点 = 字形的**真墨迹像素**（离屏 canvas 采样），
+        （框里 ~74% 是空白，粒子凭空出现）      每个粒子还带着它那一像素的颜色
+     2  指数逼近预先抽好的全屏落点           冲量模型：初速 ∝ 到点击点的距离，阻尼衰减，
+        （0.25s 就铺满整屏，像在撒灰）         **没有目标点**——飞多远由能量决定
+     3  铺满整个屏幕（连成一张网）          收在标题一带（横向铺开、纵向压扁的墨雾）
+     4  字自己 CSS 糊掉 → 2s 空窗 →          字在碎的那一刻就交还给粒子，粒子记着**原位**，
+        再重播一遍 1.6s 的逐字浮现           弹簧飞回去、落位后再交还给 DOM —— 守恒
+
+   想改手感：只看下面的 CFG。
+   ========================================================================== */
+(() => {
+  'use strict';
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const body = document.body;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ======================== 参数 ======================== */
+  const CFG = {
+    /* 粒子数量：按屏幕面积给，再夹到区间里。
+       这个密度是按「碎开的第一帧肉眼看上去还是那个字」调的 —— 太稀就会一交接就跳成虚点 */
+    density: 320, minDots: 900, maxDots: 3800,
+
+    /* 冲量：离点击点越近吃得越多。**这两个数决定「炸得有多猛」** */
+    impulseMin: 7.5,          /* 最远处的初速（px/帧 @60fps） */
+    impulseMax: 18,           /* 点击点附近的初速 */
+    drag: 0.82,               /* 每帧保留多少速度 —— 飞多远 ≈ 初速/(1-drag)，所以它是「扩散半径」的旋钮 */
+    hold: 0.012,              /* 一点点「记着原位」的拉力：云团飞出去还隐约是字的形状，不是一盘散沙 */
+    squashY: 0.6,             /* 纵向压扁：墨雾是横向铺开的，不是球 */
+    gravity: 0.018,           /* 一点点下坠，落下来才有重量 */
+    detach: 90,               /* 脱开延迟上限（离点击点越近越先脱开，字形有个「散架」的过程） */
+    charFade: 150,            /* 字淡出成粒子的时长（和粒子的脱开同步，所以看起来是「墨自己飘走」） */
+
+    /* 时间线（ms，从点击算起） */
+    backAt: 1150,             /* 开始回收 */
+    /* 回收刚度（临界阻尼弹簧）：越大收得越干脆，越小越像「墨慢慢流回去」 */
+    spring: 0.10,
+    springDamp: 0.76,
+    springMax: 0.24,          /* 回收后期把刚度提上去，收尾更利落 */
+    snap: 0.8,                /* 离原位小于这个距离就算归位（px） */
+    holdMax: 1600,            /* 回收阶段最长等多久就强制交接 */
+    fade: 140,                /* 交还给 DOM 之后，残留粒子的淡出时长 */
+
+    /* 点击点那一圈扩散环：只用来交代「能量从哪来」。不想要就 ring: false */
+    ring: true, ringDur: 420, ringMax: 0.28
+  };
+
+  /* ======================== 工具 ======================== */
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  /* ======================== 1. 背景粒子（移植自正式页第 3 节，只留「静息态」） ========================
+     方案 A 全程不往这一层里塞任何东西 —— 这是和「现在这套」最大的区别之一：
+     炸开的时候背景还是那个背景，屏幕不会突然从留白变成一张网。 */
+  function initBg() {
+    const canvas = $('#fx-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, parts = [], raf = 0, last = 0, rt = 0;
+    let rgb = '18,184,134', line = '18,184,134';
+    const ptr = { x: -999, y: -999 };
+
+    function readColors() {
+      const cs = getComputedStyle(document.documentElement);
+      const p = cs.getPropertyValue('--particle').trim();
+      const l = cs.getPropertyValue('--link-line').trim();
+      if (p) rgb = p;
+      if (l) line = l;
+    }
+
+    function seed() {
+      const n = clamp(Math.round((W * H) / 26000), 24, 84);
+      parts = [];
+      for (let i = 0; i < n; i++) {
+        const soft = i % 7 === 0;
+        parts.push({
+          x: Math.random() * W, y: Math.random() * H,
+          vx: (Math.random() - .5) * .16, vy: (Math.random() - .5) * .16 - .04,
+          r: soft ? 18 + Math.random() * 26 : .6 + Math.random() * 1.5,
+          a: soft ? .10 + Math.random() * .10 : .18 + Math.random() * .34,
+          soft: soft, ph: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function resize() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.max(1, Math.floor(W * dpr));
+      canvas.height = Math.max(1, Math.floor(H * dpr));
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seed();
+    }
+
+    function draw(now) {
+      ctx.clearRect(0, 0, W, H);
+      const MAXD = parts.length > 260 ? 104 : 116, MAXD2 = MAXD * MAXD;
+      const LINK_A = [0.02, 0.06, 0.10, 0.14];
+      const paths = [[], [], [], []];
+      for (let i = 0; i < parts.length; i++) {
+        const a = parts[i];
+        if (a.soft) continue;
+        for (let j = i + 1; j < parts.length; j++) {
+          const b = parts[j];
+          if (b.soft) continue;
+          const dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+          if (d2 < MAXD2) {
+            const al = (1 - d2 / MAXD2) * 0.16;
+            paths[al > .12 ? 3 : (al > .08 ? 2 : (al > .04 ? 1 : 0))].push(a.x, a.y, b.x, b.y);
+          }
+        }
+      }
+      ctx.lineWidth = 1;
+      for (let lv = 0; lv < 4; lv++) {
+        const seg = paths[lv];
+        if (!seg.length) continue;
+        ctx.strokeStyle = 'rgba(' + line + ',' + LINK_A[lv] + ')';
+        ctx.beginPath();
+        for (let i = 0; i < seg.length; i += 4) {
+          ctx.moveTo(seg[i], seg[i + 1]); ctx.lineTo(seg[i + 2], seg[i + 3]);
+        }
+        ctx.stroke();
+      }
+      /* 光标磁铁：附近的粒子连到光标上 */
+      const R = 168, R2 = R * R;
+      const pp = [[], [], [], []];
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        if (p.soft) continue;
+        const dx = p.x - ptr.x, dy = p.y - ptr.y, d2 = dx * dx + dy * dy;
+        if (d2 < R2) {
+          const k = (1 - Math.sqrt(d2) / R) * 0.34;
+          pp[k > .24 ? 3 : (k > .16 ? 2 : (k > .08 ? 1 : 0))].push(p.x, p.y);
+        }
+      }
+      for (let lv = 0; lv < 4; lv++) {
+        const pts = pp[lv];
+        if (!pts.length) continue;
+        ctx.strokeStyle = 'rgba(' + line + ',' + [0.05, 0.12, 0.2, 0.3][lv] + ')';
+        ctx.beginPath();
+        for (let i = 0; i < pts.length; i += 2) { ctx.moveTo(ptr.x, ptr.y); ctx.lineTo(pts[i], pts[i + 1]); }
+        ctx.stroke();
+      }
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        if (p.soft) {
+          const a = p.a * (0.85 + 0.3 * Math.sin(now / 2600 + p.ph));
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+          g.addColorStop(0, 'rgba(' + rgb + ',' + a.toFixed(3) + ')');
+          g.addColorStop(1, 'rgba(' + rgb + ',0)');
+          ctx.fillStyle = g;
+        } else {
+          ctx.fillStyle = 'rgba(' + rgb + ',' + p.a.toFixed(3) + ')';
+        }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+      }
+    }
+
+    function step(now) {
+      raf = requestAnimationFrame(step);
+      /* dt 必须夹在 (0, 48] 之间：rAF 给的时间戳可能比 performance.now() 早一丁点，
+         不夹的话首帧 dt 是负的，k 也跟着变负，整帧物理会倒着走 */
+      let dt = now - last;
+      if (!(dt > 0)) dt = 16.7;
+      if (dt > 48) dt = 48;
+      last = now;
+      const k = dt / 16.67;
+      const R = 180, R2 = R * R;
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        const dx = p.x - ptr.x, dy = p.y - ptr.y, d2 = dx * dx + dy * dy;
+        if (d2 < R2 && d2 > 1) {
+          const d = Math.sqrt(d2), f = (1 - d / R) * (p.soft ? .05 : .16) * k;
+          p.vx += (dx / d) * f; p.vy += (dy / d) * f;
+        }
+        p.vx *= .995; p.vy *= .995;
+        p.vx += (Math.random() - .5) * .0025 * k;
+        p.vy += (Math.random() - .5) * .0025 * k - .0008 * k;
+        const max = p.soft ? .22 : .6, sp = Math.hypot(p.vx, p.vy);
+        if (sp > max) { p.vx = p.vx / sp * max; p.vy = p.vy / sp * max; }
+        p.x += p.vx * k; p.y += p.vy * k;
+        if (p.x < -60) p.x = W + 60; else if (p.x > W + 60) p.x = -60;
+        if (p.y < -60) p.y = H + 60; else if (p.y > H + 60) p.y = -60;
+      }
+      draw(now);
+    }
+
+    window.addEventListener('pointermove', (e) => { ptr.x = e.clientX; ptr.y = e.clientY; }, { passive: true });
+    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); readColors(); }, 160); });
+    resize(); readColors();
+    requestAnimationFrame((t) => { last = t; step(t); });
+  }
+
+  /* ======================== 2. 紧凑系数 --k（移植自正式页） ======================== */
+  function fit() {
+    const panel = $('#home');
+    const sc = $('#home .panel-scroll');
+    if (!panel || !sc) return;
+    panel.style.setProperty('--k', '1');
+    let k = 1;
+    for (let i = 0; i < 8; i++) {
+      if (sc.scrollHeight <= sc.clientHeight + 1) break;
+      k = Math.max(0.64, k - 0.06);
+      panel.style.setProperty('--k', k.toFixed(2));
+      if (k <= 0.64) break;
+    }
+  }
+
+  /* ======================== 3. 方案 A：字形守恒 ======================== */
+  function initShatter() {
+    const h1 = $('#hero-title');
+    const cv = $('#ink-canvas');
+    if (!h1 || !cv) return;
+    const ctx = cv.getContext('2d');
+
+    /* ---- 把标题拆成逐字 span（和正式页同一套 .ch 结构，
+            所以字体、渐变、入场动画、--k 缩放全部复用） ---- */
+    const raw = (h1.dataset.text || h1.textContent || '').trim();
+    h1.dataset.text = raw;
+    h1.setAttribute('aria-label', raw);
+    const frag = document.createDocumentFragment();
+    Array.from(raw).forEach((c, i) => {
+      const s = document.createElement('span');
+      s.className = 'ch' + (i < 2 ? ' accent' : '');
+      s.textContent = c === ' ' ? '\u00A0' : c;
+      s.style.setProperty('--i', String(i));
+      s.setAttribute('aria-hidden', 'true');
+      frag.appendChild(s);
+    });
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    caret.setAttribute('aria-hidden', 'true');
+    frag.appendChild(caret);
+    h1.textContent = '';
+    h1.appendChild(frag);
+
+    /* ---- 画布 ---- */
+    let W = 0, H = 0, dpr = 1;
+    function resize() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = Math.max(1, Math.floor(W * dpr));
+      cv.height = Math.max(1, Math.floor(H * dpr));
+      cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    /* ---- 采样：把字形栅格化，取墨迹像素当粒子 ----
+       这一步是整个方案的地基：粒子起点不是「字框里随机一点」，
+       而是**笔画上真实有墨的那一像素**，并且带着那一像素的颜色。
+       所以「字 → 粒子」是真的，不是「字旁边凭空冒出一团灰」。 */
+    function inkPoints() {
+      const chars = $$('.ch', h1);
+      const cv2 = document.createElement('canvas');
+      const cx = cv2.getContext('2d', { willReadFrequently: true });
+      const rawPts = [];
+      const acc2 = cssVar('--accent-2'), acc = cssVar('--accent'), acc3 = cssVar('--accent-3');
+
+      for (let i = 0; i < chars.length; i++) {
+        const el = chars[i];
+        const txt = el.textContent;
+        if (!txt || txt === '\u00A0') continue;
+        const b = el.getBoundingClientRect();
+        if (b.width < 2 || b.height < 2) continue;
+        const cs = getComputedStyle(el);
+        const cw = Math.ceil(b.width), chh = Math.ceil(b.height);
+        cv2.width = Math.max(1, Math.ceil(cw * dpr));
+        cv2.height = Math.max(1, Math.ceil(chh * dpr));
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx.clearRect(0, 0, cw, chh);
+        cx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+        cx.textAlign = 'center';
+        cx.textBaseline = 'alphabetic';
+
+        /* 基线位置：行盒 = 半行距 + (ascent + descent)，和浏览器排版一致，
+           这样采样出来的墨迹和 DOM 里的字**重合**，交接才看不出接缝 */
+        const fm = cx.measureText(txt);
+        const fs = parseFloat(cs.fontSize) || 16;
+        const asc = fm.fontBoundingBoxAscent != null ? fm.fontBoundingBoxAscent : fs * 0.88;
+        const desc = fm.fontBoundingBoxDescent != null ? fm.fontBoundingBoxDescent : fs * 0.22;
+        const lh = parseFloat(cs.lineHeight) || (asc + desc);
+        const baseY = (lh - (asc + desc)) / 2 + asc;
+
+        if (el.classList.contains('accent')) {
+          /* 「未来」两字在正式页里是渐变文字（background-clip:text），
+             这里用同一组色标搭一条同角度的渐变，碎出来的墨就是绿的 */
+          const g = cx.createLinearGradient(0, chh, cw, 0);
+          if (acc2) g.addColorStop(0, acc2);
+          if (acc) g.addColorStop(.34, acc);
+          if (acc3) g.addColorStop(.66, acc3);
+          if (acc2) g.addColorStop(1, acc2);
+          cx.fillStyle = g;
+        } else {
+          cx.fillStyle = cs.color;
+        }
+        cx.fillText(txt, cw / 2, baseY);
+
+        const d = cx.getImageData(0, 0, cv2.width, cv2.height).data;
+        for (let y = 0; y < cv2.height; y += dpr) {
+          for (let x = 0; x < cv2.width; x += dpr) {
+            const idx = (y * cv2.width + x) * 4;
+            if (d[idx + 3] > 110) {
+              rawPts.push({
+                hx: b.left + x / dpr,
+                hy: b.top + y / dpr,
+                css: 'rgb(' + d[idx] + ',' + d[idx + 1] + ',' + d[idx + 2] + ')'
+              });
+            }
+          }
+        }
+      }
+
+      /* 抽稀到目标数量：**随机**抽（不是等距抽），字形里墨多的地方粒子自然就多 */
+      const want = clamp(Math.round(W * H / CFG.density), CFG.minDots, CFG.maxDots);
+      const out = [];
+      if (!rawPts.length) return out;
+      for (let i = 0; i < want; i++) {
+        const p = rawPts[(Math.random() * rawPts.length) | 0];
+        out.push({
+          x: p.hx, y: p.hy, hx: p.hx, hy: p.hy, css: p.css,
+          vx: 0, vy: 0, r: 0.5 + Math.random() * 0.5,
+          a: 0.8 + Math.random() * 0.2,
+          delay: 0, home: false
+        });
+      }
+      return out;
+    }
+
+    /* ---- 状态 ---- */
+    let parts = [], rings = [];
+    let raf = 0, last = 0, t0 = 0, jump = 0;
+    let phase = 'idle';            /* idle | burst | back | fade */
+    let fadeT0 = 0, backT0 = 0, ringColor = '18,184,134';
+    const ptr = { x: -999, y: -999 };
+    let autoTimer = 0;
+
+    const labN = $('#lab-n'), labS = $('#lab-state');
+    function say(s) { if (labS) labS.textContent = s; }
+
+    /* ---- 字的淡出 / 淡入 ----
+       碎开那一帧粒子已经**正落在墨迹上**，所以让字自己淡出去（而不是啪一下消失）：
+       看起来就是「笔画上的墨自己飘起来」。聚回时反过来交叉淡化。
+       用 WAAPI（element.animate）而不是 CSS 类：它的优先级高于 CSS 动画，
+       不会被 .is-in 的 ch-in 动画的 fill 状态顶掉，也不用写 !important。 */
+    let charFades = [];
+    function cancelCharFades() {
+      for (let i = 0; i < charFades.length; i++) charFades[i].cancel();
+      charFades = [];
+    }
+    function fadeCharsOut(delays) {
+      cancelCharFades();
+      const cs = $$('.ch', h1);
+      for (let i = 0; i < cs.length; i++) {
+        charFades.push(cs[i].animate(
+          [{ opacity: 1 }, { opacity: 0 }],
+          { duration: CFG.charFade, delay: delays[i] || 0, fill: 'forwards', easing: 'linear' }
+        ));
+      }
+    }
+    function fadeCharsIn() {
+      cancelCharFades();
+      const cs = $$('.ch', h1);
+      for (let i = 0; i < cs.length; i++) {
+        const a = cs[i].animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: CFG.fade, fill: 'forwards', easing: 'linear' }
+        );
+        a.onfinish = () => { h1.classList.add('is-here'); a.cancel(); };
+        charFades.push(a);
+      }
+    }
+
+    /* ---- 触发：碎开 ---- */
+    function burst(x, y) {
+      if (reduce) { replay(); return; }
+      resize();
+      parts = inkPoints();
+      if (!parts.length) return;
+
+      const box = h1.getBoundingClientRect();
+      const cx0 = (x == null) ? box.left + box.width * 0.18 : x;
+      const cy0 = (y == null) ? box.top + box.height / 2 : y;
+      const reach = Math.max(120, Math.min(box.width, W) * 0.62);
+      let maxD = 1;
+      for (let i = 0; i < parts.length; i++) {
+        const d = Math.hypot(parts[i].hx - cx0, parts[i].hy - cy0);
+        parts[i]._d = d;
+        if (d > maxD) maxD = d;
+      }
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        const d = Math.max(6, p._d);
+        const ux = (p.hx - cx0) / d, uy = (p.hy - cy0) / d;
+        const near = 1 - Math.min(1, d / reach);                   /* 离点击点越近，吃得越多 */
+        const sp = CFG.impulseMin + (CFG.impulseMax - CFG.impulseMin) * near;
+        p.vx = ux * sp + (Math.random() - .5) * 1.4;
+        p.vy = (uy * sp - 1.1 - Math.random() * 1.1) * CFG.squashY;  /* 略微向上 */
+        p.delay = CFG.detach * (d / maxD);                          /* 近的先脱开 */
+        p.home = false;
+        delete p._d;
+      }
+      if (CFG.ring) {
+        ringColor = cssVar('--link-line');       /* 只在这里读一次，别每帧 getComputedStyle */
+        rings = [{ x: cx0, y: cy0, t: 0, max: Math.min(W, H) * CFG.ringMax }];
+      } else rings = [];
+
+      /* 先画一帧（粒子正落在墨迹上），再让 DOM 的字淡出去 ——
+         所以「字」和「粒子」之间既没有空档，也没有糊掉的过程，
+         同一位置同一颜色，看起来就是墨自己飘走 */
+      render(1);
+      h1.classList.remove('is-here');
+      fadeCharsOut($$('.ch', h1).map((el) => {
+        const b = el.getBoundingClientRect();
+        const d = Math.hypot(b.left + b.width / 2 - cx0, b.top + b.height / 2 - cy0);
+        return CFG.detach * (d / maxD) + 30;      /* 比它自己的墨点晚 30ms 走 */
+      }));
+      t0 = performance.now();
+      jump = 0; backT0 = 0; fadeT0 = 0;
+      phase = 'burst';
+      if (labN) labN.textContent = String(parts.length);
+      say('碎开');
+      start();
+    }
+
+    /* ---- 触发：立刻聚回来（散着的时候再点一下） ---- */
+    function recall() {
+      if (phase === 'burst') {
+        jump = CFG.backAt;                 /* 直接跳到回收阶段 */
+        phase = 'back';
+        backT0 = performance.now();
+        say('回收');
+      }
+    }
+
+    function replay() { h1.classList.add('is-in'); }
+
+    function start() {
+      if (raf) return;
+      last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+    function stop() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    }
+
+    /* ---- 主循环 ---- */
+    function loop(now) {
+      raf = requestAnimationFrame(loop);
+      /* 同 initBg：dt 必须夹在 (0, 48]，否则首帧 dt 为负会让环半径变成负数 */
+      let dt = now - last;
+      if (!(dt > 0)) dt = 16.7;
+      if (dt > 48) dt = 48;
+      last = now;
+      const k = dt / 16.67;
+      const t = Math.max(jump, now - t0);
+      for (let i = 0; i < rings.length; i++) rings[i].t += dt;
+
+      /* --- 阶段切换 --- */
+      if (phase === 'burst' && t >= CFG.backAt) { phase = 'back'; backT0 = now; say('回收'); }
+      if (phase === 'back') {
+        const bt = now - backT0;
+        /* 收尾加速：越拖越硬，保证它一定收得干净 */
+        const stiff = Math.min(CFG.springMax, CFG.spring + bt * 0.00035);
+        let left = 0;
+        for (let i = 0; i < parts.length; i++) {
+          const p = parts[i];
+          if (p.home) continue;
+          p.vx += (p.hx - p.x) * stiff * k;
+          p.vy += (p.hy - p.y) * stiff * k;
+          const damp = Math.pow(CFG.springDamp, k);
+          p.vx *= damp; p.vy *= damp;
+          p.x += p.vx * k; p.y += p.vy * k;
+          if (Math.hypot(p.hx - p.x, p.hy - p.y) < CFG.snap) {
+            p.x = p.hx; p.y = p.hy; p.vx = p.vy = 0; p.home = true;
+          } else left++;
+        }
+        if (left === 0 || bt > CFG.holdMax) {
+          /* 落位：粒子已经都在原位上了，让字淡进来、粒子同时淡出去（交叉淡化）——
+             两边位置一模一样，所以看不到交接 */
+          fadeCharsIn();
+          phase = 'fade'; fadeT0 = now;
+          say('落位');
+        }
+      } else if (phase === 'burst') {
+        const damp = Math.pow(CFG.drag, k);
+        for (let i = 0; i < parts.length; i++) {
+          const p = parts[i];
+          if (t < p.delay) { p.x = p.hx; p.y = p.hy; continue; }   /* 还没脱开：还长在字上 */
+          p.vx *= damp; p.vy *= damp;
+          p.vy += CFG.gravity * k;
+          /* 一点点回家的拉力：云团不会散成一盘沙，还隐约是字的形状（力平衡处就是扩散半径） */
+          p.vx += (p.hx - p.x) * CFG.hold * k;
+          p.vy += (p.hy - p.y) * CFG.hold * k;
+          /* 指针能把墨推开 —— 和整站「光标是块磁铁」的语言一致 */
+          const dx = p.x - ptr.x, dy = p.y - ptr.y, d2 = dx * dx + dy * dy;
+          if (d2 < 22500 && d2 > 1) {
+            const d = Math.sqrt(d2), f = (1 - d / 150) * 1.1 * k;
+            p.vx += dx / d * f; p.vy += dy / d * f;
+          }
+          p.x += p.vx * k; p.y += p.vy * k;
+        }
+      }
+
+      const fade = (phase === 'fade') ? Math.max(0, 1 - (now - fadeT0) / CFG.fade) : 1;
+      render(fade);
+
+      if (phase === 'fade' && fade <= 0) {
+        parts = []; rings = [];
+        ctx.clearRect(0, 0, W, H);
+        phase = 'idle';
+        say('待机');
+        stop();
+      }
+    }
+
+    /* ---- 画 ---- */
+    function render(alpha) {
+      ctx.clearRect(0, 0, W, H);
+
+      if (CFG.ring && rings.length) {
+        for (let i = rings.length - 1; i >= 0; i--) {
+          const r = rings[i];
+          const kk = r.t / CFG.ringDur;
+          if (kk >= 1) { rings.splice(i, 1); continue; }
+          const rad = Math.max(0, 4 + (r.max - 4) * (1 - Math.pow(1 - kk, 2.4)));
+          ctx.strokeStyle = 'rgba(' + ringColor + ',' + ((1 - kk) * 0.18).toFixed(3) + ')';
+          ctx.lineWidth = 1.3 * (1 - kk) + 0.35;
+          ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, 6.2832); ctx.stroke();
+        }
+      }
+
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        const a = p.a * alpha;
+        if (a <= 0.01) continue;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.css;
+        ctx.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /* ---- 事件 ---- */
+    h1.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (phase === 'burst' || phase === 'back') { recall(); return; }
+      burst(e.clientX, e.clientY);
+    });
+    h1.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); burst(); }
+    });
+    window.addEventListener('pointermove', (e) => { ptr.x = e.clientX; ptr.y = e.clientY; }, { passive: true });
+
+    let rt = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => { resize(); fit(); }, 160);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      if (e.key === ' ') { e.preventDefault(); if (e.target === h1) return; burst(); }   /* 聚焦在标题上时它自己处理过了 */
+      else if (e.key === 'l' || e.key === 'L') {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = 0; say('待机'); }
+        else { burst(); autoTimer = setInterval(burst, 3400); }
+      } else if (e.key === 't' || e.key === 'T') {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('portal-theme', next); } catch (err) {}
+      }
+    });
+
+    resize(); fit();
+    if (reduce) replay();
+    else requestAnimationFrame(() => requestAnimationFrame(() => h1.classList.add('is-in')));
+
+    /* 现场调参入口：控制台里改 __lab.CFG 立刻生效（下次触发就用新值）
+         __lab.CFG.impulseMax = 26        炸得更猛
+         __lab.CFG.hold = 0.004           云团散得更开
+         __lab.CFG.backAt = 2000          多飘一会儿再回收
+         __lab.CFG.fade = 400             回来时交叉淡化更慢
+         __lab.burst()                    立即来一遍（不传坐标就用标题左侧 18% 处） */
+    window.__lab = {
+      CFG: CFG,
+      burst: burst,
+      recall: recall,
+      state: () => ({ phase: phase, n: parts.length, left: parts.filter((p) => !p.home).length })
+    };
+  }
+
+  /* ======================== 启动 ======================== */
+  initBg();
+  initShatter();
+  window.addEventListener('resize', () => setTimeout(fit, 200));
+})();
+</script>
+</body>
+</html>

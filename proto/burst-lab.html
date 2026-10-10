@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>点击爆点 · 效果对比（旧 ｜ 新）</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0C1A14; color: #E8F3EC;
+    font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+
+  .bar { height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+    border-bottom: 1px solid rgba(255,255,255,.12); background: #0F231B; }
+  .bar h1 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: .01em; white-space: nowrap; }
+  .bar .hint { color: #8FAE9F; font-size: 12.5px; }
+  .bar .hint b { color: #4ED8A8; font-weight: 600; }
+  .bar .spacer { flex: 1; }
+  .bar a { color: #4ED8A8; text-decoration: none; font-size: 12px; white-space: nowrap;
+    border: 1px solid rgba(78,216,168,.42); padding: 4px 11px; border-radius: 999px; }
+  .bar a:hover { background: rgba(78,216,168,.12); }
+  .bar button { font: inherit; font-size: 12px; color: #4ED8A8; background: transparent; cursor: pointer;
+    border: 1px solid rgba(78,216,168,.42); padding: 4px 11px; border-radius: 999px; }
+  .bar button:hover { background: rgba(78,216,168,.12); }
+
+  .split { display: flex; height: calc(100% - 52px); }
+  .half { position: relative; flex: 1 1 50%; min-width: 0; }
+  .half + .half { border-left: 1px solid rgba(255,255,255,.14); }
+  .half iframe { display: block; width: 100%; height: 100%; border: 0; background: #F4F9F5; }
+
+  .tag { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 9;
+    pointer-events: none; padding: 4px 11px; border-radius: 999px; font-size: 12px;
+    white-space: nowrap; background: rgba(12, 26, 20, .74); color: #E8F3EC;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .tag.b { background: rgba(14, 159, 121, .88); }
+  .tag small { opacity: .72; }
+
+  .note { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; z-index: 9;
+    pointer-events: none; max-width: min(620px, 88%); padding: 9px 15px; border-radius: 12px;
+    font-size: 12.5px; line-height: 1.65; color: #D5E7DC;
+    background: rgba(12, 26, 20, .82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .note b { color: #4ED8A8; font-weight: 600; }
+  .note kbd { font: inherit; font-size: 11.5px; padding: 1px 5px; border-radius: 5px;
+    background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.16); }
+
+  @media (max-width: 900px) {
+    .split { flex-direction: column; }
+    .half + .half { border-left: 0; border-top: 1px solid rgba(255,255,255,.14); }
+    .bar .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="bar">
+    <h1>点击爆点 · 效果对比</h1>
+    <span class="hint">
+      左＝<b>旧</b>（一个巨大的 DOM 圆）　右＝<b>新</b>（整套画在画布上）
+      —— 两边各自点几下，<b>都可以连点</b>
+    </span>
+    <span class="spacer"></span>
+    <button id="sync" type="button">两边一起点一下</button>
+    <a href="../index.html" target="_blank" rel="noopener">打开正式页 ↗</a>
+  </header>
+
+  <div class="split">
+    <div class="half">
+      <span class="tag">旧 <small>· ?fx=classic</small></span>
+      <!-- 直接嵌正式页：左边跑的就是旧代码本身，不是「复刻版」 -->
+      <iframe id="old" src="../index.html?fx=classic" title="旧版爆点"></iframe>
+    </div>
+    <div class="half">
+      <span class="tag b">新 <small>· ?fx=new</small></span>
+      <!-- 右边钉死 ?fx=new：正式页默认是随机的，不钉住的话这一页就没法做对照了 -->
+      <iframe id="new" src="../index.html?fx=new" title="新版爆点"></iframe>
+    </div>
+  </div>
+
+  <p class="note">
+    <b>看什么：</b>旧的那边只有一根 1px 的细圈 + 十几个几乎看不见的小点，而且每次点击都会新建一个
+    <b>最大 2600×2600px 的 DOM 圆</b>（浏览器得为它准备一张很大的位图，再跟着缩放重新栅格化）。
+    新的整套（核心闪光 + 冲击波 + 火星拖尾）画在 <kbd>#fx-overlay</kbd> 上，一次点击就是几个圆、几条线。
+    <br>
+    <b>注意：</b>这一页两边都钉死了（左 <kbd>?fx=classic</kbd>、右 <kbd>?fx=new</kbd>），所以对照是确定的。
+    <b>正式页默认是 <kbd>?fx=random</kbd> —— 每次点击随机二选一。</b>
+    想只留一套就写 <kbd>?fx=new</kbd> 或 <kbd>?fx=classic</kbd>；
+    彻底不要随机，把 <kbd>site-data.js</kbd> 里的 <kbd>randomBurst</kbd> 改成 <kbd>false</kbd>。
+  </p>
+
+  <script>
+    /* 有些浏览器对 file:// 的 iframe 之间做不了跨文档操作，所以点不了就干脆不点，
+       两边各自点一下也完全一样。 */
+    document.getElementById('sync').addEventListener('click', function () {
+      ['old', 'new'].forEach(function (id) {
+        try {
+          var w = document.getElementById(id).contentWindow;
+          var ev = new PointerEvent('pointerdown', {
+            clientX: w.innerWidth * 0.5, clientY: w.innerHeight * 0.62,
+            bubbles: true, cancelable: true, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true
+          });
+          w.document.body.dispatchEvent(ev);
+        } catch (e) { /* file:// 下拿不到就忽略，手动点一样 */ }
+      });
+    });
+  </script>
+
+</body>
+</html>
