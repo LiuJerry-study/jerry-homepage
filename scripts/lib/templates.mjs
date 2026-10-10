@@ -98,9 +98,14 @@ function topbar(site, current, prefix) {
   </header>`;
 }
 
-function pageFooter(site, prefix) {
+/**
+ * @param {number} [year] 页脚年份。构建时传入"最新内容的年份"，让产物与运行时间无关
+ *   （否则 CI 里"产物与提交一致"这条检查跨年就会误报）。访客看到的真实年份由
+ *   assets/pages.js 在运行时覆盖，这里只是禁用 JS 时的兜底。
+ */
+function pageFooter(site, prefix, year) {
   return `<footer class="page-foot">
-    <span>© <span id="year">${new Date().getFullYear()}</span> · ${h(site.author || site.brand || '')}</span>
+    <span>© <span id="year">${year || new Date().getFullYear()}</span> · ${h(site.author || site.brand || '')}</span>
     <span class="dot" aria-hidden="true"></span>
     <a href="${prefix}index.html">返回首页</a>
     <span class="dot" aria-hidden="true"></span>
@@ -178,7 +183,7 @@ ${themeBootScript(site.randomTheme !== false)}
   <main class="page-main${o.narrow ? ' page-main--narrow' : ''}" id="main">
 ${o.body}
   </main>
-  ${pageFooter(site, prefix)}
+  ${pageFooter(site, prefix, o.year)}
   <script src="${prefix}assets/pages.js${asset}"></script>
 </body>
 </html>

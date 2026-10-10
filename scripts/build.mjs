@@ -258,6 +258,17 @@ const PROJECTS = ALL_PROJECTS.filter((p) => WITH_DRAFTS || !p.draft);
 
 /* ------------------------------------------------------------ 标签 */
 
+/* 最新内容日期。
+   sitemap 的 lastmod 与页脚年份都用它，**不用"今天"** ——
+   构建产物必须只由内容决定，否则 CI 里"产物与提交一致"这条检查隔一天就会误报。 */
+const CONTENT_DATES = [...POSTS, ...PROJECTS]
+  .map((p) => p.date)
+  .filter((d) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(d)))
+  .sort();
+const LATEST_DATE = CONTENT_DATES.length ? CONTENT_DATES[CONTENT_DATES.length - 1] : "1970-01-01";
+const SITE_YEAR = LATEST_DATE.slice(0, 4);
+
+
 const TAG_MAP = new Map();   // slug -> {name, posts:[], projects:[]}
 function collectTag(raw, item) {
   const name = String(raw || '').trim();
@@ -469,7 +480,7 @@ function buildPages() {
   head('4/7', '内容页');
 
   const shell = (o) => {
-    const html = pageShell({ site: SITE, asset: VERSION, ...o });
+    const html = pageShell({ site: SITE, asset: VERSION, year: SITE_YEAR, ...o });
     writeIfChanged(o.out, html);
     return Buffer.byteLength(html);
   };
@@ -691,17 +702,17 @@ const coverUrl = (cover) => `../assets/images/${String(cover).replace(/^\.?\/?im
 function buildSeo() {
   head('5/7', 'SEO 产物');
   const home = siteOrigin();
-  const today = new Date().toISOString().slice(0, 10);
+  const latest = LATEST_DATE;          /* 不用今天，见 CONTENT_DATES 的说明 */
 
   const urls = [
-    { loc: '', last: today, pri: '1.0' },
-    { loc: 'resume.html', last: today, pri: '0.8' },
-    { loc: 'blog/', last: POSTS[0] ? POSTS[0].date : today, pri: '0.9' },
-    { loc: 'projects/', last: PROJECTS[0] ? PROJECTS[0].date : today, pri: '0.9' },
-    ...(TAGS.length ? [{ loc: 'tags/', last: today, pri: '0.5' }] : []),
+    { loc: '', last: latest, pri: '1.0' },
+    { loc: 'resume.html', last: latest, pri: '0.8' },
+    { loc: 'blog/', last: POSTS[0] ? POSTS[0].date : latest, pri: '0.9' },
+    { loc: 'projects/', last: PROJECTS[0] ? PROJECTS[0].date : latest, pri: '0.9' },
+    ...(TAGS.length ? [{ loc: 'tags/', last: latest, pri: '0.5' }] : []),
     ...POSTS.filter((p) => !p.draft).map((p) => ({ loc: `blog/${p.slug}.html`, last: p.date, pri: '0.7' })),
     ...PROJECTS.filter((p) => !p.draft).map((p) => ({ loc: `projects/${p.slug}.html`, last: p.date, pri: '0.7' })),
-    ...TAGS.map((t) => ({ loc: `tags/${t.slug}.html`, last: today, pri: '0.4' })),
+    ...TAGS.map((t) => ({ loc: `tags/${t.slug}.html`, last: latest, pri: '0.4' })),
   ];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
