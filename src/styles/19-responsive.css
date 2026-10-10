@@ -1,0 +1,33 @@
+/* ---------- 19. 响应式 ---------- */
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 214px), 1fr)); }
+  .cmdk-open-txt { display: none; }
+}
+
+@media (max-width: 640px) {
+  :root { --pad-top: clamp(78px, 13vh, 104px); --pad-bot: clamp(74px, 12vh, 96px); }
+  .cmdk-open kbd { display: none; }        /* 手机上没地方按 Ctrl */
+  .cards, .cards.is-hero { grid-template-columns: 1fr; }
+  .cards.is-hero .card { flex-basis: 100%; }
+  .card { min-height: 0; }
+  .hero-cta .btn { flex: 1 1 auto; justify-content: center; }
+  .foot { font-size: 12px; gap: 9px; }
+  .kbd-hint { display: none; }
+  .toast { bottom: clamp(64px, 11vh, 88px); }
+  /* 触屏：圆点要按得到 */
+  .dots { right: 6px; gap: 6px; }
+  .dot { width: 40px; height: 22px; }
+  .dot::after { width: 8px; height: 8px; }
+  .dot.is-active::after { width: 22px; }
+  .stage-meter { left: 10px; padding: 6px 11px; font-size: 11px; }
+  .cmdk { padding-top: 10vh; }
+  .keys-grid { grid-template-columns: 1fr; }
+  .key-row .key-k { flex-basis: 108px; }
+}
+
+/* 窗口特别矮：把逐屏的留白收到底，尽量让一屏装得下 */
+@media (max-height: 620px) {
+  :root { --pad-top: 74px; --pad-bot: 56px; }
+  .hero-tip { display: none; }
+}
+

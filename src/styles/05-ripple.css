@@ -1,0 +1,18 @@
+/* ---------- 5. 点击涟漪（点哪儿，哪儿开花）----------
+   默认的爆点已经不在这里了：它整套画在 #fx-overlay 上（见 main.js 第 3 / 5 节）。
+   这条规则只服务于 ?fx=classic —— 留着是为了 proto/burst-lab.html 能做左右对照。 */
+.ripple {
+  position: fixed;
+  z-index: 3;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(.12);
+  background: radial-gradient(circle at center, var(--ripple-1) 0%, rgba(0, 0, 0, 0) 62%);
+  box-shadow: inset 0 0 0 1px var(--ripple-2);
+  animation: ripple-out 880ms var(--ease-out) forwards;
+}
+@keyframes ripple-out {
+  from { transform: translate(-50%, -50%) scale(.12); opacity: .95; }
+  to   { transform: translate(-50%, -50%) scale(1);   opacity: 0; }
+}
+

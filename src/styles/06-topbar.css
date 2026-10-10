@@ -1,0 +1,85 @@
+/* ---------- 6. 顶栏 ---------- */
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;      /* 顶栏左边没有品牌了，动作按钮靠右 */
+  gap: 16px;
+  padding: clamp(14px, 2.4vh, 22px) var(--gutter);
+  border-bottom: 1px solid transparent;
+  background: linear-gradient(180deg, var(--topbar-bg) 0%, transparent 100%);
+  /* 磁吸位移上限：顶栏贴着屏幕边，只许挪 5px（正文按钮是 9px）。
+     JS 那边还有一层「让开兄弟元素」的限位。 */
+  --mag: 5px;
+}
+
+.top-actions { display: inline-flex; align-items: center; gap: 12px; }
+/* 搜索 / 跳转按钮 */
+.cmdk-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12.5px;
+  letter-spacing: .02em;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: border-color .35s var(--ease), color .35s var(--ease),
+              background-color .35s var(--ease), box-shadow .35s var(--ease);
+}
+.cmdk-open svg { width: 15px; height: 15px; }
+.cmdk-open kbd { background: transparent; border-color: var(--border); }
+/* 磁吸位移（JS 写 --mtx/--mty，见 main.js 第 4 节） */
+.cmdk-open {
+  transform: translate3d(clamp(calc(-1 * var(--mag, 9px)), var(--mtx, 0px), var(--mag, 9px)),
+                         clamp(calc(-1 * var(--mag, 9px)), var(--mty, 0px), var(--mag, 9px)), 0);
+}
+.cmdk-open:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: 0 10px 24px -16px var(--accent-glow);
+}
+
+.icon-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transform: translate3d(clamp(calc(-1 * var(--mag, 9px)), var(--mtx, 0px), var(--mag, 9px)),
+                         clamp(calc(-1 * var(--mag, 9px)), var(--mty, 0px), var(--mag, 9px)), 0);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: transform .4s var(--ease), background-color .4s var(--ease),
+              border-color .4s var(--ease), color .4s var(--ease), box-shadow .4s var(--ease);
+}
+.icon-btn:hover {
+  transform: translate3d(clamp(calc(-1 * var(--mag, 9px)), var(--mtx, 0px), var(--mag, 9px)),
+                         clamp(calc(-1 * var(--mag, 9px)), calc(var(--mty, 0px) - 2px), var(--mag, 9px)), 0);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: 0 10px 24px -14px var(--accent-glow);
+}
+.icon-btn svg {
+  position: absolute;
+  width: 17px;
+  height: 17px;
+  transition: opacity .4s var(--ease), transform .55s var(--ease);
+}
+html[data-theme="light"] .ico-moon { opacity: 0; transform: rotate(-50deg) scale(.6); }
+html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(.6); }
+

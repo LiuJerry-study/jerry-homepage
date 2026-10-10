@@ -1,0 +1,60 @@
+/* ---------- 7. 舞台与面板（一屏一页的根） ---------- */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  /* 拖拽翻屏时，这一屏跟手位移的量（JS 写）；翻屏时它会被转场动画接管 */
+  --drag-y: 0px;
+  /* 每一屏自己的「紧凑系数」：装不下就整体收紧一档，由 JS 逐屏算（1 → 0.64） */
+}
+
+.panel {
+  --k: 1;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, var(--drag-y, 0px), 0);
+}
+.panel.is-active { opacity: 1; visibility: visible; }
+
+/* 一屏之内的滚动容器：内容排得下就居中，排不下才在**这一屏内部**滚（文档仍然不动） */
+.panel-scroll {
+  width: 100%;
+  min-height: 0;          /* 允许被压到容器高度以内 —— 否则 flex 不肯缩，内容只会被裁掉 */
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hi) transparent;
+  padding: calc(var(--pad-top) * var(--k)) var(--gutter) calc(var(--pad-bot) * var(--k));
+  /* 触屏：屏内可滚时把纵向手势让给浏览器；排得下时交给拖拽翻屏 */
+  touch-action: pan-y;
+}
+.panel:not(.is-scrollable) .panel-scroll { overflow: hidden; touch-action: none; }
+.panel-scroll::-webkit-scrollbar { width: 8px; }
+.panel-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 99px;
+  background-clip: content-box;
+  background-color: var(--border-hi);
+}
+/* 屏内还能往下滚时，底边给一点渐隐提示 */
+.panel.is-scrollable .panel-scroll {
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+}
+
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; }
+.wrap-narrow { max-width: var(--maxw-narrow); }
+
+/* 拖拽跟手时不要有过渡，松手才回弹 */
+.stage.is-dragging .panel.is-active { transition: none; }
+.stage:not(.is-dragging) .panel { transition: transform .5s var(--ease-out); }
+

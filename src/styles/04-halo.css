@@ -1,0 +1,24 @@
+/* ---------- 4. 光标跟随光晕 ---------- */
+.halo {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 540px;
+  height: 540px;
+  z-index: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  filter: blur(16px);
+  background: radial-gradient(circle at center, var(--halo-1) 0%, var(--halo-2) 36%, transparent 68%);
+  transition: opacity .7s var(--ease), scale .6s var(--ease), filter .6s var(--ease);
+  will-change: transform;
+}
+body.has-pointer .halo { opacity: .92; }
+body.has-pointer.is-hot .halo { opacity: 1; scale: 1.14; }
+body.has-pointer.is-press .halo { scale: .84; filter: blur(10px); }
+body.no-fx .halo { display: none; }
+/* 每屏换一点色相：同一套绿，但看得出「换地方了」 */
+body[data-page="home"]   .halo { filter: blur(16px) hue-rotate(-14deg) saturate(1.08); }
+body[data-page="about"]  .halo { filter: blur(18px) hue-rotate(16deg) saturate(.96); }
+

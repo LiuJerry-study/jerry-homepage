@@ -1530,3 +1530,15 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   .blob { animation: none !important; }
   [data-reveal] { opacity: 1; transform: none; filter: none; }
 }
+/* ---------- 21. 长页面（博客 / 项目 / 简历）----------
+   舞台页（index.html）把 html/body 锁死成 height:100% + overflow:hidden，
+   那是「一屏一页」的根本。长页面不能继承这套锁，所以在 <html> 上换一个 data-layout，
+   在这里把锁解开 —— 只作用于 data-layout="page"，舞台页一点不受影响。
+   -------------------------------------------------------------------------- */
+
+html[data-layout="page"],
+html[data-layout="page"] body {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}

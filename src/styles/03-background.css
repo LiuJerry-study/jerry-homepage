@@ -1,0 +1,102 @@
+/* ---------- 3. 背景层：色洗 / 粒子 / 光斑 / 颗粒 ---------- */
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-image:
+    radial-gradient(120% 78% at 50% -12%, var(--wash-1) 0%, transparent 62%),
+    radial-gradient(86% 58% at 102% -4%, var(--wash-2) 0%, transparent 58%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+}
+
+/* 「搅动色场」：一团跟着指针走的色洗（位置由 JS 写的 --poi-x/--poi-y 决定）。
+   注意这里用 translate 挪整块，而不是把渐变里的 at 位置改掉 ——
+   改渐变位置等于每帧把这一整屏重新上一次色（实测指针一动，样式重算就从 ~250ms/3s
+   涨到 ~770ms/3s），挪一层只是合成器换个位置，不再重绘。 */
+.wash {
+  position: absolute;
+  inset: -20%;
+  opacity: .8;
+  will-change: transform;
+  background: radial-gradient(46% 40% at 50% 50%, var(--wash-2) 0%, transparent 68%);
+  translate: calc(var(--poi-x, 0) * 26%) calc(var(--poi-y, 0) * 26%);
+  transition: opacity .6s var(--ease);
+}
+body.is-hot .wash { opacity: 1; }
+
+#fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .9;
+}
+
+/* 爆点层：和 .bg 里的粒子画布分开，因为它在内容**之上**（和以前的 .ripple 同层）。
+   分开之后：粒子该在卡片后面就在后面，爆炸该盖在内容上就盖在内容上。 */
+#fx-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* 这里**不要**写 body.no-fx #fx-overlay { display: none }。
+   no-fx 是「触屏 or 减弱动效」共用的一个 class（见 main.js 的 initPointer / boot），
+   而触屏时动画循环是照常在跑的 —— 一旦把这一层藏起来，
+   随机掷到「新爆点」的那些点击就画到了一块看不见的画布上：
+   看着就像「新爆点永远不出现，只有旧的那套」。
+   减弱动效时循环本来就不跑，这一层自然不会画上东西，用不着藏。 */
+
+/* 光斑：transform 交给 CSS 动画（呼吸漂浮），translate 交给 JS（跟指针 + 每屏氛围） */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: .5;
+  will-change: transform, translate;
+}
+.blob-a {
+  width: 42vw; height: 42vw; left: -8vw; top: 6vh;
+  background: radial-gradient(circle at 40% 40%, var(--wash-2), transparent 68%);
+  translate: calc(var(--poi-x, 0) * 34px + var(--mood-ax, 0px))
+             calc(var(--poi-y, 0) * 30px + var(--mood-ay, 0px));
+  animation: float-a 26s var(--ease) infinite;
+}
+.blob-b {
+  width: 34vw; height: 34vw; right: -6vw; top: 34vh;
+  background: radial-gradient(circle at 60% 40%, var(--wash-1), transparent 66%);
+  translate: calc(var(--poi-x, 0) * -26px + var(--mood-bx, 0px))
+             calc(var(--poi-y, 0) * -22px + var(--mood-by, 0px));
+  animation: float-b 32s var(--ease) infinite;
+}
+@keyframes float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4vw, 5vh, 0) scale(1.09); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); }
+  50%      { transform: translate3d(-5vw, -4vh, 0) scale(.94); }
+}
+
+/* 每屏的氛围：换屏时两团光斑挪个位置，色场跟着变（配合 JS 写的 data-page） */
+body[data-page="home"]   { --mood-ax: 5vw;  --mood-ay: 8vh;  --mood-bx: -6vw; --mood-by: -14vh; }
+body[data-page="about"]  { --mood-ax: -6vw; --mood-ay: -6vh; --mood-bx: 7vw;  --mood-by: 6vh; }
+.blob { transition: translate 1.1s var(--ease-out); }
+
+/* 颗粒质感。之前是 inset:-50%（= 200%×200%，四倍视口面积）——
+   可这里 background-repeat:repeat，图案本来就会铺满，多出来的那三倍面积看不见，
+   只是让合成器每帧多混合三倍像素（底下那层粒子还在一直动）。改成 inset:0，样子不变。 */
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: var(--noise-op);
+  mix-blend-mode: var(--noise-blend);
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+

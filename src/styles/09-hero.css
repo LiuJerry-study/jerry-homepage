@@ -1,0 +1,152 @@
+/* ---------- 9. 首屏 ---------- */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: calc(22px * var(--k));
+  font-size: 11.5px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.eyebrow .pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.eyebrow .sep { width: 22px; height: 1px; background: var(--border-hi); }
+
+.hero-title {
+  font-size: calc(clamp(2.1rem, min(7.4vw, 11.4vh), 5.6rem) * var(--k));
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: .022em;
+  margin-bottom: calc(24px * var(--k));
+  cursor: pointer;                /* 点一下：整行字散成粒子。大字本身不动，也拖不动 */
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
+}
+/* 首页就是导航了：标题还是主角，但收一档，把版面让给卡片墙。
+   下面没有副标题了，标题自己留出到卡片墙的距离。 */
+.hero-title.is-lead {
+  font-size: calc(clamp(2.1rem, min(5.8vw, 8.8vh), 4.2rem) * var(--k));
+  margin-bottom: calc(46px * var(--k));
+}
+.hero-title:active { cursor: pointer; }
+.hero-title .ch {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(.42em) rotate(1.5deg) scale(.97);
+  filter: blur(9px);
+  will-change: transform, opacity, filter;
+}
+.hero-title.is-in .ch {
+  animation: ch-in .95s var(--ease-out) both;
+  animation-delay: calc(var(--i) * 68ms);
+}
+@keyframes ch-in {
+  from { opacity: 0; transform: translateY(.42em) rotate(1.5deg) scale(.97); filter: blur(9px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.hero-title .ch.accent {
+  background-image: linear-gradient(100deg,
+      var(--accent-2) 0%, var(--accent) 34%, var(--accent-3) 66%, var(--accent-2) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.hero-title.is-in .ch.accent {
+  animation: ch-in .95s var(--ease-out) both, sweep 9s linear infinite;
+  animation-delay: calc(var(--i) * 68ms), 0s;
+}
+@keyframes sweep {
+  from { background-position: 0% 50%; }
+  to   { background-position: 200% 50%; }
+}
+.hero-title .caret {
+  display: inline-block;
+  width: .055em;
+  min-width: 3px;
+  height: .84em;
+  margin-left: .1em;
+  border-radius: 2px;
+  background: var(--accent);
+  vertical-align: -.04em;
+  opacity: 0;
+}
+.hero-title.is-in .caret {
+  animation: blink 1.15s steps(1, end) infinite;
+  animation-delay: .1s;
+}
+@keyframes blink {
+  0%, 58%   { opacity: 1; }
+  59%, 100% { opacity: 0; }
+}
+
+/* 点一下：每个字朝外炸开、化成一团粒子（粒子由 JS 撒进背景层，见 main.js 第 6 节）。
+   --ox/--oy/--os/--or 是 JS 按「这个字的离心方向」现算的，--o 是它的起跑延迟（从左到右错开）。
+   消散和「逐字浮现」共用同一批 .ch，所以重聚 = 把 ch-in 再放一遍。 */
+.hero-title.is-gone .ch,
+.hero-title.is-gone .ch.accent {
+  animation: ch-out .78s var(--ease-out) both;
+  animation-delay: calc(var(--o, 0) * 1ms);
+}
+@keyframes ch-out {
+  0%   { opacity: 1; transform: none; filter: blur(0); }
+  30%  { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--ox, 0px), var(--oy, 0px), 0)
+               rotate(var(--or, 0deg)) scale(var(--os, 1.14));
+    filter: blur(10px);
+  }
+}
+.hero-title.is-gone .caret { opacity: 0; animation: none; }
+
+.hero-sub {
+  max-width: 34em;
+  margin-bottom: calc(34px * var(--k));
+  font-size: calc(clamp(1rem, 1.25vw, 1.12rem) * var(--k));
+  color: var(--muted);
+  letter-spacing: .01em;
+  text-wrap: balance;             /* 手机上别让最后一个字孤零零掉下去 */
+}
+
+/* 首屏内容居中：标题居中（卡片墙本身还是铺满整行） */
+.panel.hero .wrap { text-align: center; }
+.panel.hero .hero-sub { margin-left: auto; margin-right: auto; }   /* 只给 noscript 兜底那段用 */
+
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* 「试试」那一行：把藏起来的互动说清楚，不然没人会发现 */
+.hero-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: calc(26px * var(--k));
+  font-size: 12.5px;
+  letter-spacing: .02em;
+  color: var(--muted);
+}
+.hero-tip .tip-label {
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+}
+.hero-tip i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--border-hi);
+}
+.hero-tip kbd { margin-right: 2px; }
+

@@ -1,0 +1,25 @@
+/* ---------- 16. 提示条 ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(20px, 4vh, 44px);
+  z-index: 70;
+  max-width: min(90vw, 560px);
+  padding: 12px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface-hi);
+  box-shadow: var(--shadow-2);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink-2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 14px);
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+}
+.toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+

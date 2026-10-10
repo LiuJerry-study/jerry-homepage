@@ -1,0 +1,82 @@
+/* ---------- 2. 基础 ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* 版式的根：整站锁在一屏里，文档永远不滚。
+   要滚的只有「某一屏真的装不下」时那一屏内部（见第 7 节 .panel-scroll） */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: auto; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background-color .5s var(--ease), color .5s var(--ease);
+}
+
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; }
+button { font-family: inherit; }
+img, svg { display: block; }
+
+/* 能点、能拖的东西一律不可选中 —— 桌面上手一滑、手机上长按，就变成「选中文字 → 拽去搜索」，
+   而整站全是按钮和导航，没有一处需要选中。真正要复制的地方在下面单开（第 13 节详情正文）。 */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;    /* iOS 长按不弹「拷贝 / 查询」气泡 */
+}
+a, img, svg { -webkit-user-drag: none; }
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+
+::selection { background: var(--accent-soft); color: var(--ink); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.skip {
+  position: absolute;
+  left: 50%;
+  top: -60px;
+  transform: translateX(-50%);
+  z-index: 99;
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+  text-decoration: none;
+  transition: top .3s var(--ease);
+}
+.skip:focus { top: 14px; }
+

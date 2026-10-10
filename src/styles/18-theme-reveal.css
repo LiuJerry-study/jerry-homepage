@@ -1,0 +1,18 @@
+/* ---------- 18. 主题切换的圆形揭示 ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-old(root) { z-index: 1; }
+  ::view-transition-new(root) {
+    z-index: 2;
+    animation: vt-reveal .66s var(--ease-out) both;
+  }
+  @keyframes vt-reveal {
+    from { clip-path: circle(0% at var(--vt-x, 50vw) var(--vt-y, 10vh)); }
+    to   { clip-path: circle(150% at var(--vt-x, 50vw) var(--vt-y, 10vh)); }
+  }
+}
+

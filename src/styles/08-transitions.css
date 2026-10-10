@@ -1,0 +1,72 @@
+/* ---------- 8. 分屏转场（六套，方向由 .stage[data-dir] 决定） ---------- */
+.stage[data-dir="1"]  { --push: 7%;  --rot: 9deg;  --ct: 100%; --cb: 0%;   --zi: .93; --zo: 1.06; }
+.stage[data-dir="-1"] { --push: -7%; --rot: -9deg; --ct: 0%;   --cb: 100%; --zi: 1.07; --zo: .93; }
+
+.panel.is-in, .panel.is-out { will-change: transform, opacity, filter, clip-path; }
+
+/* 淡入 */
+.t-fade.is-in  { animation: p-fade-in  .6s var(--ease-out) both; }
+.t-fade.is-out { animation: p-fade-out .6s var(--ease) both; }
+@keyframes p-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes p-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* 推移 */
+.t-push.is-in  { animation: p-push-in  .66s var(--ease-out) both; }
+.t-push.is-out { animation: p-push-out .66s var(--ease-out) both; }
+@keyframes p-push-in {
+  from { opacity: 0; transform: translateY(var(--push)) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes p-push-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(calc(var(--push) * -1)) scale(.985); }
+}
+
+/* 翻卡 */
+.t-flip.is-in  { animation: p-flip-in  .72s var(--ease-out) both; }
+.t-flip.is-out { animation: p-flip-out .72s var(--ease-out) both; }
+@keyframes p-flip-in {
+  from { opacity: 0; transform: perspective(1500px) rotateX(calc(var(--rot) * -1)) translateY(var(--push)) scale(.97); }
+  to   { opacity: 1; transform: perspective(1500px) rotateX(0deg) translateY(0) scale(1); }
+}
+@keyframes p-flip-out {
+  from { opacity: 1; transform: perspective(1500px) rotateX(0deg) translateY(0) scale(1); }
+  to   { opacity: 0; transform: perspective(1500px) rotateX(var(--rot)) translateY(calc(var(--push) * -1)) scale(.97); }
+}
+
+/* 缩放 */
+.t-zoom.is-in  { animation: p-zoom-in  .64s var(--ease-out) both; }
+.t-zoom.is-out { animation: p-zoom-out .64s var(--ease-out) both; }
+@keyframes p-zoom-in {
+  from { opacity: 0; transform: scale(var(--zi)); filter: blur(5px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes p-zoom-out {
+  from { opacity: 1; transform: none; filter: blur(0); }
+  to   { opacity: 0; transform: scale(var(--zo)); filter: blur(5px); }
+}
+
+/* 虚化 */
+.t-blur.is-in  { animation: p-blur-in  .7s var(--ease-out) both; }
+.t-blur.is-out { animation: p-blur-out .7s var(--ease-out) both; }
+@keyframes p-blur-in {
+  from { opacity: 0; transform: scale(1.015); filter: blur(18px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes p-blur-out {
+  from { opacity: 1; transform: none; filter: blur(0); }
+  to   { opacity: 0; transform: scale(.99); filter: blur(14px); }
+}
+
+/* 擦除 */
+.t-wipe.is-in  { animation: p-wipe-in  .7s var(--ease-out) both; }
+.t-wipe.is-out { animation: p-wipe-out .7s var(--ease-out) both; }
+@keyframes p-wipe-in {
+  from { clip-path: inset(var(--ct) 0 var(--cb) 0); opacity: .35; }
+  to   { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+@keyframes p-wipe-out {
+  from { clip-path: inset(0 0 0 0); opacity: 1; }
+  to   { clip-path: inset(var(--cb) 0 var(--ct) 0); opacity: 0; }
+}
+

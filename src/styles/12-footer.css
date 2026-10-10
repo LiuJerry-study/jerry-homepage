@@ -1,0 +1,29 @@
+/* ---------- 12. 结尾 / 页脚 ---------- */
+.lede {
+  max-width: 30ch;
+  margin-bottom: calc(28px * var(--k));
+  font-size: calc(clamp(1.15rem, 2.3vw, 1.9rem) * var(--k));
+  line-height: 1.55;
+  letter-spacing: .01em;
+  color: var(--ink-2);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: calc(clamp(30px, 5.5vh, 64px) * var(--k));
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+.foot .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border-hi);
+}
+

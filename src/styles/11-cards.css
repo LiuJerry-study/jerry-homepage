@@ -1,0 +1,191 @@
+/* ---------- 11. 导航卡片 ---------- */
+.cards {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 226px), 1fr));
+  gap: calc(clamp(12px, 1.5vw, 20px) * var(--k));
+}
+/* 首屏就是导航：宽屏一行 4 张，7 张正好 4+3。
+   用 flex + max-width 而不是 grid —— 最后一行只有 3 张时能自动居中（grid 做不到），
+   而且明确列数不会像 auto-fit 那样在 1160 宽排成 5 列、7 张变成 5+2。 */
+.cards.is-hero {
+  --cgap: calc(clamp(12px, 1.5vw, 20px) * var(--k));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--cgap);
+}
+.cards.is-hero .card {
+  /* flex-basis 必须是这一档的实宽：basis 写 0 的话，浏览器换行时按 0 算，
+     7 张会挤成一行（max-width 只是上限，拦不住）。shrink 留着是防亚像素舍入。
+     最后一行不满时不会拉宽，靠 justify-content 居中。 */
+  flex: 0 1 calc((100% - 3 * var(--cgap)) / 4);
+  width: auto;
+  min-width: 0;
+  min-height: calc(clamp(165px, 20vh, 215px) * var(--k));
+}
+@media (max-width: 1000px) { .cards.is-hero .card { flex-basis: calc((100% - 2 * var(--cgap)) / 3); } }
+@media (max-width: 760px)  { .cards.is-hero .card { flex-basis: calc((100% - var(--cgap)) / 2); } }
+.cards.is-focus .card:not(.is-open) { opacity: .38; filter: blur(1.5px); }
+.card { transition: transform .55s var(--ease), box-shadow .55s var(--ease),
+                   border-color .55s var(--ease), background-color .55s var(--ease),
+                   opacity .35s var(--ease), filter .35s var(--ease); }
+
+.card {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: calc(clamp(140px, 17.5vh, 186px) * var(--k));
+  padding: calc(clamp(16px, 2.2vh, 22px) * var(--k)) calc(18px * var(--k)) calc(15px * var(--k));
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: var(--shadow-1);
+}
+.card.is-hot {
+  transform: translateY(-6px);
+  border-color: var(--border-hi);
+  background: var(--surface-hi);
+  box-shadow: var(--shadow-2);
+}
+.card.is-open { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-ring), var(--shadow-2); }
+
+.card .ring {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1px;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%),
+              var(--accent-ring), transparent 62%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  transition: opacity .45s var(--ease);
+}
+.card .spot {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%),
+              var(--accent-soft), transparent 70%);
+  transition: opacity .45s var(--ease);
+}
+.card.is-hot .ring,
+.card.is-hot .spot { opacity: 1; }
+
+.card-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(14px * var(--k));
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .22s ease-out;
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-icon {
+  display: grid;
+  place-items: center;
+  width: calc(40px * var(--k));
+  height: calc(40px * var(--k));
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--faint);
+  color: var(--accent-text);
+  transform: translateZ(24px);
+  transition: background-color .45s var(--ease), border-color .45s var(--ease),
+              color .45s var(--ease), transform .45s var(--ease);
+}
+.card-icon svg { width: 20px; height: 20px; }
+.card.is-hot .card-icon {
+  background: var(--accent-soft);
+  border-color: transparent;
+  transform: translateZ(34px) scale(1.04);
+}
+.card-num {
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: var(--muted);
+  transform: translateZ(14px);
+}
+
+.card-body { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.card-title {
+  font-size: calc(1.1rem * var(--k));
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+.card-desc {
+  font-size: calc(.87rem * var(--k));
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--faint);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.badge-live {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  letter-spacing: .04em;
+  color: var(--muted);
+  transition: color .4s var(--ease);
+}
+.card-go svg { width: 15px; height: 15px; transition: transform .4s var(--ease); }
+.card.is-hot .card-go { color: var(--accent-text); }
+.card.is-hot .card-go svg { transform: translate(2px, -2px); }
+
+.card-add {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  opacity: .72;
+}
+.card-add.is-hot { opacity: 1; }
+
+.noscript-list { margin: 18px 0 0; padding-left: 20px; color: var(--muted); }
+
