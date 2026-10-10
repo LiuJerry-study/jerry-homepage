@@ -22,7 +22,7 @@
      源文件拆开只为好读好改；产物仍是几个普通文件，构建过程零依赖、零配置。
    ========================================================================== */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync, rmSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -172,14 +172,14 @@ const RESUME = loadResume();
 let VERSION = 'dev';
 
 function buildAssets() {
-  head('1/5', '样式与脚本');
-  const css = concat('src/styles', STYLE_MANIFEST);
+  head('1/5', '样式与脚本');  const css = concat('src/styles', STYLE_MANIFEST);
   const js = concat('src/js', SCRIPT_MANIFEST);
   const pages = read('src/js/pages.js');
   VERSION = createHash('sha1').update(css + js + pages).digest('hex').slice(0, 8);
   ok(`assets/styles.css   ${kb(write('assets/styles.css', css))}`);
   ok(`assets/main.js      ${kb(write('assets/main.js', js))}`);
   ok(`assets/pages.js     ${kb(write('assets/pages.js', pages))}`);
+  ok(`资源版本 v${VERSION}（页面里的 ?v= 就是它）`);
 }
 
 /* ------------------------------------------------------- 2. 站点配置 */
@@ -445,7 +445,7 @@ ${POSTS.map((p) => `    <item>
       <title>${h(p.title)}</title>
       <link>${h(`${home}/blog/${p.slug}.html`)}</link>
       <guid isPermaLink="true">${h(`${home}/blog/${p.slug}.html`)}</guid>
-      <pubDate>${new Date(isoDate(p.date) + 'T00:00:00+08:00').toUTCString()}</pubDate>
+      <pubDate>${new Date((isoDate(p.date) || '1970-01-01') + 'T00:00:00+08:00').toUTCString()}</pubDate>
       <description>${h(p.excerpt)}</description>
     </item>`).join('\n')}
   </channel>
@@ -489,7 +489,7 @@ function buildHome() {
 
 /* ------------------------------------------------------------ 启动 */
 
-log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'} · v${VERSION})${C.reset}`);
+log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'})${C.reset}`);
 buildAssets();
 buildSiteData();
 

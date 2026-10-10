@@ -1,6 +1,12 @@
+# 依赖（这个项目本来就没有，写上是为了防止误装）
 node_modules/
+
+# 部署配置里含服务器地址，不进仓库
+deploy/deploy.env
+
+# 系统 / 编辑器杂项
 .DS_Store
 Thumbs.db
 *.log
-.build-cache/
-.serve/
+.idea/
+.vscode/

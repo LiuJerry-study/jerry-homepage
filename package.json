@@ -1,0 +1,19 @@
+{
+  "name": "personal-site",
+  "version": "2.0.0",
+  "private": true,
+  "description": "零依赖的个人门户：一屏一页的舞台 + 由 Markdown 生成的博客/项目/简历页",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "assets": "node scripts/build.mjs --assets",
+    "check": "node scripts/check.mjs",
+    "serve": "node scripts/serve.mjs",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

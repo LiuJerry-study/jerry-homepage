@@ -32,9 +32,11 @@ function inline(text) {
   s = escapeHtml(s);
 
   // 2) 图片 → 链接 → 粗体 → 斜体 → 删除线
-  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+  //    URL 里允许出现一层成对括号（维基百科那种 …/函数_(数学)），所以不能简单地遇到 ')' 就收
+  const URL_RE = '((?:[^()\\s]|\\([^()\\s]*\\))+)';
+  s = s.replace(new RegExp(`!\\[([^\\]]*)\\]\\(${URL_RE}(?:\\s+&quot;([^&]*)&quot;)?\\)`, 'g'),
     (_, alt, src, title) => `<img src="${src}" alt="${alt}"${title ? ` title="${title}"` : ''} loading="lazy" decoding="async">`);
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => `<a href="${href}">${label}</a>`);
+  s = s.replace(new RegExp(`\\[([^\\]]+)\\]\\(${URL_RE}\\)`, 'g'), (_, label, href) => `<a href="${href}">${label}</a>`);
   s = s.replace(/&lt;(https?:\/\/[^\s&]+)&gt;/g, (_, url) => `<a href="${url}">${url}</a>`);
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
