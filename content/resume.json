@@ -1,0 +1,50 @@
+{
+  "intro": "全栈开发者，喜欢把复杂问题拆成简单的东西。这里是我的一份简明版简历 —— 教育经历、技能栈、做过的事。详细的在博客和作品集里。",
+  "sections": [
+    {
+      "type": "skill",
+      "title": "技能栈",
+      "en": "Skills",
+      "items": [
+        { "name": "TypeScript / JavaScript", "level": "熟练" },
+        { "name": "React / Next.js", "level": "熟练" },
+        { "name": "Node.js", "level": "熟练" },
+        { "name": "CSS / 动效与 Canvas", "level": "熟练" },
+        { "name": "PostgreSQL / SQLite", "level": "了解" },
+        { "name": "Linux / Nginx 部署", "level": "了解" }
+      ]
+    },
+    {
+      "type": "timeline",
+      "title": "经历",
+      "en": "Experience",
+      "items": [
+        {
+          "role": "前端工程师",
+          "company": "某公司",
+          "period": "2024 — 至今",
+          "description": "负责前端架构与体验优化。改这一条请编辑 content/resume.json。"
+        },
+        {
+          "role": "全栈实习生",
+          "company": "某工作室",
+          "period": "2023 — 2024",
+          "description": "参与内部工具的开发与部署。"
+        }
+      ]
+    },
+    {
+      "type": "timeline",
+      "title": "教育背景",
+      "en": "Education",
+      "items": [
+        {
+          "role": "计算机相关专业",
+          "company": "某大学",
+          "period": "2021 — 2025",
+          "description": ""
+        }
+      ]
+    }
+  ]
+}

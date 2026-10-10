@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>静态博客生成器 · 个人门户</title>
+<meta name="description" content="把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://example.com/projects/static-blog-kit.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="静态博客生成器 · 个人门户">
+<meta property="og:description" content="把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。">
+<meta property="og:url" content="https://example.com/projects/static-blog-kit.html">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"静态博客生成器","description":"把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。","dateCreated":"2026-09-30","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/projects/static-blog-kit.html"}</script>
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="../assets/styles.css?v=0bcb42ab">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a" href="../blog/index.html">博客</a><a class="page-nav-a is-here" href="../projects/index.html" aria-current="page">项目</a><a class="page-nav-a" href="../resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main page-main--narrow" id="main">
+<article>
+      <header class="page-head">
+    <p class="eyebrow"><span class="mono">Work</span><span class="sep" aria-hidden="true"></span><span>2026-09-30</span></p>
+    <h1 class="page-title">静态博客生成器</h1>
+    <p class="page-lede">把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。</p>
+  </header>
+      <ul class="tag-list"><li>Node.js</li><li>Markdown</li></ul>
+      <div class="prose"><h2 id="为什么不用现成的">为什么不用现成的</h2>
+<p>现成的静态站点生成器（Hugo / Astro / Eleventy）都很好，但都要装工具链、
+学一套目录约定和模板语法。这个站点的内容量级很小，值得自己写一百多行，
+换来的好处是：</p>
+<ul><li>服务器上只要有 Node，<code>node scripts/build.mjs</code> 就能出站，不需要 <code>node_modules</code>；</li><li>没有版本升级问题——不会因为某个依赖三年不更新而构建失败；</li><li>出问题的地方都在自己能读懂的代码里。</li></ul>
+<h2 id="它做四件事">它做四件事</h2>
+<ol><li>把 <code>src/styles/*.css</code>、<code>src/js/*.js</code> 按清单拼成 <code>assets/styles.css</code>、<code>assets/main.js</code>；</li><li>把 <code>content/site.js</code> 拷成 <code>assets/site-data.js</code>，顺手把导航卡片里的花括号占位符换成真实数量（「3 篇」「2 个」「已上线」）；</li><li>把 <code>content/posts/*.md</code>、<code>content/projects/*.md</code> 渲染成页面，
+ 并生成列表页、上一篇/下一篇、<code>resume.html</code>；</li><li>写 <code>sitemap.xml</code>、<code>rss.xml</code>、<code>robots.txt</code>、<code>404.html</code>。</li></ol>
+<h2 id="自己写的-markdown-渲染器">自己写的 Markdown 渲染器</h2>
+<p>支持标题（带锚点）、粗斜体、删除线、行内代码、链接、图片、裸网址、
+有序/无序/嵌套列表、引用、围栏代码块（带高亮）、GFM 表格、分隔线。
+不做 CommonMark 全兼容——够写博客就行。</p>
+<p>安全上默认<strong>转义正文里的 HTML</strong>，不原样输出。</p>
+<p>代码高亮是构建期做的：扫一遍注释 / 字符串 / 数字 / 关键字 / 函数名，
+输出 <code>&lt;span class=&quot;tok-*&quot;&gt;</code>，配色仍然落在站点的墨绿灰阶里，不引入彩虹色。</p>
+<h2 id="输出的东西">输出的东西</h2>
+<figure class="code-block"><pre><code class="language-text">blog/index.html       文章列表
+blog/&lt;slug&gt;.html      文章详情（含 JSON-LD）
+projects/index.html   项目列表
+projects/&lt;slug&gt;.html  项目详情
+resume.html           简历
+404.html              找不到页面
+sitemap.xml  rss.xml  robots.txt</code></pre></figure></div>
+      <nav class="pager"><span></span><span class="pager-next"><a href="https://github.com/" rel="noopener">看源码 ↗</a><a href="index.html">← 全部作品</a></span></nav>
+    </article>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../rss.xml">RSS</a>
+  </footer>
+  <script src="../assets/pages.js?v=0bcb42ab"></script>
+</body>
+</html>

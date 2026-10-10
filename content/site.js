@@ -1,15 +1,34 @@
 /* ==========================================================================
-   个人门户 · 内容源（唯一需要改的文件）
+   个人门户 · 站点配置（首页唯一需要改的文件）
    --------------------------------------------------------------------------
-   加一个新站点 = 往 nav 里加一个对象，卡片自己会长出来。
-   href 留空 = 卡片显示「筹备中」，点一下从右侧滑进整屏详情页，不会跳到空页面。
-   href 填上 = 卡片自动变成可点的链接（站内页写 'resume.html'，外链写完整 https://）。
+   这里放「门户首页」要用的东西：主标语、开关、导航卡片。
+   博客文章、项目、简历分别放在 content/posts、content/projects、content/resume.json，
+   由 node scripts/build.mjs 生成 blog/ 、projects/ 、resume.html。
+
+   加一张卡片 = 往 nav 里加一个对象，卡片自己长出来。
+   href 留空 → 卡片显示「筹备中」，点一下从右侧滑进整屏详情页；
+   href 填上 → 卡片自动变成可点的真链接（站内页写 'blog/index.html'，外链写完整 https://）。
 
    每张卡片还可以带两样东西，都会被界面用上：
      tags    —— 关键字，命令面板（Ctrl/⌘+K）搜索时会被匹配到
      details —— 详情列表，悬停预览里露前两条，详情页里完整显示
+
+   三个占位符由构建脚本换成真实数量，手写时不用管：
+     {{posts}} → 「3 篇」   {{projects}} → 「2 个」   {{resume}} → 「已上线 / 筹备中」
    ========================================================================== */
 window.SITE = {
+  /* 站点身份：长页面的 <title>、OG、sitemap、RSS 都用它 */
+  brand: '个人门户',
+  author: 'Jerry',
+
+  /* 部署后改成你的真实域名（末尾不要带斜杠）。
+     sitemap.xml / rss.xml / canonical 里的绝对地址由它拼出来。
+     忘了改也能构建，只是会打印一条提醒，SEO 产物里的地址不对。 */
+  url: 'https://example.com',
+
+  /* 首页描述：分享卡片和搜索引擎用 */
+  description: '一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。',
+
   /* 主标语：首屏那一行大字，逐字浮现。点它 = 散成粒子（约两秒后重聚），按 R = 重播浮现 */
   tagline: '未来 由我们创造',
 
@@ -32,15 +51,14 @@ window.SITE = {
      网址上写 ?theme=light / ?theme=dark 永远优先。 */
   randomTheme: true,
 
-  /* 导航卡片（建议 4~8 个，太多就不「简约」了）
-     这份数组渲染成首屏那面卡片墙；往数组里加一条，卡片自己长出来。 */
+  /* 导航卡片（建议 4~8 个，太多就不「简约」了） */
   nav: [
     {
       title: '个人简历',
       desc: '教育经历 · 技能栈 · 项目经验',
       icon: 'resume',
-      href: '',            // 做好简历页之后改成 'resume.html'
-      badge: '筹备中',
+      href: 'resume.html',
+      badge: '{{resume}}',
       tags: ['简历', 'resume', 'cv', '教育', '技能', '项目'],
       details: [
         '教育经历：学校 / 专业 / 时间线',
@@ -53,8 +71,8 @@ window.SITE = {
       title: '博客',
       desc: '随笔 · 技术笔记 · 学习记录',
       icon: 'pen',
-      href: '',            // 例如 'blog/index.html'
-      badge: '筹备中',
+      href: 'blog/index.html',
+      badge: '{{posts}}',
       tags: ['博客', 'blog', '文章', '随笔', '笔记'],
       details: [
         '随笔：想到哪写到哪，先写起来',
@@ -67,8 +85,8 @@ window.SITE = {
       title: '作品集',
       desc: '做过的东西，都放在这里',
       icon: 'grid',
-      href: '',
-      badge: '筹备中',
+      href: 'projects/index.html',
+      badge: '{{projects}}',
       tags: ['作品', '作品集', '项目', 'portfolio', 'demo'],
       details: [
         '每个作品配一张图 + 一段人话说明',
@@ -95,7 +113,7 @@ window.SITE = {
       title: '关于我',
       desc: '我是谁，正在做什么',
       icon: 'user',
-      href: '',            // 站内锚点也行：'#about'
+      href: '',            // 想直接跳到第二屏就写 '#about'
       badge: '筹备中',
       tags: ['关于', 'about', '介绍', '我', '自我介绍'],
       details: [

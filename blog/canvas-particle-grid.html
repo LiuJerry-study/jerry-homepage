@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Canvas 粒子连线：把平方级的比较装进网格 · 个人门户</title>
+<meta name="description" content="320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://example.com/blog/canvas-particle-grid.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Canvas 粒子连线：把平方级的比较装进网格 · 个人门户">
+<meta property="og:description" content="320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。">
+<meta property="og:url" content="https://example.com/blog/canvas-particle-grid.html">
+<meta property="article:published_time" content="2026-09-18">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Canvas 粒子连线：把平方级的比较装进网格","description":"320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。","datePublished":"2026-09-18","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/blog/canvas-particle-grid.html"}</script>
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="../assets/styles.css?v=0bcb42ab">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a is-here" href="../blog/index.html" aria-current="page">博客</a><a class="page-nav-a" href="../projects/index.html">项目</a><a class="page-nav-a" href="../resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main page-main--narrow" id="main">
+<article>
+      <header class="page-head">
+    <p class="eyebrow"><span class="mono">Post</span><span class="sep" aria-hidden="true"></span><span>2026 年 9 月 18 日</span></p>
+    <h1 class="page-title">Canvas 粒子连线：把平方级的比较装进网格</h1>
+    
+  </header>
+      <ul class="tag-list"><li>Canvas</li><li>性能</li><li>粒子</li></ul>
+      <div class="prose"><p>首页背景那层粒子会互相连线。最早的写法很直接——每颗粒子和其余所有粒子比一次距离：</p>
+<figure class="code-block"><figcaption class="code-lang mono">js</figcaption><pre><code class="language-js"><span class="tok-kw">for</span> (<span class="tok-kw">let</span> i = <span class="tok-num">0</span>; i &lt; ps.length; i++) {
+  <span class="tok-kw">for</span> (<span class="tok-kw">let</span> j = i + <span class="tok-num">1</span>; j &lt; ps.length; j++) {
+    <span class="tok-kw">const</span> dx = ps[i].x - ps[j].x;
+    <span class="tok-kw">const</span> dy = ps[i].y - ps[j].y;
+    <span class="tok-kw">if</span> (dx * dx + dy * dy &lt; MAXD2) <span class="tok-fn">link</span>(ps[i], ps[j]);
+  }
+}</code></pre></figure>
+<p>320 颗就是 48828 次距离计算，每帧一次。线是画对了，但机器在白白发热。</p>
+<h2 id="网格分桶">网格分桶</h2>
+<p>连线的本质是&quot;谁离谁近&quot;。把屏幕切成边长等于连线半径的格子，每颗粒子只跟<strong>同格 + 邻格</strong>比：</p>
+<figure class="code-block"><figcaption class="code-lang mono">js</figcaption><pre><code class="language-js"><span class="tok-kw">const</span> cell = MAXD;                    <span class="tok-com">// 格子边长 = 连线半径</span>
+<span class="tok-kw">const</span> gx = Math.<span class="tok-fn">floor</span>(p.x / cell);
+<span class="tok-kw">const</span> gy = Math.<span class="tok-fn">floor</span>(p.y / cell);
+<span class="tok-kw">const</span> key = gx + <span class="tok-str">','</span> + gy;</code></pre></figure>
+<p>为什么不会漏？因为&quot;可能连上&quot;的两颗粒子，距离一定小于 <code>MAXD</code>，
+它们的格坐标最多差 1 —— 所以扫 3×3 邻域就够，一对都不会漏。</p>
+<p>同一份粒子数据、同一个半径，两种写法的连线结果完全一致，距离计算从 48828 次降到 3186 次。</p>
+<h2 id="顺带省掉的两笔">顺带省掉的两笔</h2>
+<div class="table-wrap"><table><thead><tr><th>事项</th><th>之前</th><th>现在</th></tr></thead><tbody><tr><td>小圆点绘制</td><td>一颗一次 <code>fill()</code>，约 297 次/帧</td><td>按「颜色 × 透明度档」攒成十几条路径，11 次/帧</td></tr><tr><td>柔和光斑</td><td>每帧新建渐变对象，12 个/帧</td><td>1 张预渲染的 96×96 贴图，缩放贴上</td></tr><tr><td>指针写样式</td><td>每帧 2 次，不管变没变</td><td>变了才写，且降到 30Hz</td></tr><tr><td>连线数组</td><td>每帧新建 4 个数组</td><td>复用，不产生垃圾</td></tr></tbody></table></div>
+<blockquote><p>这些数字都是量出来的，不是估的：连线那两行把两套算法喂同样的粒子数跑过，
+绘制调用数是用 <code>CanvasRenderingContext2D.prototype</code> 上的计数器在真实页面里数出来的。
+<strong>没量的是帧时间</strong>——无头软渲染环境里的噪声比差别还大，「到底还卡不卡」只能在自己机器上感受。</p></blockquote>
+<h2 id="什么时候不用管">什么时候不用管</h2>
+<p>粒子少于 100 颗、或者页面本来就是静态的，别做这套优化：多出来的代码比省下来的那点时间贵。</p></div>
+      <nav class="pager">
+    <a href="stage-layout-notes.html">← 入门笔记：一屏一页的版式是怎么锁住的</a>
+    <a class="pager-next" href="hello-static-site.html">把个人门户重构成一个静态站点 →</a>
+  </nav>
+    </article>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../rss.xml">RSS</a>
+  </footer>
+  <script src="../assets/pages.js?v=0bcb42ab"></script>
+</body>
+</html>

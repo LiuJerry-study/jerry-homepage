@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>个人门户 · 博客</title>
+<meta name="description" content="个人门户 的博客：随笔、技术笔记、学习记录。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://example.com/blog/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="个人门户 · 博客">
+<meta property="og:description" content="个人门户 的博客：随笔、技术笔记、学习记录。">
+<meta property="og:url" content="https://example.com/blog/">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="../assets/styles.css?v=0bcb42ab">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a is-here" href="../blog/index.html" aria-current="page">博客</a><a class="page-nav-a" href="../projects/index.html">项目</a><a class="page-nav-a" href="../resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main" id="main">
+<header class="page-head">
+    <p class="eyebrow"><span class="mono">Blog</span><span class="sep" aria-hidden="true"></span><span>博客</span></p>
+    <h1 class="page-title">博客</h1>
+    <p class="page-lede">随笔 · 技术笔记 · 学习记录。按时间倒序。</p>
+  </header>
+    <ul class="post-list"><li class="post-item">
+      <a class="post-link" href="hello-static-site.html">
+        <time class="post-date mono" datetime="2026-10-10">2026-10-10</time>
+        <div>
+          <h2 class="post-title">把个人门户重构成一个静态站点</h2>
+          <p class="post-excerpt">视觉一行没动，但整个站点换了骨架：源文件拆开、加了零依赖构建脚本，博客和项目终于有真页面了。</p>
+          <div class="post-tags"><ul class="tag-list"><li>前端</li><li>重构</li><li>静态站点</li></ul></div>
+        </div>
+      </a>
+    </li><li class="post-item">
+      <a class="post-link" href="canvas-particle-grid.html">
+        <time class="post-date mono" datetime="2026-09-18">2026-09-18</time>
+        <div>
+          <h2 class="post-title">Canvas 粒子连线：把平方级的比较装进网格</h2>
+          <p class="post-excerpt">320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。</p>
+          <div class="post-tags"><ul class="tag-list"><li>Canvas</li><li>性能</li><li>粒子</li></ul></div>
+        </div>
+      </a>
+    </li><li class="post-item">
+      <a class="post-link" href="stage-layout-notes.html">
+        <time class="post-date mono" datetime="2026-08-22">2026-08-22</time>
+        <div>
+          <h2 class="post-title">入门笔记：一屏一页的版式是怎么锁住的</h2>
+          <p class="post-excerpt">文档不滚、翻屏靠面板原地换——记一下这套版式的三条规则，以及什么时候该让它内部滚。</p>
+          <div class="post-tags"><ul class="tag-list"><li>CSS</li><li>版式</li><li>入门</li></ul></div>
+        </div>
+      </a>
+    </li></ul>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../rss.xml">RSS</a>
+  </footer>
+  <script src="../assets/pages.js?v=0bcb42ab"></script>
+</body>
+</html>

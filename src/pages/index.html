@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="stage">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>个人门户 · 简历 / 博客 / 作品集 / 笔记库</title>
+<meta name="description" content="一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="个人门户 · 简历 / 博客 / 作品集 / 笔记库">
+<meta property="og:description" content="一个极简的个人门户：简历、博客、作品集的入口。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234ED8A8'/%3E%3Cstop offset='1' stop-color='%230E9F79'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='32' r='9' fill='white' fill-opacity='.92'/%3E%3C/svg%3E">
+<script src="assets/site-data.js"></script>
+<script>
+  /* 主题要在首次绘制前定下来，否则会闪一下白。
+     优先级：网址上的 ?theme=light|dark ＞ 上次的选择 ＞ 随机（site-data.js 的 randomTheme）＞ 系统偏好
+     注意：site-data.js 就加载在上面那一行 —— 这里要读它的开关，所以两句的顺序不能反。 */
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') {
+          t = saved;
+        } else if (window.SITE && window.SITE.randomTheme) {
+          /* 随机亮 / 暗：只在「你还没自己选过」的时候掷这一次。
+             手动切过一次主题（按 T 或点右上角）之后就会记住，不再随机。 */
+          t = Math.random() < 0.5 ? 'light' : 'dark';
+        } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+          t = 'dark';
+        }
+      }
+    } catch (e) { /* 隐私模式或老浏览器：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+
+<!-- 一屏一页（逐屏）。页面本身锁死不滚 —— 翻屏靠内容原地换，见 assets/main.js 第 8 节 -->
+<body>
+
+  <a class="skip" href="#home">跳到导航</a>
+
+  <!-- 背景层：色洗 + 粒子 + 光斑 + 颗粒。会跟着指针「搅动」 -->
+  <div class="bg" id="bg" aria-hidden="true">
+    <span class="wash"></span>
+    <canvas id="fx-canvas"></canvas>
+    <span class="blob blob-a"></span>
+    <span class="blob blob-b"></span>
+    <span class="noise"></span>
+  </div>
+
+  <!-- 光标跟随光晕 -->
+  <div class="halo" id="halo" aria-hidden="true"></div>
+
+  <!-- 爆点层：爆炸画在这里（z-index 3，压在内容之上、和以前的 .ripple 同一层）。
+       以前每次点击都要新建一个最大 2600×2600px 的 DOM 圆，浏览器得为它分配一张巨大的
+       位图再逐帧重新栅格化；现在整场爆炸是同一张画布上的几个圆和几条线。 -->
+  <canvas id="fx-overlay" aria-hidden="true"></canvas>
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="top-actions">
+      <button class="cmdk-open magnetic" id="cmdk-open" type="button" aria-haspopup="dialog"
+              title="搜索 / 跳转">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.6"/><path d="M20.2 20.2 15.8 15.8"/>
+        </svg>
+        <span class="cmdk-open-txt">搜索 / 跳转</span>
+        <kbd class="mono">Ctrl K</kbd>
+      </button>
+      <button class="icon-btn theme-toggle magnetic" id="theme-toggle" type="button"
+              aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 右侧圆点：一屏一个，悬停出小节名，可点 -->
+  <nav class="dots" id="dots" aria-label="页面小节"></nav>
+
+  <!-- 舞台：两块面板叠在同一屏里，只有一块「在场」。
+       页面（文档）永远不滚动；某屏内容真的装不下时，只有那一屏内部滚。 -->
+  <main class="stage" id="stage" data-dir="1">
+
+    <!-- 01 · 首屏 = 导航
+         只有一句主标语 + 整墙入口卡片，没有别的铺垫。 -->
+    <section class="panel hero is-active" id="home" data-label="导航">
+      <div class="panel-scroll">
+        <div class="wrap">
+          <h1 class="hero-title is-lead" id="hero-title" data-text="未来 由我们创造"
+              title="点一下散成粒子"
+              tabindex="0">未来 由我们创造</h1>
+
+          <!-- 卡片由 assets/site-data.js 渲染：往 nav 里加一条，这里自己长出来 -->
+          <div class="cards is-hero" id="cards" data-reveal style="--d:240ms"></div>
+
+          <noscript>
+            <ul class="noscript-list">
+              <li>个人简历</li>
+              <li>博客</li>
+              <li>作品集</li>
+              <li>笔记库</li>
+              <li>关于我</li>
+              <li>联系</li>
+            </ul>
+            <p class="hero-sub">卡片列表需要 JavaScript 才能渲染 —— 请允许本站运行脚本。</p>
+          </noscript>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 · 关于 -->
+    <section class="panel about" id="about" data-label="关于">
+      <div class="panel-scroll">
+        <div class="wrap">
+          <p class="eyebrow" data-reveal style="--d:0ms">
+            <span class="mono">About</span>
+            <span class="sep" aria-hidden="true"></span>
+            <span>关于</span>
+          </p>
+
+          <p class="lede" data-reveal style="--d:100ms">
+            这里会放一小段自我介绍。<br>
+            现在它还是一张白纸 —— 白纸也挺好，什么都还来得及写上。
+          </p>
+
+          <div class="hero-cta" data-reveal style="--d:200ms">
+            <button class="btn btn-ghost magnetic" id="top-btn" type="button">
+              回到第一屏 <span class="btn-ico" aria-hidden="true">↑</span>
+            </button>
+            <button class="btn btn-ghost magnetic" id="keys-btn" type="button">
+              全部互动 <span class="btn-ico" aria-hidden="true">?</span>
+            </button>
+          </div>
+
+          <footer class="foot" data-reveal style="--d:290ms">
+            <span>© <span id="year">2026</span> · 未来 由我们创造</span>
+            <span class="dot" aria-hidden="true"></span>
+            <span class="mono" id="clock">--:--:--</span>
+            <span class="dot kbd-hint" aria-hidden="true"></span>
+            <span class="kbd-hint">按 <kbd>T</kbd> 换主题 · <kbd>R</kbd> 重播标题 · <kbd>?</kbd> 看全部快捷键</span>
+          </footer>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 左下角：第几屏 / 共几屏 + 这一屏用的转场 -->
+  <div class="stage-meter" id="meter" aria-hidden="true"></div>
+
+  <!-- 卡片详情：整屏滑进来的「新页面」（不是浮在卡片上的小面板）。
+       点卡片 → 从右侧滑入；返回按钮 / Esc / 向右滑 → 滑回去。
+       内容由 JS 填进 #item-body，底下的舞台一点没动，关掉就回到原来的样子。 -->
+  <section class="item-page" id="item-page" role="dialog" aria-modal="true" aria-label="详情页" hidden>
+    <span class="noise" aria-hidden="true"></span>
+    <div class="item-scroll">
+      <div class="wrap wrap-narrow">
+        <div class="item-bar">
+          <button class="btn btn-ghost" type="button" data-item-close>
+            <span class="btn-ico" aria-hidden="true">←</span> 返回导航
+          </button>
+          <span class="item-count mono" id="item-count"></span>
+        </div>
+        <div class="item-body" id="item-body"></div>
+      </div>
+    </div>
+  </section>
+  <!-- 悬停预览的小浮层 -->
+  <div class="card-peek" id="card-peek" aria-hidden="true" hidden></div>
+
+  <!-- 提示条 -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 命令面板（Ctrl / ⌘ + K） -->
+  <div class="cmdk" id="cmdk" role="dialog" aria-modal="true" aria-label="命令面板" hidden>
+    <div class="cmdk-veil" data-cmdk-close></div>
+    <div class="cmdk-box">
+      <div class="cmdk-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.6"/><path d="M20.2 20.2 15.8 15.8"/>
+        </svg>
+        <input class="cmdk-input" id="cmdk-input" type="text" role="combobox" aria-expanded="true"
+               aria-controls="cmdk-list" aria-autocomplete="list" autocomplete="off" spellcheck="false"
+               placeholder="搜索页面 / 卡片 / 动作 —— 试试「简历」「主题」「转场」">
+        <kbd class="cmdk-esc mono">Esc</kbd>
+      </div>
+      <div class="cmdk-list" id="cmdk-list" role="listbox" aria-label="结果"></div>
+      <div class="cmdk-foot mono">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 执行</span>
+        <span><kbd>Esc</kbd> 关闭</span>
+        <span class="cmdk-count" id="cmdk-count"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷键 / 互动一览（按 ?） -->
+  <div class="keys" id="keys" role="dialog" aria-modal="true" aria-label="快捷键与互动" hidden>
+    <div class="keys-veil" data-keys-close></div>
+    <div class="keys-box">
+      <header class="keys-head">
+        <h2>快捷键与互动</h2>
+        <button class="icon-btn" type="button" data-keys-close aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+      <div class="keys-grid" id="keys-grid"></div>
+      <p class="keys-foot">页面本身不会滚动 —— 翻屏是内容在原地换，转场每次随机。<br>
+        能点的文字都<strong>不可选中</strong>（免得手一滑变成「选中 → 拖去搜索」）；
+        要复制的话，详情页里的正文可以选中。</p>
+    </div>
+  </div>
+
+  <!-- 没有 JavaScript 时：退回普通的长页面，内容照样读得到 -->
+  <noscript>
+    <style>
+      html, body { height: auto; overflow: visible; }
+      .stage { position: static; }
+      .panel { position: static; opacity: 1; visibility: visible; min-height: 100vh; }
+      .panel-scroll { max-height: none; overflow: visible; }
+      [data-reveal] { opacity: 1; transform: none; filter: none; }
+      .dots, .stage-meter, .cmdk, .keys, .item-page, .card-peek, .top-actions { display: none !important; }
+    </style>
+  </noscript>
+
+  <script src="assets/main.js"></script>
+</body>
+</html>

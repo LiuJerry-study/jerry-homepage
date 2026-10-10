@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>入门笔记：一屏一页的版式是怎么锁住的 · 个人门户</title>
+<meta name="description" content="文档不滚、翻屏靠面板原地换——记一下这套版式的三条规则，以及什么时候该让它内部滚。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://example.com/blog/stage-layout-notes.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="入门笔记：一屏一页的版式是怎么锁住的 · 个人门户">
+<meta property="og:description" content="文档不滚、翻屏靠面板原地换——记一下这套版式的三条规则，以及什么时候该让它内部滚。">
+<meta property="og:url" content="https://example.com/blog/stage-layout-notes.html">
+<meta property="article:published_time" content="2026-08-22">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"入门笔记：一屏一页的版式是怎么锁住的","description":"文档不滚、翻屏靠面板原地换——记一下这套版式的三条规则，以及什么时候该让它内部滚。","datePublished":"2026-08-22","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/blog/stage-layout-notes.html"}</script>
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="../assets/styles.css?v=0bcb42ab">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a is-here" href="../blog/index.html" aria-current="page">博客</a><a class="page-nav-a" href="../projects/index.html">项目</a><a class="page-nav-a" href="../resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main page-main--narrow" id="main">
+<article>
+      <header class="page-head">
+    <p class="eyebrow"><span class="mono">Post</span><span class="sep" aria-hidden="true"></span><span>2026 年 8 月 22 日</span></p>
+    <h1 class="page-title">入门笔记：一屏一页的版式是怎么锁住的</h1>
+    
+  </header>
+      <ul class="tag-list"><li>CSS</li><li>版式</li><li>入门</li></ul>
+      <div class="prose"><h2 id="三条规则">三条规则</h2>
+<p><strong>第一条：文档锁死。</strong></p>
+<figure class="code-block"><figcaption class="code-lang mono">css</figcaption><pre><code class="language-css">html, body {
+  <span class="tok-attr">height</span>: 100%;
+  <span class="tok-attr">overflow</span>: hidden;
+  <span class="tok-attr">overscroll-behavior</span>: none;
+}</code></pre></figure>
+<p>从此 <code>window.scrollTo</code> 永远不会被调用，滚动条也永远不会出现。</p>
+<p><strong>第二条：面板叠在同一格里。</strong></p>
+<figure class="code-block"><figcaption class="code-lang mono">css</figcaption><pre><code class="language-css"><span class="tok-fn">.stage</span> { <span class="tok-attr">position</span>: fixed; <span class="tok-attr">inset</span>: 0; <span class="tok-attr">overflow</span>: hidden; }
+<span class="tok-fn">.panel</span> { <span class="tok-attr">position</span>: absolute; <span class="tok-attr">inset</span>: 0; <span class="tok-attr">visibility</span>: hidden; }
+<span class="tok-fn">.panel</span><span class="tok-fn">.is-active</span> { <span class="tok-attr">visibility</span>: visible; }</code></pre></figure>
+<p>翻屏 = 给走的那块加 <code>.is-out</code>、来的那块加 <code>.is-in</code>，动画结束把类摘掉。
+两块面板从头到尾都没离开过 DOM，所以返回时状态还在。</p>
+<p><strong>第三条：装不下先收紧，再屏内滚。</strong></p>
+<p>每块面板有一份紧凑系数 <code>--k</code>，从 1 往 0.64 一档一档退，字号、间距、卡片高度跟着缩。
+<code>--k</code> 到底还排不下，才让<strong>那一屏内部</strong>滚（<code>.panel-scroll</code>），文档仍然一动不动。</p>
+<h2 id="什么时候会踩坑">什么时候会踩坑</h2>
+<p>手机上单列卡片墙必然装不下，这时滑动留给屏内滚动，翻屏改用右侧圆点。</p>
+<p>还有一个容易忽略的点：<code>--k</code> 只在面板里定义。
+把它用在面板外（比如长页面）会让整条声明失效——</p>
+<figure class="code-block"><figcaption class="code-lang mono">css</figcaption><pre><code class="language-css"><span class="tok-com">/* 面板里：--k 有值，这条正常 */</span>
+<span class="tok-fn">.lede</span> { <span class="tok-attr">margin-bottom</span>: calc(28px * var(--k)); }</code></pre></figure>
+<figure class="code-block"><figcaption class="code-lang mono">css</figcaption><pre><code class="language-css"><span class="tok-com">/* 长页面上：--k 没定义 → 这条声明整条作废，垂直间距直接没了 */</span>
+html[data-layout=<span class="tok-str">"page"</span>] { <span class="tok-attr">--k</span>: 1; }   /* 显式补上 */</code></pre></figure>
+<p>不是变成 0，是<strong>整条被丢掉</strong>。这个区别在调试时很关键。</p></div>
+      <nav class="pager">
+    <span></span>
+    <a class="pager-next" href="canvas-particle-grid.html">Canvas 粒子连线：把平方级的比较装进网格 →</a>
+  </nav>
+    </article>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../rss.xml">RSS</a>
+  </footer>
+  <script src="../assets/pages.js?v=0bcb42ab"></script>
+</body>
+</html>

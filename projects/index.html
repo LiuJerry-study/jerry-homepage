@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>个人门户 · 作品集</title>
+<meta name="description" content="个人门户 的作品集：做过的项目与技术栈。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://example.com/projects/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="个人门户 · 作品集">
+<meta property="og:description" content="个人门户 的作品集：做过的项目与技术栈。">
+<meta property="og:url" content="https://example.com/projects/">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="../assets/styles.css?v=0bcb42ab">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a" href="../blog/index.html">博客</a><a class="page-nav-a is-here" href="../projects/index.html" aria-current="page">项目</a><a class="page-nav-a" href="../resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main" id="main">
+<header class="page-head">
+    <p class="eyebrow"><span class="mono">Work</span><span class="sep" aria-hidden="true"></span><span>作品集</span></p>
+    <h1 class="page-title">作品集</h1>
+    <p class="page-lede">做过的东西，都放在这里。点开有更长的说明。</p>
+  </header>
+    <div class="project-grid"><article class="project-card">
+      <span class="featured-flag mono">Featured</span>
+      <h2 class="post-title">个人门户</h2>
+      <p class="post-excerpt">一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。</p>
+      <ul class="tag-list"><li>原生 JS</li><li>Canvas</li><li>CSS</li></ul>
+      <div class="project-links"><a href="https://github.com/" rel="noopener">源码 ↗</a><a href="personal-portal.html">详情 →</a></div>
+    </article><article class="project-card">
+      
+      <h2 class="post-title">静态博客生成器</h2>
+      <p class="post-excerpt">把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。</p>
+      <ul class="tag-list"><li>Node.js</li><li>Markdown</li></ul>
+      <div class="project-links"><a href="https://github.com/" rel="noopener">源码 ↗</a><a href="static-blog-kit.html">详情 →</a></div>
+    </article></div>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../rss.xml">RSS</a>
+  </footer>
+  <script src="../assets/pages.js?v=0bcb42ab"></script>
+</body>
+</html>

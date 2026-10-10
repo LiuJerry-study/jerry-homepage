@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>个人门户 · 个人门户</title>
+<meta name="description" content="一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://example.com/projects/personal-portal.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="个人门户 · 个人门户">
+<meta property="og:description" content="一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。">
+<meta property="og:url" content="https://example.com/projects/personal-portal.html">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"个人门户","description":"一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。","dateCreated":"2026-10-10","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/projects/personal-portal.html"}</script>
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else {
+        var saved = localStorage.getItem('portal-theme');
+        if (saved === 'light' || saved === 'dark') t = saved;
+        else if (matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      }
+    } catch (e) { /* 隐私模式：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="stylesheet" href="../assets/styles.css?v=0bcb42ab">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a" href="../blog/index.html">博客</a><a class="page-nav-a is-here" href="../projects/index.html" aria-current="page">项目</a><a class="page-nav-a" href="../resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main page-main--narrow" id="main">
+<article>
+      <header class="page-head">
+    <p class="eyebrow"><span class="mono">Work</span><span class="sep" aria-hidden="true"></span><span>2026-10-10</span></p>
+    <h1 class="page-title">个人门户</h1>
+    <p class="page-lede">一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。</p>
+  </header>
+      <ul class="tag-list"><li>原生 JS</li><li>Canvas</li><li>CSS</li></ul>
+      <div class="prose"><h2 id="它是什么">它是什么</h2>
+<p>一个<strong>导航门户</strong>：第一屏就是导航本身。一句主标语压在上面，下面整墙铺开简历 / 博客 /
+作品集 / 笔记库这些入口。点卡片不弹小浮层，而是从右侧滑进一整屏详情页。</p>
+<h2 id="几个自己比较满意的点">几个自己比较满意的点</h2>
+<ul><li><strong>页面本身永远不滚</strong>。翻屏是把整块面板在原地换掉，文档从头到尾没被滚动过。</li><li><strong>标题能散成粒子</strong>。点一下，每个字朝外炸开化成粒子，铺满整屏，约两秒后逐字聚回来。
+落点先做分层抽样保证铺满，再叠一层平滑域扭曲，所以疏密是&quot;长出来的&quot;，不像排好队撒的。</li><li><strong>点击爆点两套</strong>。核心闪光 + 冲击波 + 火星拖尾 / 细环 + 小圆点 + DOM 圆，
+每次点击独立掷一次骰子，网址参数还能把风格钉死，方便做左右对照。</li><li><strong>零依赖</strong>。没有 npm、没有 CDN、没有外部字体，双击 <code>index.html</code> 就能看，离线也能看。</li></ul>
+<h2 id="性能账">性能账</h2>
+<p>连线是最费的一笔：320 颗粒子两两比距离是 48828 次/帧。按连线半径分格之后只剩 3186 次，
+而画出来的线一根不少（1180 条 = 1180 条）。小圆点从&quot;一颗一次 <code>fill()</code>&quot;改成按
+「颜色 × 透明度档」攒成十几条路径，绘制调用从约 297 次/帧降到 11 次/帧。</p>
+<blockquote><p>帧时间没量。无头软渲染环境里的噪声比差别还大，所以&quot;到底还卡不卡&quot;只能在自己机器上感受。</p></blockquote>
+<h2 id="技术栈">技术栈</h2>
+<p>纯静态：一个 HTML + 一份 CSS + 一份 JS + 一份数据文件。
+构建脚本只用 Node 内置模块（拼接、渲染 Markdown、生成页面），服务器上不需要 <code>node_modules</code>。</p></div>
+      <nav class="pager"><span></span><span class="pager-next"><a href="https://github.com/" rel="noopener">看源码 ↗</a><a href="index.html">← 全部作品</a></span></nav>
+    </article>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="../rss.xml">RSS</a>
+  </footer>
+  <script src="../assets/pages.js?v=0bcb42ab"></script>
+</body>
+</html>
