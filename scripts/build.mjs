@@ -91,6 +91,12 @@ function concat(dir, manifest) {
 
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 
+/** 按代码点比较（确定性排序）。
+    这里**不能**用 localeCompare：它的结果取决于运行环境的 locale / ICU 版本 ——
+    中文标签在本机（zh-CN）和 CI（en/C）上会排出完全不同的顺序，
+    而构建产物必须逐字节可复现（CI 会拿 git diff 比对）。 */
+const byCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
 /* ------------------------------------------------------------ 配置清单 */
 
 const STYLE_MANIFEST = [
@@ -198,7 +204,7 @@ function loadMarkdownDir(dir, { prefix }) {
         headings,
       };
     })
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    .sort((a, b) => byCode(String(b.date), String(a.date)) || byCode(a.slug, b.slug));
 }
 
 function loadResume() {
@@ -249,7 +255,7 @@ function renderCached(raw, file, opts, renderFn) {
 const ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
 const ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
   .map((p) => Object.assign(p, { kind: 'project' }))
-  .sort((a, b) => (a.order - b.order) || String(b.date).localeCompare(String(a.date)));
+  .sort((a, b) => (a.order - b.order) || byCode(String(b.date), String(a.date)) || byCode(a.slug, b.slug));
 const RESUME = loadResume();
 
 /** 站点上真正会发布的条目（草稿在 --drafts 时才出现） */
@@ -281,7 +287,7 @@ function collectTag(raw, item) {
 POSTS.forEach((p) => p.tags.forEach((t) => collectTag(t, p)));
 PROJECTS.forEach((p) => p.tech.forEach((t) => collectTag(t, p)));
 const TAGS = [...TAG_MAP.values()].filter((t) => t.posts.length + t.projects.length > 0)
-  .sort((a, b) => (b.posts.length + b.projects.length) - (a.posts.length + a.projects.length) || a.slug.localeCompare(b.slug));
+  .sort((a, b) => (b.posts.length + b.projects.length) - (a.posts.length + a.projects.length) || byCode(a.slug, b.slug));
 
 /* --------------------------------------------------- 1. 样式 / 脚本 */
 

@@ -61,22 +61,12 @@
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/版式.html</loc>
+    <loc>https://example.com/tags/markdown.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/静态站点.html</loc>
-    <lastmod>2026-10-10</lastmod>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://example.com/tags/粒子.html</loc>
-    <lastmod>2026-10-10</lastmod>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://example.com/tags/前端.html</loc>
+    <loc>https://example.com/tags/node-js.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
@@ -86,7 +76,7 @@
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/性能.html</loc>
+    <loc>https://example.com/tags/前端.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
@@ -96,17 +86,27 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://example.com/tags/性能.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://example.com/tags/版式.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://example.com/tags/粒子.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://example.com/tags/重构.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/markdown.html</loc>
-    <lastmod>2026-10-10</lastmod>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://example.com/tags/node-js.html</loc>
+    <loc>https://example.com/tags/静态站点.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>

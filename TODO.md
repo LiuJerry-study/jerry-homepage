@@ -74,6 +74,12 @@
 - **构建会清理旧产物**：`blog/` `projects/` `tags/` `assets/images/` 这四个目录由构建全权管理 ——
   删掉一篇文章，它的页面和标签页会被自动清掉；所以别把手工文件放进这四个目录（会被当成旧产物删掉）。
   实现见 `scripts/build.mjs` 的 `PRODUCED` / `pruneGenerated()`。
+- **构建产物必须可复现**：构建路径里**不要**出现这两类东西 ——
+  `new Date()`（同一份源在不同日期构建出的产物不一样）和 `localeCompare()`
+  （结果取决于运行环境的 locale / ICU：中文标签在 zh-CN 和 en-US 下排出完全不同的顺序）。
+  两者的后果都是 CI 里"产物与提交一致"那条检查莫名其妙变红。
+  现在 sitemap 的 lastmod / 页脚年份都从内容推导，排序统一走 `scripts/build.mjs` 的 `byCode()`。
+  验证方法：`scripts/build.mjs` 跑完后，在 Linux（或 WSL）里再跑一次，产物应当逐字节一致。
 - **增量构建**：内容没变的文件不会被重写（mtime 不变，rsync 只传改过的）。
   想让构建"全部重来"就加 `--force`。缓存放在 `.build-cache/`（已 gitignore）。
 - **`file://` 下没有服务器**：目录链接要写 `blog/index.html` 而不是 `blog/`（后者会打开目录列表）。构建出来的链接已经这么写了。
