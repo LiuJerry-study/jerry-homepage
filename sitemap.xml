@@ -1,112 +1,112 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://example.com/</loc>
+    <loc>https://xixid.cloud/</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://example.com/resume.html</loc>
+    <loc>https://xixid.cloud/resume.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://example.com/blog/</loc>
+    <loc>https://xixid.cloud/blog/</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://example.com/projects/</loc>
+    <loc>https://xixid.cloud/projects/</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/</loc>
+    <loc>https://xixid.cloud/tags/</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://example.com/blog/hello-static-site.html</loc>
+    <loc>https://xixid.cloud/blog/hello-static-site.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/blog/canvas-particle-grid.html</loc>
+    <loc>https://xixid.cloud/blog/canvas-particle-grid.html</loc>
     <lastmod>2026-09-18</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/blog/stage-layout-notes.html</loc>
+    <loc>https://xixid.cloud/blog/stage-layout-notes.html</loc>
     <lastmod>2026-08-22</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/projects/personal-portal.html</loc>
+    <loc>https://xixid.cloud/projects/personal-portal.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/projects/static-blog-kit.html</loc>
+    <loc>https://xixid.cloud/projects/static-blog-kit.html</loc>
     <lastmod>2026-09-30</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/canvas.html</loc>
+    <loc>https://xixid.cloud/tags/canvas.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/css.html</loc>
+    <loc>https://xixid.cloud/tags/css.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/markdown.html</loc>
+    <loc>https://xixid.cloud/tags/markdown.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/node-js.html</loc>
+    <loc>https://xixid.cloud/tags/node-js.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/入门.html</loc>
+    <loc>https://xixid.cloud/tags/入门.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/前端.html</loc>
+    <loc>https://xixid.cloud/tags/前端.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/原生-js.html</loc>
+    <loc>https://xixid.cloud/tags/原生-js.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/性能.html</loc>
+    <loc>https://xixid.cloud/tags/性能.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/版式.html</loc>
+    <loc>https://xixid.cloud/tags/版式.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/粒子.html</loc>
+    <loc>https://xixid.cloud/tags/粒子.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/重构.html</loc>
+    <loc>https://xixid.cloud/tags/重构.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://example.com/tags/静态站点.html</loc>
+    <loc>https://xixid.cloud/tags/静态站点.html</loc>
     <lastmod>2026-10-10</lastmod>
     <priority>0.4</priority>
   </url>

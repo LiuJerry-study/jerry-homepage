@@ -24,7 +24,7 @@ window.SITE = {
   /* 部署后改成你的真实域名（末尾不要带斜杠）。
      sitemap.xml / rss.xml / canonical 里的绝对地址由它拼出来。
      忘了改也能构建，只是会打印一条提醒，SEO 产物里的地址不对。 */
-  url: 'https://example.com',
+  url: 'https://xixid.cloud',
 
   /* 首页描述：分享卡片和搜索引擎用 */
   description: '一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。',

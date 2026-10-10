@@ -2,28 +2,28 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>个人门户</title>
-    <link>https://example.com/</link>
+    <link>https://xixid.cloud/</link>
     <description>一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。</description>
     <language>zh-CN</language>
-    <atom:link href="https://example.com/rss.xml" rel="self" type="application/rss+xml"/>
+    <atom:link href="https://xixid.cloud/rss.xml" rel="self" type="application/rss+xml"/>
     <item>
       <title>把个人门户重构成一个静态站点</title>
-      <link>https://example.com/blog/hello-static-site.html</link>
-      <guid isPermaLink="true">https://example.com/blog/hello-static-site.html</guid>
+      <link>https://xixid.cloud/blog/hello-static-site.html</link>
+      <guid isPermaLink="true">https://xixid.cloud/blog/hello-static-site.html</guid>
       <pubDate>Fri, 09 Oct 2026 16:00:00 GMT</pubDate>
       <description>视觉一行没动，但整个站点换了骨架：源文件拆开、加了零依赖构建脚本，博客和项目终于有真页面了。</description>
     </item>
     <item>
       <title>Canvas 粒子连线：把平方级的比较装进网格</title>
-      <link>https://example.com/blog/canvas-particle-grid.html</link>
-      <guid isPermaLink="true">https://example.com/blog/canvas-particle-grid.html</guid>
+      <link>https://xixid.cloud/blog/canvas-particle-grid.html</link>
+      <guid isPermaLink="true">https://xixid.cloud/blog/canvas-particle-grid.html</guid>
       <pubDate>Thu, 17 Sep 2026 16:00:00 GMT</pubDate>
       <description>320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。</description>
     </item>
     <item>
       <title>入门笔记：一屏一页的版式是怎么锁住的</title>
-      <link>https://example.com/blog/stage-layout-notes.html</link>
-      <guid isPermaLink="true">https://example.com/blog/stage-layout-notes.html</guid>
+      <link>https://xixid.cloud/blog/stage-layout-notes.html</link>
+      <guid isPermaLink="true">https://xixid.cloud/blog/stage-layout-notes.html</guid>
       <pubDate>Fri, 21 Aug 2026 16:00:00 GMT</pubDate>
       <description>文档不滚、翻屏靠面板原地换——记一下这套版式的三条规则，以及什么时候该让它内部滚。</description>
     </item>
