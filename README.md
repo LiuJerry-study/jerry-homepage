@@ -1,5 +1,7 @@
 # 个人门户 · personal-site
 
+[![构建与自检](https://github.com/LiuJerry-study/jerry-homepage/actions/workflows/ci.yml/badge.svg)](https://github.com/LiuJerry-study/jerry-homepage/actions/workflows/ci.yml)
+
 一个**导航门户**：第一屏就是导航本身 —— 一句主标语压在上面，下面整墙铺开
 简历 / 博客 / 作品集 / 笔记库这些入口。点卡片不弹小浮层，而是**从右侧滑进一整屏详情页**。
 
