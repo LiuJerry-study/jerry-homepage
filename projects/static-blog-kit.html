@@ -14,7 +14,7 @@
 <meta property="og:url" content="https://example.com/projects/static-blog-kit.html">
 <meta property="og:site_name" content="个人门户">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"静态博客生成器","description":"把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。","dateCreated":"2026-09-30","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/projects/static-blog-kit.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"静态博客生成器","description":"把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。","dateCreated":"2026-09-30","keywords":"Node.js,Markdown","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/projects/static-blog-kit.html"}</script>
 <script>
   /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
@@ -44,7 +44,7 @@
     if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="../assets/styles.css?v=062ffb8a">
+<link rel="stylesheet" href="../assets/styles.css?v=89f631f8">
 </head>
 
 <body class="page">
@@ -74,7 +74,12 @@
     <h1 class="page-title">静态博客生成器</h1>
     <p class="page-lede">把 Markdown 变成静态页面的一百多行脚本：文章列表、上一篇/下一篇、RSS、sitemap 全都自动生成。</p>
   </header>
-      <ul class="tag-list"><li>Node.js</li><li>Markdown</li></ul>
+      
+      <ul class="tag-list"><li><a href="../tags/node-js.html">Node.js</a></li><li><a href="../tags/markdown.html">Markdown</a></li></ul>
+      <nav class="toc" aria-label="本页目录">
+    <p class="toc-title mono">On this page</p>
+    <ol><li class="toc-l2"><a href="#为什么不用现成的">为什么不用现成的</a></li><li class="toc-l2"><a href="#它做四件事">它做四件事</a></li><li class="toc-l2"><a href="#自己写的-markdown-渲染器">自己写的 Markdown 渲染器</a></li><li class="toc-l2"><a href="#输出的东西">输出的东西</a></li></ol>
+  </nav>
       <div class="prose"><h2 id="为什么不用现成的">为什么不用现成的</h2>
 <p>现成的静态站点生成器（Hugo / Astro / Eleventy）都很好，但都要装工具链、
 学一套目录约定和模板语法。这个站点的内容量级很小，值得自己写一百多行，
@@ -108,6 +113,6 @@ sitemap.xml  rss.xml  robots.txt</code></pre></figure></div>
     <span class="dot" aria-hidden="true"></span>
     <a href="../rss.xml">RSS</a>
   </footer>
-  <script src="../assets/pages.js?v=062ffb8a"></script>
+  <script src="../assets/pages.js?v=89f631f8"></script>
 </body>
 </html>

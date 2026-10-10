@@ -1,0 +1,39 @@
+name: 构建与自检
+
+# 这个仓库把"构建产物"也提交进版本库（这样才能双击 index.html 直接看）。
+# 所以 CI 除了跑构建和自检，还要确认一件事：**产物和源是一致的**。
+# 如果有人改了 content/ 或 src/ 却忘了跑构建，这里会红。
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'      # 构建只用 Node 内置模块，不需要 npm install
+
+      - name: 构建
+        run: node scripts/build.mjs
+
+      - name: 自检（死链 / 占位符 / 必需产物 / 版本串）
+        run: node scripts/check.mjs
+
+      - name: 产物必须与提交进去的一致
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::构建产物与仓库里的不一致 —— 本地跑一次 node scripts/build.mjs 并提交结果。"
+            echo "--- 变化清单 ---"
+            git status --short
+            echo "--- 具体差异（前 200 行）---"
+            git diff | head -200
+            exit 1
+          fi
+          echo "✓ 产物与源一致"

@@ -30,16 +30,20 @@
 ```
 personal-site/
 ├─ index.html              门户首页（构建产物，源文件在 src/pages/index.html）
-├─ blog/                   博客列表 + 文章页（构建产物）
-├─ projects/               作品列表 + 详情页（构建产物）
+├─ blog/                   博客列表（分页）+ 文章页      ← 构建产物，会被重建
+├─ projects/               作品列表 + 详情页              ← 构建产物
+├─ tags/                   标签云 + 每个标签一个页面       ← 构建产物
 ├─ resume.html             简历（构建产物）
 ├─ 404.html  sitemap.xml  rss.xml  robots.txt
-├─ assets/                 构建产物：styles.css / main.js / pages.js / site-data.js
+├─ assets/                 构建产物：styles.css / main.js / pages.js /
+│                          site-data.js / site-index.js / images/
+├─ TODO.md                 ← 没做的事、以后想加什么，都记在这
 │
 ├─ content/                ← 你要改的东西基本都在这里
-│  ├─ site.js              站点配置：标语、开关、导航卡片
+│  ├─ site.js              站点配置：标语、开关、导航卡片、每页文章数
 │  ├─ posts/*.md           博客文章（文件名就是网址）
 │  ├─ projects/*.md        作品
+│  ├─ images/**            正文图片放这里，正文里写 images/xxx.png
 │  └─ resume.json          简历
 │
 ├─ src/                    ← 源码（改样式 / 交互时来这）
@@ -141,12 +145,49 @@ excerpt: 详情页不会用，但 RSS / 分享卡片会用
 
 ---
 
+## 内容增强（写文章时会用到的）
+
+这些都是构建时自动生成的，你只管写 Markdown。
+
+| 能力 | 怎么用 | 产物 |
+|---|---|---|
+| **标签页** | 给文章写 `tags:`、给项目写 `tech:` | `tags/index.html` 标签云 + 每个标签一页；文章页上的标签也变成了可点链接 |
+| **分页** | `content/site.js` 里的 `postsPerPage`（默认 10） | 超过就生成 `blog/page2.html`、`page3.html`，带页码导航；第 2 页起带 `noindex` |
+| **全文搜索** | 什么都不用做，`Ctrl/⌘+K` 里直接搜文章标题、摘要、标签 | 构建生成 `assets/site-index.js`；命令面板**第一次打开时**才加载它，所以文章再多也不拖慢首屏 |
+| **目录** | 文章里写 3 个以上 `##`/`###` 标题就自动出现 | 文首的 `.toc` 卡片；不想要是写 `toc: false` |
+| **脚注** | 正文写 `[^1]`，文末写 `[^1]: 内容` | 上标引用 + 文末脚注列表，带「↩ 回到正文」 |
+| **图片** | 图片放进 `content/images/`，正文写 `![说明](images/xxx.png)` | 拷到 `assets/images/`，并**自动补上 `width`/`height`**（图片加载时页面不会跳） |
+| **封面 / 分享图** | 文章 front-matter 写 `cover: images/xxx.png`；站点默认图写 `content/site.js` 的 `ogImage` | 文章顶部大图 + `<meta property="og:image">`（绝对地址，分享卡片能出图） |
+| **草稿** | front-matter 写 `draft: true` | 默认构建**完全不生成**（不进列表/RSS/sitemap/搜索）；`node scripts/build.mjs --drafts` 才生成，并带 `noindex` 和「草稿」标记 |
+| **HTML 直出** | front-matter 写 `html: true` | 这一篇的正文 HTML 不再转义。**默认是转义的**，别随手开 |
+| **CI** | 推代码自动跑 | `.github/workflows/ci.yml`：构建 + 自检 + **确认产物和源一致**（改了内容忘了跑构建会红） |
+
+一个完整的文章头长这样：
+
+```markdown
+---
+title: 把个人门户重构成一个静态站点
+date: 2026-10-10
+tags: [前端, 重构]
+cover: images/demo.png
+excerpt: 列表页和分享卡片上显示的一句话
+toc: true
+draft: false
+---
+```
+
+> 每一条"没做但可以加"的东西（评论、数学公式、相关文章、图片压缩……）都记在 **[TODO.md](TODO.md)**，
+> 每条都写了要动哪个文件的哪一段。
+
+---
+
 ## 命令
 
 ```bash
 node scripts/build.mjs            # 完整构建
-node scripts/build.mjs --assets   # 只重拼 CSS/JS/配置（改样式时最快）
-node scripts/check.mjs            # 上线前自检（死链、占位符、必需产物）
+node scripts/build.mjs --drafts   # 连草稿一起生成（本地预览草稿用）
+node scripts/build.mjs --assets   # 只重拼 CSS/JS/配置（改样式时最快，发布前别用）
+node scripts/check.mjs            # 上线前自检（死链、占位符、产物、版本串）
 node scripts/serve.mjs            # 本地预览 http://127.0.0.1:8000
 bash scripts/deploy.sh            # 构建 → 自检 → 同步到服务器
 ```

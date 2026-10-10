@@ -111,6 +111,16 @@ function pageFooter(site, prefix) {
 /* ------------------------------------------------------------ 页面外壳 */
 
 /**
+ * og:image 必须是绝对地址才有效。
+ * 支持三种写法：完整 https://、以 / 开头的站内绝对路径、普通相对路径（会被拼到站点根上）。
+ */
+function absoluteImage(src, home) {
+  const s = String(src || '');
+  if (/^https?:\/\//i.test(s)) return s;
+  return home + s.replace(/^\/+/, '');
+}
+
+/**
  * @param {object} o
  * @param {object} o.site       站点配置（content/site.js 里那份）
  * @param {string} o.title      完整 <title>
@@ -131,12 +141,14 @@ export function pageShell(o) {
   const asset = o.asset ? `?v=${encodeURIComponent(o.asset)}` : '';
   const home = site.url ? String(site.url).replace(/\/+$/, '') + '/' : '';
   const canonical = o.canonical ? `${home}${String(o.canonical).replace(/^\/+/, '')}` : '';
+  const ogImage = o.ogImage || site.ogImage || '';
 
   const meta = [
     `<meta charset="utf-8">`,
     `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`,
     `<title>${h(o.title)}</title>`,
     `<meta name="description" content="${h(o.description || '')}">`,
+    o.noindex ? `<meta name="robots" content="noindex,nofollow">` : '',
     `<meta name="theme-color" content="${THEME_COLOR.light}">`,
     `<meta name="color-scheme" content="light dark">`,
     canonical ? `<link rel="canonical" href="${h(canonical)}">` : '',
@@ -146,8 +158,8 @@ export function pageShell(o) {
     canonical ? `<meta property="og:url" content="${h(canonical)}">` : '',
     o.publishedTime ? `<meta property="article:published_time" content="${h(o.publishedTime)}">` : '',
     site.brand ? `<meta property="og:site_name" content="${h(site.brand)}">` : '',
-    site.ogImage ? `<meta property="og:image" content="${h(home + String(site.ogImage).replace(/^\/+/, ''))}">` : '',
-    `<meta name="twitter:card" content="${site.ogImage ? 'summary_large_image' : 'summary'}">`,
+    ogImage ? `<meta property="og:image" content="${h(absoluteImage(ogImage, home))}">` : '',
+    `<meta name="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">`,
     site.favicon ? `<link rel="icon" href="${h(site.favicon)}">` : '',
     o.jsonLd ? `<script type="application/ld+json">${JSON.stringify(o.jsonLd)}</script>` : '',
   ].filter(Boolean).join('\n');

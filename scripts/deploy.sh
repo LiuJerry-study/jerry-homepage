@@ -69,6 +69,7 @@ FILES=(
   assets
   blog
   projects
+  tags
   resume.html
   404.html
   sitemap.xml

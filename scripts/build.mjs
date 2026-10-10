@@ -4,16 +4,16 @@
    --------------------------------------------------------------------------
    用法：
      node scripts/build.mjs            完整构建
-     node scripts/build.mjs --assets   只拼样式/脚本/配置（改视觉时最快，不生成页面）
+     node scripts/build.mjs --assets   只拼样式/脚本/配置（改视觉时最快）
+     node scripts/build.mjs --drafts   连草稿一起生成（本地预览用；不进 RSS/sitemap/搜索）
 
    产物（全部提交进仓库，所以不跑构建也能直接双击 index.html 看）：
      index.html                  ← src/pages/index.html + 资源版本串
-     assets/styles.css           ← src/styles/*.css   按清单拼接
-     assets/main.js              ← src/js/*.js        按清单拼接
-     assets/pages.js             ← src/js/pages.js    长页面脚本
-     assets/site-data.js         ← content/site.js    （占位符换成真实数量）
-     blog/index.html  blog/<slug>.html
+     assets/styles.css | main.js | pages.js | site-data.js | site-index.js
+     assets/images/**            ← content/images/** 原样拷贝
+     blog/index.html  blog/page2.html …  blog/<slug>.html
      projects/index.html  projects/<slug>.html
+     tags/index.html  tags/<tag>.html
      resume.html  404.html
      sitemap.xml  rss.xml  robots.txt
 
@@ -22,16 +22,19 @@
      源文件拆开只为好读好改；产物仍是几个普通文件，构建过程零依赖、零配置。
    ========================================================================== */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
-import { renderMarkdown, extractExcerpt, frontMatter, escapeHtml as h } from './lib/markdown.mjs';
+import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h } from './lib/markdown.mjs';
 import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
+import { copyTree, imageSizeOfFile } from './lib/images.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ASSETS_ONLY = process.argv.slice(2).includes('--assets');
+const ARGS = process.argv.slice(2);
+const ASSETS_ONLY = ARGS.includes('--assets');
+const WITH_DRAFTS = ARGS.includes('--drafts');
 
 const C = { reset: '\x1b[0m', dim: '\x1b[2m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', bold: '\x1b[1m' };
 const log = (m = '') => console.log(m);
@@ -65,7 +68,7 @@ function concat(dir, manifest) {
 
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 
-/* ------------------------------------------------------------ 配置文件 */
+/* ------------------------------------------------------------ 配置清单 */
 
 const STYLE_MANIFEST = [
   '00-header.css',
@@ -89,7 +92,7 @@ const STYLE_MANIFEST = [
   '18-theme-reveal.css',
   '19-responsive.css',
   '20-reduced-motion.css',
-  '21-pages.css',        // 长页面（博客 / 项目 / 简历）—— 只作用于 html[data-layout="page"]
+  '21-pages.css',        // 长页面（博客 / 项目 / 简历 / 标签）—— 只作用于 html[data-layout="page"]
 ];
 
 const SCRIPT_MANIFEST = [
@@ -110,6 +113,8 @@ const SCRIPT_MANIFEST = [
   'zz-epilogue.js',
 ];
 
+/* ------------------------------------------------------------ 站点配置 */
+
 /** 在 Node 里跑一遍 content/site.js，取出 window.SITE */
 function loadSite() {
   const code = read('content/site.js');
@@ -120,33 +125,60 @@ function loadSite() {
   return site;
 }
 
-/** 读一个内容目录下的 .md，解析 front-matter，按日期倒序 */
-function loadMarkdownDir(dir) {
+const SITE = loadSite();
+const PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
+
+/* ------------------------------------------------------- 内容读取 */
+
+/** 站内图片：content/images/foo.png ← 正文里写 images/foo.png */
+function makeImageResolver(prefix) {
+  return (src) => {
+    const m = /^\.?\/?images\/(.+)$/.exec(src);
+    if (!m) return null;
+    const rel = `assets/images/${m[1]}`;
+    const size = imageSizeOfFile(abs(`content/images/${m[1]}`));
+    if (!size) warn(`正文引用了不存在的图片 content/images/${m[1]}`);
+    return { url: `${prefix}${rel}`, width: size ? size.width : 0, height: size ? size.height : 0 };
+  };
+}
+
+/** 读一个内容目录下的 .md，解析 front-matter，渲染 HTML，按日期倒序 */
+function loadMarkdownDir(dir, { prefix }) {
   if (!exists(dir)) return [];
   return readdirSync(dir)
     .filter((f) => f.endsWith('.md') || f.endsWith('.markdown'))
     .map((file) => {
       const slug = file.replace(/\.(md|markdown)$/, '');
       const { data, content } = frontMatter(read(`${dir}/${file}`));
+      const headings = [];
+      const html = renderMarkdown(content, {
+        headings,
+        html: data.html === true,
+        image: makeImageResolver(prefix),
+      });
+      const cover = typeof data.cover === 'string' && data.cover ? data.cover : '';
       return {
         slug,
         file: `${dir}/${file}`,
+        kind: 'post',
         title: data.title || slug,
-        date: data.date || '',
-        tags: data.tags || [],
+        date: isoDate(data.date) || String(data.date || ''),
+        tags: Array.isArray(data.tags) ? data.tags : [],
         excerpt: data.excerpt || extractExcerpt(content, 110),
         draft: data.draft === true,
         featured: data.featured === true,
         order: typeof data.order === 'number' ? data.order : 999,
         description: data.description || '',
-        tech: data.tech || [],
+        tech: Array.isArray(data.tech) ? data.tech : [],
         demo: data.demo || '',
         repo: data.repo || '',
+        cover,
+        toc: data.toc !== false,
         content,
-        html: renderMarkdown(content),
+        html,
+        headings,
       };
     })
-    .filter((p) => !p.draft)
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 
@@ -162,17 +194,52 @@ function loadResume() {
   }
 }
 
-const SITE = loadSite();
-const POSTS = loadMarkdownDir('content/posts');
-const PROJECTS = loadMarkdownDir('content/projects').sort((a, b) => (a.order - b.order) || String(b.date).localeCompare(String(a.date)));
+const ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
+const ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
+  .map((p) => Object.assign(p, { kind: 'project' }))
+  .sort((a, b) => (a.order - b.order) || String(b.date).localeCompare(String(a.date)));
 const RESUME = loadResume();
+
+/** 站点上真正会发布的条目（草稿在 --drafts 时才出现） */
+const POSTS = ALL_POSTS.filter((p) => WITH_DRAFTS || !p.draft);
+const PROJECTS = ALL_PROJECTS.filter((p) => WITH_DRAFTS || !p.draft);
+
+/* ------------------------------------------------------------ 标签 */
+
+const TAG_MAP = new Map();   // slug -> {name, posts:[], projects:[]}
+function collectTag(raw, item) {
+  const name = String(raw || '').trim();
+  if (!name) return;
+  const slug = slugify(name);
+  if (!TAG_MAP.has(slug)) TAG_MAP.set(slug, { slug, name, posts: [], projects: [] });
+  const bucket = TAG_MAP.get(slug);
+  (item.kind === 'post' ? bucket.posts : bucket.projects).push(item);
+}
+POSTS.forEach((p) => p.tags.forEach((t) => collectTag(t, p)));
+PROJECTS.forEach((p) => p.tech.forEach((t) => collectTag(t, p)));
+const TAGS = [...TAG_MAP.values()].filter((t) => t.posts.length + t.projects.length > 0)
+  .sort((a, b) => (b.posts.length + b.projects.length) - (a.posts.length + a.projects.length) || a.slug.localeCompare(b.slug));
 
 /* --------------------------------------------------- 1. 样式 / 脚本 */
 
 let VERSION = 'dev';
 
+/**
+ * 清掉上一次构建产出的目录。
+ * 不清的话会出现两种脏数据：
+ *   1. 删掉一篇文章，它的 blog/xxx.html 会留在原地（死链照样能打开）；
+ *   2. 用 --drafts 构建过一次，草稿页会一直留着。
+ * 只删"完全由内容决定"的目录；index.html / 404.html / sitemap.xml 那几个是单文件，直接覆盖。
+ */
+function cleanGenerated() {
+  for (const dir of ['blog', 'projects', 'tags', 'assets/images']) {
+    if (exists(dir)) rmSync(abs(dir), { recursive: true, force: true });
+  }
+}
+
 function buildAssets() {
-  head('1/5', '样式与脚本');  const css = concat('src/styles', STYLE_MANIFEST);
+  head('1/7', '样式与脚本');
+  const css = concat('src/styles', STYLE_MANIFEST);
   const js = concat('src/js', SCRIPT_MANIFEST);
   const pages = read('src/js/pages.js');
   VERSION = createHash('sha1').update(css + js + pages).digest('hex').slice(0, 8);
@@ -182,10 +249,20 @@ function buildAssets() {
   ok(`资源版本 v${VERSION}（页面里的 ?v= 就是它）`);
 }
 
-/* ------------------------------------------------------- 2. 站点配置 */
+/* ------------------------------------------------------------ 2. 图片 */
+
+function buildImages() {
+  head('2/7', '图片');
+  const n = copyTree(abs('content/images'), abs('assets/images'));
+  if (n) ok(`assets/images/**    ${n} 个文件（来自 content/images/）`);
+  else log(`  ${C.dim}content/images/ 是空的，跳过（正文图片放这里，写 images/xxx.png 即可）${C.reset}`);
+}
+
+/* ------------------------------------------------------- 3. 站点配置 */
 
 function buildSiteData() {
-  head('2/5', '站点配置');
+  head('3/7', '站点配置与搜索索引');
+
   let out = read('content/site.js');
   const map = {
     '{{posts}}': `${POSTS.length} 篇`,
@@ -193,6 +270,12 @@ function buildSiteData() {
     '{{resume}}': RESUME && RESUME.count > 0 ? '已上线' : '筹备中',
   };
   for (const [k, v] of Object.entries(map)) out = out.split(k).join(v);
+
+  // 资源版本串：命令面板要按需加载搜索索引，得知道该带哪个 ?v=
+  out += `\n/* ↓ 由构建脚本追加：资源版本 + 搜索索引地址（不要手改这一段） */\n`
+    + `window.SITE.assetVersion = ${JSON.stringify(VERSION)};\n`
+    + `window.SITE.searchIndex = 'assets/site-index.js';\n`;
+
   write('assets/site-data.js', out);
 
   if (/^https?:\/\/example\.com\/?$/.test(String(SITE.url || ''))) {
@@ -200,22 +283,53 @@ function buildSiteData() {
   }
   const left = out.match(/\{\{\w+\}\}/g);
   if (left) warn(`还有没替换的占位符：${[...new Set(left)].join(' ')}`);
-  ok(`assets/site-data.js  （${POSTS.length} 篇文章 / ${PROJECTS.length} 个项目 / 简历 ${RESUME ? RESUME.count : 0} 条）`);
+  ok(`assets/site-data.js  （${POSTS.length} 篇文章 / ${PROJECTS.length} 个项目 / ${TAGS.length} 个标签）`);
+
+  // 搜索索引单独成文件：不拖慢首屏，命令面板第一次打开时才按需加载
+  const brief = (p, url) => ({
+    t: p.title, s: p.excerpt, u: url, d: p.date,
+    k: [...(p.tags || []), ...(p.tech || [])].join(' '),
+  });
+  const index = {
+    v: VERSION,
+    posts: POSTS.map((p) => brief(p, `blog/${p.slug}.html`)),
+    projects: PROJECTS.map((p) => brief(p, `projects/${p.slug}.html`)),
+    tags: TAGS.map((t) => ({ t: t.name, u: `tags/${t.slug}.html`, n: t.posts.length + t.projects.length })),
+  };
+  ok(`assets/site-index.js ${kb(write('assets/site-index.js', `window.SITE_INDEX=${JSON.stringify(index)};\n`))}（${index.posts.length + index.projects.length} 条）`);
 }
 
 /* --------------------------------------------------------- 页面片段 */
 
+const draftFlag = (p) => (p.draft ? '<span class="draft-flag mono">草稿</span>' : '');
+
 function postListItem(p) {
   return `<li class="post-item">
       <a class="post-link" href="${h(p.slug)}.html">
-        <time class="post-date mono" datetime="${h(isoDate(p.date))}">${h(isoDate(p.date) || p.date)}</time>
+        <time class="post-date mono" datetime="${h(p.date)}">${h(p.date || '')}</time>
         <div>
-          <h2 class="post-title">${h(p.title)}</h2>
+          <h2 class="post-title">${h(p.title)}${draftFlag(p)}</h2>
           <p class="post-excerpt">${h(p.excerpt)}</p>
           ${p.tags.length ? `<div class="post-tags">${tagList(p.tags)}</div>` : ''}
         </div>
       </a>
     </li>`;
+}
+
+/** 页码导航；urlFor(n) 返回相对链接 */
+function pagination(page, totalPages, urlFor) {
+  if (totalPages <= 1) return '';
+  const items = [];
+  for (let n = 1; n <= totalPages; n++) {
+    items.push(n === page
+      ? `<span class="page-no is-here mono" aria-current="page">${n}</span>`
+      : `<a class="page-no mono" href="${h(urlFor(n))}">${n}</a>`);
+  }
+  return `<nav class="pagination" aria-label="分页">
+    ${page > 1 ? `<a class="page-prev" href="${h(urlFor(page - 1))}">← 上一页</a>` : '<span></span>'}
+    <span class="page-nums">${items.join('')}</span>
+    ${page < totalPages ? `<a class="page-next" href="${h(urlFor(page + 1))}">下一页 →</a>` : '<span></span>'}
+  </nav>`;
 }
 
 function projectCard(p) {
@@ -226,7 +340,7 @@ function projectCard(p) {
   ].filter(Boolean).join('');
   return `<article class="project-card">
       ${p.featured ? '<span class="featured-flag mono">Featured</span>' : ''}
-      <h2 class="post-title">${h(p.title)}</h2>
+      <h2 class="post-title">${h(p.title)}${draftFlag(p)}</h2>
       <p class="post-excerpt">${h(p.description || p.excerpt)}</p>
       ${p.tech.length ? tagList(p.tech) : ''}
       <div class="project-links">${links}</div>
@@ -236,8 +350,27 @@ function projectCard(p) {
 const emptyHint = (what, file) =>
   `<div class="empty">还没有${what}。在 <code>${file}</code> 里放一个 .md，然后跑 <code>node scripts/build.mjs</code>。</div>`;
 
-function pager(list, i, dir, base) {
-  const prev = list[i + 1], next = list[i - 1];
+/** 标签胶囊 → 可点链接（指向 tags/<slug>.html） */
+function linkedTags(list, prefix) {
+  if (!list || !list.length) return '';
+  return `<ul class="tag-list">${list.map((t) => {
+    const slug = slugify(String(t).trim());
+    return `<li><a href="${prefix}tags/${h(slug)}.html">${h(t)}</a></li>`;
+  }).join('')}</ul>`;
+}
+
+/** 从 h2/h3 生成目录 */
+function tocHtml(headings) {
+  const use = (headings || []).filter((x) => x.level === 2 || x.level === 3);
+  if (use.length < 3) return '';
+  return `<nav class="toc" aria-label="本页目录">
+    <p class="toc-title mono">On this page</p>
+    <ol>${use.map((x) => `<li class="toc-l${x.level}"><a href="#${h(x.id)}">${h(x.text)}</a></li>`).join('')}</ol>
+  </nav>`;
+}
+
+/** 上一篇 / 下一篇 */
+function pager(prev, next) {
   if (!prev && !next) return '';
   return `<nav class="pager">
     ${prev ? `<a href="${h(prev.slug)}.html">← ${h(prev.title)}</a>` : '<span></span>'}
@@ -245,10 +378,10 @@ function pager(list, i, dir, base) {
   </nav>`;
 }
 
-/* ------------------------------------------------------------ 3. 内容页 */
+/* ------------------------------------------------------------ 4. 内容页 */
 
 function buildPages() {
-  head('3/5', '内容页');
+  head('4/7', '内容页');
 
   const shell = (o) => {
     const html = pageShell({ site: SITE, asset: VERSION, ...o });
@@ -256,27 +389,41 @@ function buildPages() {
     return Buffer.byteLength(html);
   };
 
-  /* 博客列表 */
-  const blogBody = `${pageHead({ eyebrow: 'Blog', label: '博客', title: '博客', lede: '随笔 · 技术笔记 · 学习记录。按时间倒序。' })}
-    ${POSTS.length ? `<ul class="post-list">${POSTS.map(postListItem).join('')}</ul>` : emptyHint('文章', 'content/posts/')}`;
-  shell({
-    out: 'blog/index.html',
-    prefix: '../',
-    current: 'blog',
-    title: `${SITE.brand || '个人门户'} · 博客`,
-    description: `${SITE.brand || ''} 的博客：随笔、技术笔记、学习记录。`,
-    canonical: 'blog/',
-    body: blogBody,
-  });
-  ok(`blog/index.html      ${POSTS.length} 篇`);
+  /* ---------- 博客列表（分页） ---------- */
+  const totalPages = Math.max(1, Math.ceil(POSTS.length / PER_PAGE));
+  const blogUrlFor = (n) => (n === 1 ? 'index.html' : `page${n}.html`);
+  for (let page = 1; page <= totalPages; page++) {
+    const slice = POSTS.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+    const body = `${pageHead({
+      eyebrow: 'Blog', label: '博客',
+      title: '博客',
+      lede: '随笔 · 技术笔记 · 学习记录。按时间倒序。'
+        + (totalPages > 1 ? `（第 ${page} / ${totalPages} 页）` : ''),
+    })}
+    ${slice.length ? `<ul class="post-list">${slice.map(postListItem).join('')}</ul>` : emptyHint('文章', 'content/posts/')}
+    ${pagination(page, totalPages, blogUrlFor)}`;
+    shell({
+      out: page === 1 ? 'blog/index.html' : `blog/page${page}.html`,
+      prefix: '../',
+      current: 'blog',
+      title: page === 1 ? `${SITE.brand || '个人门户'} · 博客` : `${SITE.brand || '个人门户'} · 博客（第 ${page} 页）`,
+      description: `${SITE.brand || ''} 的博客：随笔、技术笔记、学习记录。`,
+      canonical: page === 1 ? 'blog/' : `blog/page${page}.html`,
+      noindex: page > 1,
+      body,
+    });
+  }
+  ok(`blog/index.html      ${POSTS.length} 篇${totalPages > 1 ? ` · 共 ${totalPages} 页` : ''}`);
 
-  /* 博客详情 */
+  /* ---------- 博客详情 ---------- */
   POSTS.forEach((p, i) => {
     const body = `<article>
       ${pageHead({ eyebrow: 'Post', label: prettyDate(p.date), title: p.title })}
-      ${p.tags.length ? tagList(p.tags) : ''}
+      ${p.cover ? `<img class="post-cover" src="${h(coverUrl(p.cover))}" alt="" decoding="async">` : ''}
+      ${linkedTags(p.tags, '../')}
+      ${tocHtml(p.toc ? p.headings : [])}
       <div class="prose">${p.html}</div>
-      ${pager(POSTS, i)}
+      ${pager(POSTS[i + 1], POSTS[i - 1])}
     </article>`;
     shell({
       out: `blog/${p.slug}.html`,
@@ -287,22 +434,25 @@ function buildPages() {
       description: p.excerpt,
       canonical: `blog/${p.slug}.html`,
       ogType: 'article',
-      publishedTime: isoDate(p.date),
+      ogImage: p.cover,
+      publishedTime: p.date,
+      noindex: p.draft,
       body,
       jsonLd: {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
         headline: p.title,
         description: p.excerpt,
-        datePublished: isoDate(p.date),
+        datePublished: p.date,
+        keywords: p.tags.join(','),
         author: { '@type': 'Person', name: SITE.author || SITE.brand || '' },
-        url: `${String(SITE.url || '').replace(/\/+$/, '')}/blog/${p.slug}.html`,
+        url: `${siteOrigin()}/blog/${p.slug}.html`,
       },
     });
   });
-  if (POSTS.length) ok(`blog/<slug>.html     ${POSTS.length} 个（含 JSON-LD / 上下篇）`);
+  if (POSTS.length) ok(`blog/<slug>.html     ${POSTS.length} 个（TOC / 封面 / 脚注 / JSON-LD / 上下篇）`);
 
-  /* 项目列表 */
+  /* ---------- 项目列表 ---------- */
   const projBody = `${pageHead({ eyebrow: 'Work', label: '作品集', title: '作品集', lede: '做过的东西，都放在这里。点开有更长的说明。' })}
     ${PROJECTS.length ? `<div class="project-grid">${PROJECTS.map(projectCard).join('')}</div>` : emptyHint('项目', 'content/projects/')}`;
   shell({
@@ -316,7 +466,7 @@ function buildPages() {
   });
   ok(`projects/index.html ${PROJECTS.length} 个`);
 
-  /* 项目详情 */
+  /* ---------- 项目详情 ---------- */
   PROJECTS.forEach((p) => {
     const links = [
       p.demo ? `<a href="${h(p.demo)}" rel="noopener">看 Demo ↗</a>` : '',
@@ -324,8 +474,10 @@ function buildPages() {
       '<a href="index.html">← 全部作品</a>',
     ].filter(Boolean).join('');
     const body = `<article>
-      ${pageHead({ eyebrow: 'Work', label: isoDate(p.date) || '', title: p.title, lede: p.description })}
-      ${p.tech.length ? tagList(p.tech) : ''}
+      ${pageHead({ eyebrow: 'Work', label: p.date || '', title: p.title, lede: p.description })}
+      ${p.cover ? `<img class="post-cover" src="${h(coverUrl(p.cover))}" alt="" decoding="async">` : ''}
+      ${linkedTags(p.tech, '../')}
+      ${tocHtml(p.toc ? p.headings : [])}
       <div class="prose">${p.html}</div>
       <nav class="pager"><span></span><span class="pager-next">${links}</span></nav>
     </article>`;
@@ -338,26 +490,72 @@ function buildPages() {
       description: p.description || p.excerpt,
       canonical: `projects/${p.slug}.html`,
       ogType: 'article',
+      ogImage: p.cover,
+      noindex: p.draft,
       body,
       jsonLd: {
         '@context': 'https://schema.org',
         '@type': 'CreativeWork',
         name: p.title,
         description: p.description || p.excerpt,
-        dateCreated: isoDate(p.date),
+        dateCreated: p.date,
+        keywords: p.tech.join(','),
         author: { '@type': 'Person', name: SITE.author || SITE.brand || '' },
-        url: `${String(SITE.url || '').replace(/\/+$/, '')}/projects/${p.slug}.html`,
+        url: `${siteOrigin()}/projects/${p.slug}.html`,
       },
     });
   });
   if (PROJECTS.length) ok(`projects/<slug>.html  ${PROJECTS.length} 个`);
 
-  /* 简历 */
+  /* ---------- 标签页 ---------- */
+  if (TAGS.length) {
+    const cloud = `${pageHead({ eyebrow: 'Tags', label: '标签', title: '标签', lede: '按主题翻，比按时间翻更容易找到同一条线的东西。' })}
+      <ul class="tag-cloud">${TAGS.map((t) =>
+        `<li><a href="${h(t.slug)}.html">${h(t.name)}<span class="tag-n mono">${t.posts.length + t.projects.length}</span></a></li>`).join('')}</ul>`;
+    shell({
+      out: 'tags/index.html',
+      prefix: '../',
+      title: `标签 · ${SITE.brand || '个人门户'}`,
+      description: '按标签浏览全部文章与作品。',
+      canonical: 'tags/',
+      body: cloud,
+    });
+
+    TAGS.forEach((t) => {
+      const postsHtml = t.posts.length
+        ? `<section class="tag-section"><h2>文章 <span class="mono">${t.posts.length}</span></h2>
+             <ul class="post-list">${t.posts.map((p) => `<li class="post-item"><a class="post-link" href="../blog/${h(p.slug)}.html">
+               <time class="post-date mono" datetime="${h(p.date)}">${h(p.date)}</time>
+               <div><h3 class="post-title">${h(p.title)}${draftFlag(p)}</h3><p class="post-excerpt">${h(p.excerpt)}</p></div>
+             </a></li>`).join('')}</ul></section>`
+        : '';
+      const projHtml = t.projects.length
+        ? `<section class="tag-section"><h2>作品 <span class="mono">${t.projects.length}</span></h2>
+             <div class="project-grid">${t.projects.map((p) => `<article class="project-card">
+               <h3 class="post-title"><a href="../projects/${h(p.slug)}.html">${h(p.title)}</a></h3>
+               <p class="post-excerpt">${h(p.description || p.excerpt)}</p></article>`).join('')}</div></section>`
+        : '';
+      shell({
+        out: `tags/${t.slug}.html`,
+        prefix: '../',
+        title: `${t.name} · 标签 · ${SITE.brand || '个人门户'}`,
+        description: `标签「${t.name}」下的文章与作品。`,
+        canonical: `tags/${t.slug}.html`,
+        body: `${pageHead({ eyebrow: 'Tag', label: `${t.posts.length + t.projects.length} 条`, title: t.name })}
+          ${postsHtml}${projHtml}
+          <nav class="pager"><span></span><span class="pager-next"><a href="index.html">← 全部标签</a></span></nav>`,
+      });
+    });
+    ok(`tags/                ${TAGS.length} 个标签 + 索引页`);
+  } else {
+    warn('一个标签都没有（给文章写 tags、给项目写 tech，这里会自动长出标签页）');
+  }
+
+  /* ---------- 简历 ---------- */
   const sectionHtml = (RESUME ? RESUME.sections : []).map((s) => {
     const en = s.en ? `<span class="mono">${h(s.en)}</span>` : '';
     const title = `<h2>${en}${h(s.title || '')}</h2>`;
     const items = Array.isArray(s.items) ? s.items : [];
-
     if (s.type === 'skill') {
       return `<section class="resume-section">${title}
         <ul class="chip-list">${items.map((it) => `<li>${h(it.name || it)}${it.level ? `<span class="lv">${h(it.level)}</span>` : ''}</li>`).join('')}</ul>
@@ -374,7 +572,6 @@ function buildPages() {
         </li>`).join('')}</ul>
     </section>`;
   }).join('');
-
   const resumeBody = `${pageHead({ eyebrow: 'Resume', label: '简历', title: '简历', lede: '' })}
     ${RESUME ? `<p class="resume-intro">${h(RESUME.intro)}</p>${sectionHtml}` : emptyHint('简历内容', 'content/resume.json')}`;
   shell({
@@ -389,37 +586,37 @@ function buildPages() {
   });
   ok(`resume.html          ${RESUME ? RESUME.count : 0} 条`);
 
-  /* 404 */
+  /* ---------- 404 ---------- */
   const nf = `<div class="page-head">
       <p class="notfound-code">404</p>
       <h1 class="page-title">这一页不在</h1>
       <p class="page-lede">链接可能拼错了，或者它已经被挪走了。回首页看看，那里有全部入口。</p>
     </div>
     <p><a class="btn btn-ghost" href="index.html">← 回到首页</a></p>`;
-  shell({
-    out: '404.html',
-    prefix: '',
-    title: '页面不存在 · ' + (SITE.brand || '个人门户'),
-    description: '这一页不在。',
-    body: nf,
-  });
+  shell({ out: '404.html', prefix: '', title: '页面不存在 · ' + (SITE.brand || '个人门户'), description: '这一页不在。', body: nf });
   ok('404.html');
 }
 
-/* ------------------------------------------------------------ 4. SEO */
+const siteOrigin = () => String(SITE.url || 'https://example.com').replace(/\/+$/, '');
+/** 封面：front-matter 里写 images/xxx.png，产物在 assets/images/xxx.png */
+const coverUrl = (cover) => `../assets/images/${String(cover).replace(/^\.?\/?images\//, '')}`;
+
+/* ------------------------------------------------------------ 5. SEO */
 
 function buildSeo() {
-  head('4/5', 'SEO 产物');
-  const home = String(SITE.url || 'https://example.com').replace(/\/+$/, '');
+  head('5/7', 'SEO 产物');
+  const home = siteOrigin();
   const today = new Date().toISOString().slice(0, 10);
 
   const urls = [
     { loc: '', last: today, pri: '1.0' },
     { loc: 'resume.html', last: today, pri: '0.8' },
-    { loc: 'blog/', last: POSTS[0] ? isoDate(POSTS[0].date) : today, pri: '0.9' },
-    { loc: 'projects/', last: PROJECTS[0] ? isoDate(PROJECTS[0].date) : today, pri: '0.9' },
-    ...POSTS.map((p) => ({ loc: `blog/${p.slug}.html`, last: isoDate(p.date), pri: '0.7' })),
-    ...PROJECTS.map((p) => ({ loc: `projects/${p.slug}.html`, last: isoDate(p.date), pri: '0.7' })),
+    { loc: 'blog/', last: POSTS[0] ? POSTS[0].date : today, pri: '0.9' },
+    { loc: 'projects/', last: PROJECTS[0] ? PROJECTS[0].date : today, pri: '0.9' },
+    ...(TAGS.length ? [{ loc: 'tags/', last: today, pri: '0.5' }] : []),
+    ...POSTS.filter((p) => !p.draft).map((p) => ({ loc: `blog/${p.slug}.html`, last: p.date, pri: '0.7' })),
+    ...PROJECTS.filter((p) => !p.draft).map((p) => ({ loc: `projects/${p.slug}.html`, last: p.date, pri: '0.7' })),
+    ...TAGS.map((t) => ({ loc: `tags/${t.slug}.html`, last: today, pri: '0.4' })),
   ];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -433,6 +630,7 @@ ${urls.filter((u) => u.last).map((u) => `  <url>
   write('sitemap.xml', sitemap);
   ok(`sitemap.xml          ${urls.length} 条`);
 
+  const feed = POSTS.filter((p) => !p.draft);
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
@@ -441,27 +639,27 @@ ${urls.filter((u) => u.last).map((u) => `  <url>
     <description>${h(SITE.description || '')}</description>
     <language>zh-CN</language>
     <atom:link href="${h(home + '/rss.xml')}" rel="self" type="application/rss+xml"/>
-${POSTS.map((p) => `    <item>
+${feed.map((p) => `    <item>
       <title>${h(p.title)}</title>
       <link>${h(`${home}/blog/${p.slug}.html`)}</link>
       <guid isPermaLink="true">${h(`${home}/blog/${p.slug}.html`)}</guid>
-      <pubDate>${new Date((isoDate(p.date) || '1970-01-01') + 'T00:00:00+08:00').toUTCString()}</pubDate>
+      <pubDate>${new Date((p.date || '1970-01-01') + 'T00:00:00+08:00').toUTCString()}</pubDate>
       <description>${h(p.excerpt)}</description>
     </item>`).join('\n')}
   </channel>
 </rss>
 `;
   write('rss.xml', rss);
-  ok(`rss.xml              ${POSTS.length} 条`);
+  ok(`rss.xml              ${feed.length} 条`);
 
   write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
   ok('robots.txt');
 }
 
-/* ------------------------------------------------------------ 5. 首页 */
+/* ------------------------------------------------------------ 6. 首页 */
 
 function buildHome() {
-  head('5/5', '首页');
+  head('6/7', '首页');
   let html = read('src/pages/index.html');
 
   // 主题解析：注入和长页面完全同一份脚本（原来首页是手写的一份，两边容易走偏）
@@ -476,36 +674,40 @@ function buildHome() {
     html = html.split(`"${asset}"`).join(`"${asset}?v=${VERSION}"`);
   }
 
-  // 首页的结构化数据（Person + WebSite）
   const home = String(SITE.url || '').replace(/\/+$/, '');
   const ld = {
     '@context': 'https://schema.org',
     '@graph': [
       { '@type': 'Person', name: SITE.author || SITE.brand || '', url: home ? home + '/' : undefined },
-      { '@type': 'WebSite', name: SITE.brand || '', url: home ? home + '/' : undefined, description: SITE.description || '' },
+      { '@type': 'Website', name: SITE.brand || '', url: home ? home + '/' : undefined, description: SITE.description || '' },
     ].filter((o) => o.url),
   };
   if (ld['@graph'].length) {
     html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
   }
 
-  const left = /assets\/[a-z-]+\.(css|js)"/.test(html) ? '' : '';
   write('index.html', html);
-  ok('index.html          （来自 src/pages/index.html）' + left);
+  ok('index.html          （来自 src/pages/index.html）');
 }
 
 /* ------------------------------------------------------------ 启动 */
 
-log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'})${C.reset}`);
+log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'}${WITH_DRAFTS ? ' · 含草稿' : ''})${C.reset}`);
+if (!ASSETS_ONLY) cleanGenerated();
 buildAssets();
+if (!ASSETS_ONLY) buildImages();
 buildSiteData();
 
 if (!ASSETS_ONLY) {
   buildPages();
   buildSeo();
   buildHome();
+  head('7/7', '清理');
+  ok('完成');
 } else {
-  log(`\n${C.dim}--assets：跳过页面生成${C.reset}`);
+  log(`\n${C.dim}--assets：跳过图片与页面生成${C.reset}`);
 }
 
-log(process.exitCode ? `\n${C.red}构建失败${C.reset}` : `\n${C.green}构建完成${C.reset}  ${C.dim}${POSTS.length} 篇文章 · ${PROJECTS.length} 个项目${C.reset}`);
+log(process.exitCode
+  ? `\n${C.red}构建失败${C.reset}`
+  : `\n${C.green}构建完成${C.reset}  ${C.dim}${POSTS.length} 篇文章 · ${PROJECTS.length} 个项目 · ${TAGS.length} 个标签${WITH_DRAFTS ? ' · 含草稿' : ''}${C.reset}`);

@@ -20,6 +20,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const C = { reset: '\x1b[0m', dim: '\x1b[2m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', bold: '\x1b[1m' };
 const problems = [];
 const warns = [];
+let versionMismatch = false;
 
 const REQUIRED = [
   'index.html',
@@ -100,7 +101,10 @@ for (const file of htmlFiles) {
     const v = /[?&]v=([\w-]+)/.exec(raw);
     if (v) {
       const prev = versionSeen.get(targetRel);
-      if (prev && prev !== v[1]) problems.push(`版本串不一致：${targetRel} 出现 ${prev} 和 ${v[1]}`);
+      if (prev && prev !== v[1]) {
+        versionMismatch = true;
+        problems.push(`版本串不一致：${targetRel} 出现 ${prev} 和 ${v[1]}`);
+      }
       versionSeen.set(targetRel, v[1]);
     }
   }

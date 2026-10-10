@@ -15,7 +15,7 @@
 <meta property="article:published_time" content="2026-09-18">
 <meta property="og:site_name" content="个人门户">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Canvas 粒子连线：把平方级的比较装进网格","description":"320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。","datePublished":"2026-09-18","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/blog/canvas-particle-grid.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Canvas 粒子连线：把平方级的比较装进网格","description":"320 颗粒子两两比距离是 48828 次，按连线半径分格之后只剩 3186 次，而画出来的线一根不少。","datePublished":"2026-09-18","keywords":"Canvas,性能,粒子","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/blog/canvas-particle-grid.html"}</script>
 <script>
   /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
@@ -45,7 +45,7 @@
     if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="../assets/styles.css?v=062ffb8a">
+<link rel="stylesheet" href="../assets/styles.css?v=89f631f8">
 </head>
 
 <body class="page">
@@ -75,7 +75,12 @@
     <h1 class="page-title">Canvas 粒子连线：把平方级的比较装进网格</h1>
     
   </header>
-      <ul class="tag-list"><li>Canvas</li><li>性能</li><li>粒子</li></ul>
+      
+      <ul class="tag-list"><li><a href="../tags/canvas.html">Canvas</a></li><li><a href="../tags/性能.html">性能</a></li><li><a href="../tags/粒子.html">粒子</a></li></ul>
+      <nav class="toc" aria-label="本页目录">
+    <p class="toc-title mono">On this page</p>
+    <ol><li class="toc-l2"><a href="#网格分桶">网格分桶</a></li><li class="toc-l2"><a href="#顺带省掉的两笔">顺带省掉的两笔</a></li><li class="toc-l2"><a href="#什么时候不用管">什么时候不用管</a></li></ol>
+  </nav>
       <div class="prose"><p>首页背景那层粒子会互相连线。最早的写法很直接——每颗粒子和其余所有粒子比一次距离：</p>
 <figure class="code-block"><figcaption class="code-lang mono">js</figcaption><pre><code class="language-js"><span class="tok-kw">for</span> (<span class="tok-kw">let</span> i = <span class="tok-num">0</span>; i &lt; ps.length; i++) {
   <span class="tok-kw">for</span> (<span class="tok-kw">let</span> j = i + <span class="tok-num">1</span>; j &lt; ps.length; j++) {
@@ -114,6 +119,6 @@
     <span class="dot" aria-hidden="true"></span>
     <a href="../rss.xml">RSS</a>
   </footer>
-  <script src="../assets/pages.js?v=062ffb8a"></script>
+  <script src="../assets/pages.js?v=89f631f8"></script>
 </body>
 </html>

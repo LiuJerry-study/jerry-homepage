@@ -82,7 +82,57 @@
           }
         }
       );
+
+      /* 全文搜索：文章 / 作品 / 标签（索引由构建脚本生成，见下面的 ensureIndex） */
+      const idx = window.SITE_INDEX;
+      if (idx) {
+        (idx.posts || []).forEach((p) => out.push({
+          group: '文章', icon: 'pen', t: p.t, s: p.s, w: 4,
+          hay: [p.t, p.s, p.k, p.d].join(' '),
+          run: () => { location.href = p.u; }
+        }));
+        (idx.projects || []).forEach((p) => out.push({
+          group: '作品', icon: 'grid', t: p.t, s: p.s, w: 4,
+          hay: [p.t, p.s, p.k, p.d].join(' '),
+          run: () => { location.href = p.u; }
+        }));
+        (idx.tags || []).forEach((t) => out.push({
+          group: '标签', icon: 'book', t: '#' + t.t, s: t.n + ' 条', w: 1,
+          hay: [t.t, '标签 tag'].join(' '),
+          run: () => { location.href = t.u; }
+        }));
+      }
       return out;
+    }
+
+    /* ---------- 搜索索引：按需加载 ----------
+       构建脚本生成 assets/site-index.js（window.SITE_INDEX），内容是文章/作品/标签的
+       标题、摘要与标签。它**不**放在 <head> 里同步加载 —— 否则文章一多，首屏就被它拖慢；
+       命令面板第一次打开时才拉，本地文件也就几毫秒。
+       用 <script> 标签而不是 fetch：file:// 下 fetch 会被 CORS 拦，script 不会。 */
+    let indexState = 'idle';           /* idle | loading | ready | failed */
+    const indexWaiters = [];
+
+    function ensureIndex(done) {
+      if (window.SITE_INDEX || indexState === 'failed') { done(); return; }
+      indexWaiters.push(done);
+      if (indexState === 'loading') return;
+      indexState = 'loading';
+
+      const s = document.createElement('script');
+      const base = SITE.searchIndex || 'assets/site-index.js';
+      const v = SITE.assetVersion ? '?v=' + encodeURIComponent(SITE.assetVersion) : '';
+      s.src = base + v;
+      s.onload = () => {
+        indexState = 'ready';
+        indexWaiters.splice(0).forEach((f) => f());
+      };
+      s.onerror = () => {
+        indexState = 'failed';
+        toast('搜索索引没加载出来，暂时只能搜页面和卡片');
+        indexWaiters.splice(0).forEach((f) => f());
+      };
+      document.head.appendChild(s);
     }
 
     /* 模糊匹配：按顺序命中就算匹配，连续命中加分 */
@@ -152,7 +202,7 @@
       items.forEach((it) => {
         const m = fuzzy(q, (it.t || '') + ' ' + (it.hay || ''));
         if (!m) return;
-        view.push(Object.assign({}, it, { score: m.score + (it.group === '页面' ? 6 : 0), tHtml: mark(it.t, fuzzy(q, it.t) ? fuzzy(q, it.t).hits : []) }));
+        view.push(Object.assign({}, it, { score: m.score + (it.group === '页面' ? 6 : 0) + (it.w || 0), tHtml: mark(it.t, fuzzy(q, it.t) ? fuzzy(q, it.t).hits : []) }));
       });
       view.sort((a, b) => b.score - a.score);
       sel = 0;
@@ -170,6 +220,13 @@
       filter();
       focusBack = document.activeElement;
       setTimeout(() => input.focus(), 20);
+      /* 文章/作品/标签的索引是另一个文件，面板第一次打开时才拉。
+         到了之后重建条目、按当前输入重新过滤 —— 不打断已经打了一半的字。 */
+      ensureIndex(() => {
+        if (!isOpen) return;
+        items = buildItems();
+        filter();
+      });
     }
 
     function close() {

@@ -14,7 +14,7 @@
 <meta property="og:url" content="https://example.com/projects/personal-portal.html">
 <meta property="og:site_name" content="个人门户">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"个人门户","description":"一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。","dateCreated":"2026-10-10","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/projects/personal-portal.html"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"个人门户","description":"一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。","dateCreated":"2026-10-10","keywords":"原生 JS,Canvas,CSS","author":{"@type":"Person","name":"Jerry"},"url":"https://example.com/projects/personal-portal.html"}</script>
 <script>
   /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
@@ -44,7 +44,7 @@
     if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="../assets/styles.css?v=062ffb8a">
+<link rel="stylesheet" href="../assets/styles.css?v=89f631f8">
 </head>
 
 <body class="page">
@@ -74,7 +74,12 @@
     <h1 class="page-title">个人门户</h1>
     <p class="page-lede">一屏一页的个人导航门户：主标语散成粒子，六套翻屏转场，点卡片从右侧滑进整屏详情。</p>
   </header>
-      <ul class="tag-list"><li>原生 JS</li><li>Canvas</li><li>CSS</li></ul>
+      
+      <ul class="tag-list"><li><a href="../tags/原生-js.html">原生 JS</a></li><li><a href="../tags/canvas.html">Canvas</a></li><li><a href="../tags/css.html">CSS</a></li></ul>
+      <nav class="toc" aria-label="本页目录">
+    <p class="toc-title mono">On this page</p>
+    <ol><li class="toc-l2"><a href="#它是什么">它是什么</a></li><li class="toc-l2"><a href="#几个自己比较满意的点">几个自己比较满意的点</a></li><li class="toc-l2"><a href="#性能账">性能账</a></li><li class="toc-l2"><a href="#技术栈">技术栈</a></li></ol>
+  </nav>
       <div class="prose"><h2 id="它是什么">它是什么</h2>
 <p>一个<strong>导航门户</strong>：第一屏就是导航本身。一句主标语压在上面，下面整墙铺开简历 / 博客 /
 作品集 / 笔记库这些入口。点卡片不弹小浮层，而是从右侧滑进一整屏详情页。</p>
@@ -100,6 +105,6 @@
     <span class="dot" aria-hidden="true"></span>
     <a href="../rss.xml">RSS</a>
   </footer>
-  <script src="../assets/pages.js?v=062ffb8a"></script>
+  <script src="../assets/pages.js?v=89f631f8"></script>
 </body>
 </html>

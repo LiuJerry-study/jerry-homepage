@@ -1911,3 +1911,142 @@ html[data-theme="dark"] .tok-str { color: var(--accent-3); }
   .page-nav-a { padding: 7px 10px; font-size: 12.5px; }
   .prose { font-size: .96rem; }
 }
+
+/* ---------- 22. 内容增强：封面 / 目录 / 分页 / 标签云 / 脚注 / 草稿 ---------- */
+
+/* 封面图：宽度跟着正文栏走，不抢标题的注意力 */
+.post-cover {
+  width: 100%;
+  height: auto;
+  margin: 0 0 clamp(22px, 4vh, 34px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+/* 标签云（/tags/） */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tag-cloud a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  font-size: .92rem;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: border-color .3s var(--ease), color .3s var(--ease), transform .3s var(--ease);
+}
+.tag-cloud a:hover { border-color: var(--accent-ring); color: var(--accent-text); transform: translateY(-2px); }
+.tag-n { font-size: 11.5px; color: var(--muted); }
+.tag-section { margin-top: clamp(28px, 5vh, 46px); }
+.tag-section > h2 {
+  margin: 0 0 14px;
+  font-size: 1.06rem;
+  font-weight: 640;
+  color: var(--ink);
+}
+.tag-section > h2 .mono { margin-left: 8px; font-size: 11.5px; color: var(--muted); }
+
+/* 标签现在是链接（原来只是展示） */
+.tag-list li { padding: 0; }
+.tag-list li a {
+  display: inline-block;
+  padding: 4px 11px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .3s var(--ease), color .3s var(--ease);
+}
+.tag-list li a:hover { color: var(--accent-text); border-color: var(--accent-ring); }
+.tag-list li:has(a) { padding: 0; border-color: var(--border); }
+.tag-list li a { border-radius: var(--r-pill); }
+
+/* 目录 */
+.toc {
+  margin: 0 0 clamp(24px, 4vh, 36px);
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-ring);
+  border-radius: var(--r-md);
+  background: var(--faint);
+}
+.toc-title {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.toc ol { margin: 0; padding-left: 1.1em; }
+.toc li { margin: 4px 0; font-size: .92rem; }
+.toc a { color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent-text); }
+.toc .toc-l3 { margin-left: 1.1em; font-size: .88rem; }
+
+/* 分页 */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: clamp(28px, 5vh, 46px);
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.pagination a { color: var(--muted); text-decoration: none; }
+.pagination a:hover { color: var(--accent-text); }
+.page-nums { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.page-no {
+  min-width: 30px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+}
+a.page-no:hover { border-color: var(--border); color: var(--ink); }
+.page-no.is-here { border-color: var(--accent-ring); background: var(--accent-soft); color: var(--accent-text); }
+
+/* 脚注 */
+.footnotes {
+  margin-top: clamp(30px, 5vh, 52px);
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: .88rem;
+  color: var(--muted);
+}
+.footnotes ol { margin: 0; padding-left: 1.4em; }
+.footnotes li { margin: 6px 0; line-height: 1.7; }
+.fn-ref a { padding: 0 2px; color: var(--accent-text); text-decoration: none; }
+.fn-back { color: var(--accent-text); text-decoration: none; opacity: .7; }
+.fn-back:hover { opacity: 1; }
+
+/* 草稿标记（node scripts/build.mjs --drafts 时才会出现） */
+.draft-flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: 1px dashed var(--accent-ring);
+  border-radius: var(--r-pill);
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  color: var(--accent-text);
+  vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+  .toc { padding: 14px 16px; }
+  .pagination { font-size: 13px; }
+  .page-no { min-width: 26px; }
+}
