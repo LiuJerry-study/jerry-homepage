@@ -1,0 +1,26 @@
+# ==========================================================================
+# systemd 定时器：每天备份一次 content/
+# --------------------------------------------------------------------------
+# 安装：
+#     sudo cp deploy/personal-site-backup.service deploy/personal-site-backup.timer /etc/systemd/system/
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now personal-site-backup.timer
+#     systemctl list-timers personal-site-backup
+#
+# 手动跑一次看看：
+#     sudo systemctl start personal-site-backup.service
+#     journalctl -u personal-site-backup -n 20
+# ==========================================================================
+
+[Unit]
+Description=每天备份 personal-site 的 content/
+
+[Timer]
+OnCalendar=daily
+# 机器关机错过了就开机后补跑一次
+Persistent=true
+# 错开整点，免得和别的定时任务挤在一起
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

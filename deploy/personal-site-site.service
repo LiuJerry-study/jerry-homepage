@@ -1,0 +1,56 @@
+# ==========================================================================
+# systemd 单元：公开站渲染进程
+# --------------------------------------------------------------------------
+# 它是**只读**的：只读 content/ 和 assets/，从不写任何文件。
+# 所以这里的加固可以比后台严得多 —— 整个文件系统对它都是只读的。
+#
+# 安装：
+#   1. 改下面两处路径：
+#        WorkingDirectory=/srv/personal-site
+#        User=www-data
+#      （User 要能读仓库；assets/ 和 content/ 得是 www-data 读得到的）
+#
+#   2. 安装并启动：
+#        sudo cp deploy/personal-site-site.service /etc/systemd/system/
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable --now personal-site-site
+#        systemctl status personal-site-site
+#
+#   3. 确认它在听：
+#        curl -s http://127.0.0.1:8081/__status
+#
+# 它挂了整站就是 503，所以 Restart=always —— 和后台那个（挂了不影响站点）不一样。
+# ==========================================================================
+
+[Unit]
+Description=personal-site 公开站渲染进程（只读）
+Documentation=file:///srv/personal-site/DEPLOY.md
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/personal-site
+
+# 只用 Node 内置模块，不需要 npm install
+ExecStart=/usr/bin/node site/server.mjs
+Environment=PORT=8080
+
+# 站挂了就是真挂了 —— 一直拉起来
+Restart=always
+RestartSec=2
+
+# 基本加固。这个进程唯一的活儿是读文件 + 拼字符串，下面这些它一个都用不着
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

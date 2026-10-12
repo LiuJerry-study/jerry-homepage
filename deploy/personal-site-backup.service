@@ -1,0 +1,14 @@
+# ==========================================================================
+# systemd 单元：备份 content/（由 personal-site-backup.timer 触发）
+# ==========================================================================
+
+[Unit]
+Description=备份 personal-site 的 content/
+Documentation=file:///srv/personal-site/DEPLOY.md
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/personal-site
+ExecStart=/bin/sh /srv/personal-site/deploy/backup-content.sh
