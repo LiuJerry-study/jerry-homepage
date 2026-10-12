@@ -149,5 +149,5 @@ window.SITE = {
 };
 
 /* ↓ 由构建脚本追加：资源版本 + 搜索索引地址（不要手改这一段） */
-window.SITE.assetVersion = "89f631f8";
+window.SITE.assetVersion = "0ddb09eb";
 window.SITE.searchIndex = 'assets/site-index.js';

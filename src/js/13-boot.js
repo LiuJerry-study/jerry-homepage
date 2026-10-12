@@ -102,6 +102,7 @@
     });
 
     initGlobalKeys();
+    initPerf();                       /* 只在 ?perf=1 时真的建东西，见第 13 节 */
 
     mqReduce.addEventListener && mqReduce.addEventListener('change', () => {
       motionOK = !mqReduce.matches;

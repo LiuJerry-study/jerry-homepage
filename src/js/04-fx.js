@@ -350,7 +350,9 @@
        带 dur 的会自己化掉（文字重聚时它们也散干净了）。 */
     function emit(x, y, vx, vy, opt) {
       opt = opt || {};
-      if (nMotes > 340) return;
+      /* 上限跟 budget 走（见 main.js 第 6 节的 dissolve）：一次消散最多撒 160 颗，
+         这里留一点余量，防止连点时把背景粒子的帧率挤没。 */
+      if (nMotes > 180) return;
       nMotes++;
       parts.push({
         x: x, y: y, vx: vx, vy: vy,
@@ -699,6 +701,8 @@
       recolor: () => { readColors(); if (!motionOK) draw(performance.now()); },
       burst: burst,
       emit: emit,
+      /* 给 ?perf=1 的性能面板用（见 main.js 第 13 节） */
+      stats: () => ({ parts: parts.length, motes: nMotes, sparks: sparks.length, blasts: blasts.length }),
       setPaused: (v) => {
         paused = !!v;
         if (paused) { stop(); draw(performance.now()); } else start();

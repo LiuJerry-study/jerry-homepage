@@ -19,36 +19,42 @@
 .eyebrow .sep { width: 22px; height: 1px; background: var(--border-hi); }
 
 .hero-title {
+  /* 盒子必须**贴合文字**，不能铺满 .wrap ——
+     块级元素默认占满 1160px（--maxw），而文字只占一半宽，
+     于是左右各留出一段看不见的死区，点上去也会触发消散。
+     fit-content + margin:auto = 盒子跟着文字收缩，仍然居中。 */
+  width: fit-content;
+  margin: 0 auto calc(24px * var(--k));
   font-size: calc(clamp(2.1rem, min(7.4vw, 11.4vh), 5.6rem) * var(--k));
   font-weight: 500;
   line-height: 1.08;
   letter-spacing: .022em;
-  margin-bottom: calc(24px * var(--k));
   cursor: pointer;                /* 点一下：整行字散成粒子。大字本身不动，也拖不动 */
   user-select: none;
   -webkit-user-select: none;
-  will-change: transform;
 }
 /* 首页就是导航了：标题还是主角，但收一档，把版面让给卡片墙。
    下面没有副标题了，标题自己留出到卡片墙的距离。 */
 .hero-title.is-lead {
   font-size: calc(clamp(2.1rem, min(5.8vw, 8.8vh), 4.2rem) * var(--k));
-  margin-bottom: calc(46px * var(--k));
+  margin: 0 auto calc(46px * var(--k));
 }
 .hero-title:active { cursor: pointer; }
 .hero-title .ch {
   display: inline-block;
   opacity: 0;
   transform: translateY(.42em) rotate(1.5deg) scale(.97);
-  filter: blur(9px);
-  will-change: transform, opacity, filter;
+  filter: blur(6px);
+  /* will-change 里不写 filter —— 那会让每个字都背一张带模糊的常驻合成层，
+     消散时 8 个字一起动，白占显存也拖慢合成。 */
+  will-change: transform, opacity;
 }
 .hero-title.is-in .ch {
   animation: ch-in .95s var(--ease-out) both;
   animation-delay: calc(var(--i) * 68ms);
 }
 @keyframes ch-in {
-  from { opacity: 0; transform: translateY(.42em) rotate(1.5deg) scale(.97); filter: blur(9px); }
+  from { opacity: 0; transform: translateY(.42em) rotate(1.5deg) scale(.97); filter: blur(6px); }
   to   { opacity: 1; transform: none; filter: blur(0); }
 }
 .hero-title .ch.accent {
@@ -103,7 +109,7 @@
     opacity: 0;
     transform: translate3d(var(--ox, 0px), var(--oy, 0px), 0)
                rotate(var(--or, 0deg)) scale(var(--os, 1.14));
-    filter: blur(10px);
+    filter: blur(6px);
   }
 }
 .hero-title.is-gone .caret { opacity: 0; animation: none; }

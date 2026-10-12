@@ -139,6 +139,7 @@ const SCRIPT_MANIFEST = [
   '11-keys.js',
   '12-clock.js',
   '13-boot.js',
+  '14-perf.js',
   'zz-epilogue.js',
 ];
 
