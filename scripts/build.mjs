@@ -31,6 +31,7 @@ import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h }
 import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
 import { imageSizeOfFile } from './lib/images.mjs';
 import { loadSiteObject } from './lib/site-config.mjs';
+import { loadFeatures, sectionOn, offHrefs } from './lib/features.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -274,6 +275,7 @@ function renderCached(raw, file, opts, renderFn) {
 
 let ALL_POSTS, ALL_PROJECTS, RESUME, POSTS, PROJECTS;
 let CONTENT_DATES, LATEST_DATE, SITE_YEAR, TAG_MAP, TAGS;
+let FEATURES = {};
 
 /** slug -> {name, posts:[], projects:[]}；每次 loadContent() 重建 */
 function collectTag(raw, item) {
@@ -289,6 +291,11 @@ function collectTag(raw, item) {
 function loadContent() {
   SITE = loadSiteObject(abs('content/site.js'));
   PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
+
+  /* 开关（content/features.json）。读坏了就当全开 —— 不让一个配置文件把站点关黑。 */
+  const f = loadFeatures(ROOT, readFileSync, existsSync);
+  FEATURES = f.features;
+  for (const n of f.notes) warn(n);
 
   ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
   ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
@@ -318,6 +325,28 @@ function loadContent() {
   PROJECTS.forEach((p) => p.tech.forEach((t) => collectTag(t, p)));
   TAGS = [...TAG_MAP.values()].filter((t) => t.posts.length + t.projects.length > 0)
     .sort((a, b) => (b.posts.length + b.projects.length) - (a.posts.length + a.projects.length) || byCode(a.slug, b.slug));
+  /* 标签页整个关掉时，标签也一并清空 —— 标签是从文章和项目里长出来的，
+     留着它们只会让 sitemap 和导航指到不存在的页面 */
+  if (!sectionOn(FEATURES, 'tags')) TAGS = [];
+}
+
+/** 这个产物路径属于某个被关掉的板块吗？（关掉的板块**根本不出产物**） */
+function isSectionOff(out) {
+  return offHrefs(FEATURES).some((p) => out === p || out.startsWith(p));
+}
+
+/** 追加在 assets/site-data.js 末尾的运行时开关：导航过滤 + 各模块自己读的开关表 */
+function featureRuntimeScript() {
+  const off = offHrefs(FEATURES);
+  return '\n/* ↓ 由构建脚本追加：开关（见 content/features.json 与后台「开关」页） */\n'
+    + `window.SITE.features = ${JSON.stringify(FEATURES)};\n`
+    + '(function () {\n'
+    + `  var off = ${JSON.stringify(off)};\n`
+    + '  window.SITE.nav = (window.SITE.nav || []).filter(function (c) {\n'
+    + "    var href = String((c && c.href) || '');\n"
+    + '    return !off.some(function (p) { return href === p || href.indexOf(p) === 0; });\n'
+    + '  });\n'
+    + '})();\n';
 }
 
 /* --------------------------------------------------- 1. 样式 / 脚本 */
@@ -347,7 +376,13 @@ function pruneGenerated() {
       }
     }
   };
-  for (const d of dirs) if (exists(d)) walk(d);
+  for (const d of dirs) {
+    if (!exists(d)) continue;
+    walk(d);
+    /* 整个板块被开关关掉时目录会空下来，连目录一起收走 ——
+       留一堆空目录，下次看"这个站有没有博客"就得先想一下 */
+    if (!readdirSync(abs(d)).length) rmSync(abs(d));
+  }
   if (removed) ok(`清掉 ${removed} 个上一轮留下的旧产物`);
   else log(`  ${C.dim}没有多余产物要清${C.reset}`);
 }
@@ -413,7 +448,8 @@ function buildSiteData() {
   // 资源版本串：命令面板要按需加载搜索索引，得知道该带哪个 ?v=
   out += `\n/* ↓ 由构建脚本追加：资源版本 + 搜索索引地址（不要手改这一段） */\n`
     + `window.SITE.assetVersion = ${JSON.stringify(VERSION)};\n`
-    + `window.SITE.searchIndex = 'assets/site-index.js';\n`;
+    + `window.SITE.searchIndex = 'assets/site-index.js';\n`
+    + featureRuntimeScript();
 
   emit('assets/site-data.js', out);
 
@@ -431,8 +467,8 @@ function buildSiteData() {
   });
   const index = {
     v: VERSION,
-    posts: POSTS.map((p) => brief(p, `blog/${p.slug}.html`)),
-    projects: PROJECTS.map((p) => brief(p, `projects/${p.slug}.html`)),
+    posts: sectionOn(FEATURES, 'blog') ? POSTS.map((p) => brief(p, `blog/${p.slug}.html`)) : [],
+    projects: sectionOn(FEATURES, 'projects') ? PROJECTS.map((p) => brief(p, `projects/${p.slug}.html`)) : [],
     tags: TAGS.map((t) => ({ t: t.name, u: `tags/${t.slug}.html`, n: t.posts.length + t.projects.length })),
   };
   ok(`assets/site-index.js ${kb(emit('assets/site-index.js', `window.SITE_INDEX=${JSON.stringify(index)};\n`))}（${index.posts.length + index.projects.length} 条）`);
@@ -522,7 +558,12 @@ function pager(prev, next) {
 function buildPages() {
   head('4/7', '内容页');
 
+  /* 被关掉的板块在这一层拦掉 —— 比在每个 forEach 里各判一次可靠：
+     列表页、分页、详情页、标签页都会经过 shell()，一个都漏不掉。
+     它们也不会进 PRODUCED，所以收尾时磁盘上的旧页面会被当成"上一轮的产物"清掉，
+     开关开了又关，不会留一堆孤儿页。 */
   const shell = (o) => {
+    if (isSectionOff(o.out)) { STATS.skipped++; return 0; }
     const html = pageShell({ site: SITE, asset: VERSION, year: SITE_YEAR, ...o });
     emit(o.out, html);
     return Buffer.byteLength(html);
@@ -756,7 +797,7 @@ function buildSeo() {
     ...POSTS.filter((p) => !p.draft).map((p) => ({ loc: `blog/${p.slug}.html`, last: p.date, pri: '0.7' })),
     ...PROJECTS.filter((p) => !p.draft).map((p) => ({ loc: `projects/${p.slug}.html`, last: p.date, pri: '0.7' })),
     ...TAGS.map((t) => ({ loc: `tags/${t.slug}.html`, last: latest, pri: '0.4' })),
-  ];
+  ].filter((u) => !isSectionOff(u.loc));      /* 关掉的板块不进 sitemap */
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.filter((u) => u.last).map((u) => `  <url>
@@ -769,7 +810,7 @@ ${urls.filter((u) => u.last).map((u) => `  <url>
   emit('sitemap.xml', sitemap);
   ok(`sitemap.xml          ${urls.length} 条`);
 
-  const feed = POSTS.filter((p) => !p.draft);
+  const feed = sectionOn(FEATURES, 'blog') ? POSTS.filter((p) => !p.draft) : [];
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>

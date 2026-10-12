@@ -34,7 +34,8 @@ import { fileURLToPath } from 'node:url';
 
 import * as store from './lib/store.mjs';
 import { renderBody, renderDraftPage, decorate, loadSite } from './lib/render.mjs';
-import { layout, loginPage, listPage, editorPage, resumePage } from './lib/ui.mjs';
+import { layout, loginPage, listPage, editorPage, resumePage, settingsPage } from './lib/ui.mjs';
+import { FEATURE_GROUPS, FEATURE_ITEMS } from '../scripts/lib/features.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.ADMIN_PORT) || 8787;
@@ -335,6 +336,16 @@ const server = createServer(async (req, res) => {
       }));
     }
 
+    /* ---------- 开关 ---------- */
+    if (p === '/admin/settings') {
+      return sendHtml(res, 200, settingsPage({
+        groups: FEATURE_GROUPS,
+        items: FEATURE_ITEMS,
+        features: store.readFeatures(),
+        lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
+      }));
+    }
+
     /* ---------- 整页草稿预览（SSR） ---------- */
     if (p.startsWith('/preview/')) {
       const [, , kindRaw, slugRaw] = p.split('/');
@@ -381,6 +392,13 @@ const server = createServer(async (req, res) => {
       store.writeResume(String(j.text || ''));
       const build = await publish();
       return sendJson(res, 200, { ok: true, build });
+    }
+
+    if (p === '/api/features' && req.method === 'POST') {
+      const j = await readJson(req);
+      const saved = store.writeFeatures(j.features || {});
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, features: saved, build });
     }
 
     if (p === '/api/rebuild' && req.method === 'POST') {

@@ -165,6 +165,8 @@
 
     h1.addEventListener('click', (e) => {
       e.stopPropagation();
+      /* 关掉「标题消散」时退回「重播浮现」：点一下仍然有反馈，只是不再炸开 */
+      if (!featOn('effects.titleDissolve')) { replayTitle(); return; }
       dissolve(e.clientX, e.clientY);
     });
     h1.addEventListener('keydown', (e) => {

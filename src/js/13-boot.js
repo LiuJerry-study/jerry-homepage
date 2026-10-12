@@ -45,14 +45,16 @@
         case 'End':
           e.preventDefault(); scroller.go(scroller.count() - 1); return;
         case 't': case 'T':
-          toggleTheme(); return;
+          if (featOn('tools.themeToggle')) toggleTheme();
+          return;
         case 'r': case 'R':
           scroller.go(0); setTimeout(replayTitle, 120); return;
         case 'k': case 'K': case '/':
           e.preventDefault(); if (palette) palette.toggle(); return;
         case '?':
           e.preventDefault();
-          if (openFlags.keys) closeKeys(); else openKeys();
+          if (openFlags.keys) closeKeys();
+          else if (featOn('tools.keys')) openKeys();
           return;
         default:
           break;
@@ -64,8 +66,31 @@
     });
   }
 
+  /* ------------------------------------------------------------------
+     开关：由构建脚本写进 assets/site-data.js（定义见 scripts/lib/features.mjs），
+     后台的「开关」页改的就是它。取不到一律当"开" ——
+     万一 site-data.js 还是旧版（没重新构建过），也不会突然少东西。
+     ------------------------------------------------------------------ */
+  function featOn(key) {
+    const f = (window.SITE && window.SITE.features) || {};
+    return f[key] !== false;
+  }
+
+  /** 关掉的入口元素直接摘掉：留在屏幕上却点不动，比没有更难懂 */
+  function drop(sel) {
+    document.querySelectorAll(sel).forEach((el) => el.remove());
+  }
+
   function boot() {
-    fx = initFx();
+    /* 「关于」屏必须赶在 initStage() 之前摘掉 ——
+       那一屏的元素是 initStage() 里一次性采集的，摘晚了它还会占着一屏
+       （圆点会多一个、翻屏计数也会算上它）。 */
+    if (!featOn('home.aboutPanel')) drop('#about');
+
+    /* 关掉逐屏转场 = 全部用最朴素的淡入（09-stage.js 读的就是这个） */
+    if (!featOn('effects.transition') && window.SITE) window.SITE.randomTransition = false;
+
+    fx = featOn('effects.particles') ? initFx() : null;
     applyTheme(html.dataset.theme || 'light', false);
 
     initTitle();
@@ -74,12 +99,15 @@
     initPointer();
     initRipple();
     scroller = initStage();
-    palette = initPalette();
-    initKeys();
+    palette = featOn('tools.cmdk') ? initPalette() : null;
+    if (featOn('tools.keys')) initKeys(); else drop('#keys-btn');
     initClock();
 
+    if (!featOn('tools.cmdk')) drop('#cmdk-open');
+
     const toggle = document.getElementById('theme-toggle');
-    if (toggle) toggle.addEventListener('click', toggleTheme);
+    if (toggle && featOn('tools.themeToggle')) toggle.addEventListener('click', toggleTheme);
+    if (!featOn('tools.themeToggle')) drop('#theme-toggle');
     const topBtn = document.getElementById('top-btn');
     if (topBtn) topBtn.addEventListener('click', () => scroller.go(0));
     const keysBtn = document.getElementById('keys-btn');

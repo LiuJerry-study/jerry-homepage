@@ -97,7 +97,7 @@ label{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 5px}
 
 /** 后台整体骨架 */
 export function layout({ title, body, active = '', user = true }) {
-  const nav = [['posts', '文章'], ['projects', '作品'], ['resume', '简历']]
+  const nav = [['posts', '文章'], ['projects', '作品'], ['resume', '简历'], ['settings', '开关']]
     .map(([k, label]) => `<a href="/admin/${k}" class="${active === k ? 'on' : ''}">${label}</a>`).join('');
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head>
@@ -380,6 +380,92 @@ export function resumePage({ text, lastBuild }) {
     dirty = false; $('state').textContent = '已保存 ' + new Date().toLocaleTimeString();
     log.textContent = (j.build && j.build.log) || '';
     toast('已保存并重新构建');
+  });
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); $('save').click(); }
+  });
+})();
+</script>`,
+  });
+}
+
+/* ==========================================================================
+   开关页
+   --------------------------------------------------------------------------
+   「板块」是渲染期的：关掉之后页面根本不生成，导航里那张卡、sitemap、RSS、
+   搜索索引一起消失，磁盘上的旧页面也会被清掉。
+   「首页 / 装饰 / 工具」是运行时的：写进 assets/site-data.js，main.js 读它。
+   两边都是**保存即生效**（后台会敲一下渲染进程），不用等什么构建。
+   ========================================================================== */
+export function settingsPage({ groups, items, features, lastBuild = '' }) {
+  const pill = (t, on) => `<span style="display:inline-block;margin-left:8px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;background:${on ? 'var(--ok-bg)' : 'var(--warn-bg)'};color:${on ? 'var(--ok)' : 'var(--warn)'}">${h(t)}</span>`;
+
+  const body = groups.map((g) => {
+    const rows = items.filter((it) => it.group === g.key).map((it) => {
+      const on = features[it.key] !== false;
+      return `<label style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line);cursor:pointer">
+        <input type="checkbox" data-key="${h(it.key)}" ${on ? 'checked' : ''} style="width:17px;height:17px;margin-top:3px;accent-color:var(--accent)">
+        <span>
+          <strong>${h(it.label)}</strong>${it.level === 'site' ? '<span class="pill" style="margin-left:8px">板块</span>' : ''}
+          <span class="meta" style="display:block;margin-top:3px">${h(it.note || '')}</span>
+          <span class="meta mono" style="display:block;margin-top:2px;opacity:.55">${h(it.key)}</span>
+        </span>
+      </label>`;
+    }).join('');
+    return `<section class="card" style="padding:16px 20px 6px">
+      <h2 style="margin:0 0 4px">${h(g.label)}</h2>
+      <p class="sub" style="margin:0 0 8px">${h(g.note || '')}</p>
+      ${rows}
+    </section>`;
+  }).join('');
+
+  return layout({
+    title: '开关',
+    active: 'settings',
+    body: `<div class="wrap">
+      <h1>开关</h1>
+      <p class="sub">
+        关掉的板块会**连同入口一起消失** —— 导航卡片、sitemap、RSS、搜索索引，
+        以及磁盘上已经生成的那些页面。保存后立刻生效，不用重新构建。
+        ${lastBuild ? `上次操作：${h(lastBuild)}` : ''}
+      </p>
+      <div class="toolbar">
+        <button class="btn primary" id="save">保存并生效</button>
+        <button class="btn" id="all-on">全部打开</button>
+        <a class="btn" href="/" target="_blank" rel="noopener">看效果 ↗</a>
+        <span class="meta" id="state">未修改</span>
+      </div>
+      <pre class="log" id="log"></pre>
+      ${body}
+    </div>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let dirty = false;
+  const boxes = [...document.querySelectorAll('input[data-key]')];
+  boxes.forEach((b) => b.addEventListener('change', () => { dirty = true; $('state').textContent = '有未保存的改动'; }));
+  window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  function collect() {
+    const f = {};
+    boxes.forEach((b) => { f[b.dataset.key] = b.checked; });
+    return f;
+  }
+  $('all-on').addEventListener('click', () => {
+    boxes.forEach((b) => { b.checked = true; });
+    dirty = true; $('state').textContent = '有未保存的改动（全部打开）';
+  });
+  $('save').addEventListener('click', async () => {
+    const log = $('log'); log.classList.add('on'); log.classList.remove('err'); log.textContent = '保存中…';
+    const r = await fetch('/api/features', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ features: collect() }),
+    });
+    const j = await r.json();
+    if (!j.ok) { log.classList.add('err'); log.textContent = j.error || '保存失败'; toast('保存失败'); return; }
+    dirty = false; $('state').textContent = '已保存 ' + new Date().toLocaleTimeString();
+    log.textContent = (j.build && j.build.log) || '';
+    toast('开关已生效');
   });
   window.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); $('save').click(); }

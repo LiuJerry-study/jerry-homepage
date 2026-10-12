@@ -154,3 +154,25 @@ export function writeResume(text) {
   writeAtomic(RESUME_FILE, JSON.stringify(obj, null, 2) + '\n');
   return obj;
 }
+
+/* ---------------------------------------------------------------- 开关 */
+
+const FEATURES_FILE = 'content/features.json';
+
+export function readFeatures() {
+  if (!existsSync(FEATURES_FILE)) return {};
+  const o = JSON.parse(readFileSync(FEATURES_FILE, 'utf8'));
+  if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('content/features.json 应该是一个对象');
+  return o;
+}
+
+/** 只收 true/false（下划线开头的是注释，照留）。别的键一律丢掉 —— 别把垃圾写进配置。 */
+export function writeFeatures(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('开关必须是一个对象');
+  const clean = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'boolean' || (k.startsWith('_') && typeof v === 'string')) clean[k] = v;
+  }
+  writeAtomic(FEATURES_FILE, JSON.stringify(clean, null, 2) + '\n');
+  return clean;
+}

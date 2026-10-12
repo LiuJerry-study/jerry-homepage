@@ -1,5 +1,6 @@
 /* ======================== 11. 时钟与年份 ======================== */
   function initClock() {
+    if (!featOn('home.clock')) return;           /* 开关：页脚时钟 */
     const clock = document.getElementById('clock');
     const year = document.getElementById('year');
     if (year) year.textContent = String(new Date().getFullYear());

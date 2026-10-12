@@ -149,5 +149,15 @@ window.SITE = {
 };
 
 /* ↓ 由构建脚本追加：资源版本 + 搜索索引地址（不要手改这一段） */
-window.SITE.assetVersion = "0ddb09eb";
+window.SITE.assetVersion = "ef96466a";
 window.SITE.searchIndex = 'assets/site-index.js';
+
+/* ↓ 由构建脚本追加：开关（见 content/features.json 与后台「开关」页） */
+window.SITE.features = {"pages.blog":true,"pages.projects":true,"pages.resume":true,"pages.tags":true,"home.aboutPanel":true,"home.cards":true,"home.dots":true,"home.clock":true,"effects.particles":true,"effects.blobs":true,"effects.halo":true,"effects.burst":true,"effects.titleDissolve":true,"effects.transition":true,"effects.magnetic":true,"tools.cmdk":true,"tools.themeToggle":true,"tools.keys":true,"tools.hoverPeek":true};
+(function () {
+  var off = [];
+  window.SITE.nav = (window.SITE.nav || []).filter(function (c) {
+    var href = String((c && c.href) || '');
+    return !off.some(function (p) { return href === p || href.indexOf(p) === 0; });
+  });
+})();

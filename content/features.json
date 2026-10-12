@@ -1,0 +1,23 @@
+{
+  "_说明": "后台「开关」页写这个文件。没写到的项按默认（全开）；删掉整个文件 = 全部打开。",
+  "_键名": "和 scripts/lib/features.mjs 的 FEATURE_ITEMS 一一对应，改名前先看那里",
+  "pages.blog": true,
+  "pages.projects": true,
+  "pages.resume": true,
+  "pages.tags": true,
+  "home.aboutPanel": true,
+  "home.cards": true,
+  "home.dots": true,
+  "home.clock": true,
+  "effects.particles": true,
+  "effects.blobs": true,
+  "effects.halo": true,
+  "effects.burst": true,
+  "effects.titleDissolve": true,
+  "effects.transition": true,
+  "effects.magnetic": true,
+  "tools.cmdk": true,
+  "tools.themeToggle": true,
+  "tools.keys": true,
+  "tools.hoverPeek": true
+}

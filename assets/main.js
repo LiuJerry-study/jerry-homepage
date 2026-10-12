@@ -836,7 +836,7 @@
 
   /* ======================== 4. 光标：光晕 + 磁吸 + 拖拽惯性 ======================== */
   function initPointer() {
-    const halo = document.getElementById('halo');
+    const halo = featOn('effects.halo') ? document.getElementById('halo') : null;
 
     if (!coarse && motionOK) {
       window.addEventListener('pointermove', (e) => {
@@ -864,7 +864,7 @@
          ② 位移限幅（顶栏 5px / 正文 9px）+ 给同级的兄弟让路：相邻按钮之间
             永远留着空隙。
        基准框取「没有位移时」的位置 —— 边挪边算会把自己越拽越远。 */
-    const mags = $$('.magnetic');
+    const mags = featOn('effects.magnetic') ? $$('.magnetic') : [];
     let magOn = null;
 
     function magBase(el) {
@@ -962,6 +962,7 @@
 
   /* ======================== 5. 点击爆点 ======================== */
   function initRipple() {
+    if (!featOn('effects.burst')) return;        /* 开关：见 content/features.json */
     window.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       /* 详情页是整屏页面，把画布整个盖住了 —— 在它上面点，别在背后放看不见的爆炸 */
@@ -1161,6 +1162,8 @@
 
     h1.addEventListener('click', (e) => {
       e.stopPropagation();
+      /* 关掉「标题消散」时退回「重播浮现」：点一下仍然有反馈，只是不再炸开 */
+      if (!featOn('effects.titleDissolve')) { replayTitle(); return; }
       dissolve(e.clientX, e.clientY);
     });
     h1.addEventListener('keydown', (e) => {
@@ -1243,7 +1246,7 @@
 
   function showPeek(card, i) {
     const d = cardData[i];
-    if (!peekEl || !d || !d.details || !d.details.length || openFlags.detail) return;
+    if (!peekEl || !featOn('tools.hoverPeek') || !d || !d.details || !d.details.length || openFlags.detail) return;
     const token = ++peekToken;
     const live = !!(d.href && d.href !== '#');
     peekEl.innerHTML = '<div class="peek-title"><span class="pip"></span>' + esc(d.title || '') + '</div>'
@@ -1331,6 +1334,7 @@
 
   function initCards() {
     if (!cardsBox) return;
+    if (!featOn('home.cards')) return;           /* 开关：首屏卡片墙 */
     const items = (Array.isArray(SITE.nav) ? SITE.nav : []).slice();
     if (SITE.showAddCard !== false) {
       items.push({
@@ -1455,7 +1459,7 @@
   function initStage() {
     const stage = document.getElementById('stage');
     const panels = $$('.panel', stage);
-    const dotsBox = document.getElementById('dots');
+    const dotsBox = featOn('home.dots') ? document.getElementById('dots') : null;
     const meter = document.getElementById('meter');
     if (!panels.length) {
       return { go: () => {}, next: () => {}, prev: () => {}, index: () => 0, count: () => 0, active: () => false };
@@ -1846,7 +1850,7 @@
         },
         {
           group: '动作', icon: 'bolt', t: '快捷键与互动一览', s: '所有能玩的东西都在这张表里（?）', hay: '快捷键 帮助 help 互动 说明',
-          run: () => openKeys()
+          run: () => { if (featOn('tools.keys')) openKeys(); }
         },
         {
           group: '动作', icon: 'bolt', t: '暂停 / 继续背景粒子', s: '想安静一点、或者省点电', hay: '粒子 背景 暂停 省电 pause particles',
@@ -2111,6 +2115,7 @@
 
   /* ======================== 11. 时钟与年份 ======================== */
   function initClock() {
+    if (!featOn('home.clock')) return;           /* 开关：页脚时钟 */
     const clock = document.getElementById('clock');
     const year = document.getElementById('year');
     if (year) year.textContent = String(new Date().getFullYear());
@@ -2171,14 +2176,16 @@
         case 'End':
           e.preventDefault(); scroller.go(scroller.count() - 1); return;
         case 't': case 'T':
-          toggleTheme(); return;
+          if (featOn('tools.themeToggle')) toggleTheme();
+          return;
         case 'r': case 'R':
           scroller.go(0); setTimeout(replayTitle, 120); return;
         case 'k': case 'K': case '/':
           e.preventDefault(); if (palette) palette.toggle(); return;
         case '?':
           e.preventDefault();
-          if (openFlags.keys) closeKeys(); else openKeys();
+          if (openFlags.keys) closeKeys();
+          else if (featOn('tools.keys')) openKeys();
           return;
         default:
           break;
@@ -2190,8 +2197,31 @@
     });
   }
 
+  /* ------------------------------------------------------------------
+     开关：由构建脚本写进 assets/site-data.js（定义见 scripts/lib/features.mjs），
+     后台的「开关」页改的就是它。取不到一律当"开" ——
+     万一 site-data.js 还是旧版（没重新构建过），也不会突然少东西。
+     ------------------------------------------------------------------ */
+  function featOn(key) {
+    const f = (window.SITE && window.SITE.features) || {};
+    return f[key] !== false;
+  }
+
+  /** 关掉的入口元素直接摘掉：留在屏幕上却点不动，比没有更难懂 */
+  function drop(sel) {
+    document.querySelectorAll(sel).forEach((el) => el.remove());
+  }
+
   function boot() {
-    fx = initFx();
+    /* 「关于」屏必须赶在 initStage() 之前摘掉 ——
+       那一屏的元素是 initStage() 里一次性采集的，摘晚了它还会占着一屏
+       （圆点会多一个、翻屏计数也会算上它）。 */
+    if (!featOn('home.aboutPanel')) drop('#about');
+
+    /* 关掉逐屏转场 = 全部用最朴素的淡入（09-stage.js 读的就是这个） */
+    if (!featOn('effects.transition') && window.SITE) window.SITE.randomTransition = false;
+
+    fx = featOn('effects.particles') ? initFx() : null;
     applyTheme(html.dataset.theme || 'light', false);
 
     initTitle();
@@ -2200,12 +2230,15 @@
     initPointer();
     initRipple();
     scroller = initStage();
-    palette = initPalette();
-    initKeys();
+    palette = featOn('tools.cmdk') ? initPalette() : null;
+    if (featOn('tools.keys')) initKeys(); else drop('#keys-btn');
     initClock();
 
+    if (!featOn('tools.cmdk')) drop('#cmdk-open');
+
     const toggle = document.getElementById('theme-toggle');
-    if (toggle) toggle.addEventListener('click', toggleTheme);
+    if (toggle && featOn('tools.themeToggle')) toggle.addEventListener('click', toggleTheme);
+    if (!featOn('tools.themeToggle')) drop('#theme-toggle');
     const topBtn = document.getElementById('top-btn');
     if (topBtn) topBtn.addEventListener('click', () => scroller.go(0));
     const keysBtn = document.getElementById('keys-btn');

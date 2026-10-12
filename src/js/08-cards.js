@@ -70,7 +70,7 @@
 
   function showPeek(card, i) {
     const d = cardData[i];
-    if (!peekEl || !d || !d.details || !d.details.length || openFlags.detail) return;
+    if (!peekEl || !featOn('tools.hoverPeek') || !d || !d.details || !d.details.length || openFlags.detail) return;
     const token = ++peekToken;
     const live = !!(d.href && d.href !== '#');
     peekEl.innerHTML = '<div class="peek-title"><span class="pip"></span>' + esc(d.title || '') + '</div>'
@@ -158,6 +158,7 @@
 
   function initCards() {
     if (!cardsBox) return;
+    if (!featOn('home.cards')) return;           /* 开关：首屏卡片墙 */
     const items = (Array.isArray(SITE.nav) ? SITE.nav : []).slice();
     if (SITE.showAddCard !== false) {
       items.push({

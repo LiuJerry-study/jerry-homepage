@@ -12,7 +12,7 @@
   function initStage() {
     const stage = document.getElementById('stage');
     const panels = $$('.panel', stage);
-    const dotsBox = document.getElementById('dots');
+    const dotsBox = featOn('home.dots') ? document.getElementById('dots') : null;
     const meter = document.getElementById('meter');
     if (!panels.length) {
       return { go: () => {}, next: () => {}, prev: () => {}, index: () => 0, count: () => 0, active: () => false };

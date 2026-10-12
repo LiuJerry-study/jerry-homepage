@@ -71,7 +71,7 @@
         },
         {
           group: '动作', icon: 'bolt', t: '快捷键与互动一览', s: '所有能玩的东西都在这张表里（?）', hay: '快捷键 帮助 help 互动 说明',
-          run: () => openKeys()
+          run: () => { if (featOn('tools.keys')) openKeys(); }
         },
         {
           group: '动作', icon: 'bolt', t: '暂停 / 继续背景粒子', s: '想安静一点、或者省点电', hay: '粒子 背景 暂停 省电 pause particles',

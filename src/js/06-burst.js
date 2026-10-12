@@ -1,5 +1,6 @@
 /* ======================== 5. 点击爆点 ======================== */
   function initRipple() {
+    if (!featOn('effects.burst')) return;        /* 开关：见 content/features.json */
     window.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       /* 详情页是整屏页面，把画布整个盖住了 —— 在它上面点，别在背后放看不见的爆炸 */

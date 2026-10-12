@@ -1,6 +1,6 @@
 /* ======================== 4. 光标：光晕 + 磁吸 + 拖拽惯性 ======================== */
   function initPointer() {
-    const halo = document.getElementById('halo');
+    const halo = featOn('effects.halo') ? document.getElementById('halo') : null;
 
     if (!coarse && motionOK) {
       window.addEventListener('pointermove', (e) => {
@@ -28,7 +28,7 @@
          ② 位移限幅（顶栏 5px / 正文 9px）+ 给同级的兄弟让路：相邻按钮之间
             永远留着空隙。
        基准框取「没有位移时」的位置 —— 边挪边算会把自己越拽越远。 */
-    const mags = $$('.magnetic');
+    const mags = featOn('effects.magnetic') ? $$('.magnetic') : [];
     let magOn = null;
 
     function magBase(el) {
