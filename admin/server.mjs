@@ -179,6 +179,41 @@ function rebuild() {
   return lastBuild;
 }
 
+/* --------------------------------------------------- 通知公开站重渲染 */
+
+/**
+ * 内容写完之后敲一下公开站渲染进程，让它立刻重渲染。
+ *
+ * 其实它自己盯着 content/（fs.watch），改了就会重渲染；这里再敲一下图的是**确定性**——
+ * 文件监听在网络盘、容器、某些内核上并不可靠，而"保存了却没生效"是最难查的那种 bug。
+ * 敲不通也不算失败：内容已经落盘了，监听那次自发的重渲染会兜住，
+ * 只是慢一点点（150ms 的防抖）。
+ */
+const SITE_RELOAD_PORT = Number(process.env.SITE_RELOAD_PORT) || 8081;
+
+async function pokeSite() {
+  try {
+    const res = await fetch(`http://127.0.0.1:${SITE_RELOAD_PORT}/__reload`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(15000),
+    });
+    const j = await res.json();
+    return { ok: !!j.ok, pages: j.pages, ms: j.buildMs };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+/** 写完之后统一走这里：把结果塞进 lastBuild，界面上就是在"上次构建"那一行显示 */
+async function publish() {
+  const live = await pokeSite();
+  const at = new Date().toISOString();
+  lastBuild = live.ok
+    ? { at, ok: true, ms: live.ms, log: `内容已即时生效：公开站重渲染 ${live.pages} 页（${live.ms}ms）` }
+    : { at, ok: false, ms: 0, log: `已写进 content/，但公开站渲染进程没回应：${live.error}\n内容不会丢 —— 它重新发现文件变化时会自己补上。` };
+  return lastBuild;
+}
+
 /* ------------------------------------------------------------ 静态文件 */
 
 /* 只发"站点该公开的东西"—— 白名单，不是黑名单。
@@ -324,7 +359,7 @@ const server = createServer(async (req, res) => {
       if (!slug) return sendJson(res, 400, { ok: false, error: '先填文件名（它会变成网址）' });
       const createOnly = j.createOnly === true;
       const out = store.writeContent(kind, slug, j.data || {}, j.body || '', { createOnly });
-      const build = rebuild();
+      const build = await publish();
       return sendJson(res, 200, {
         ok: true,
         slug: out.slug,
@@ -337,14 +372,14 @@ const server = createServer(async (req, res) => {
       const j = await readJson(req);
       const kind = j.kind === 'projects' ? 'projects' : 'posts';
       store.deleteContent(kind, String(j.slug || ''));
-      const build = rebuild();
+      const build = await publish();
       return sendJson(res, 200, { ok: true, build });
     }
 
     if (p === '/api/resume' && req.method === 'POST') {
       const j = await readJson(req);
       store.writeResume(String(j.text || ''));
-      const build = rebuild();
+      const build = await publish();
       return sendJson(res, 200, { ok: true, build });
     }
 
