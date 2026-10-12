@@ -24,7 +24,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 
 import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h } from './lib/markdown.mjs';
@@ -33,15 +33,20 @@ import { imageSizeOfFile } from './lib/images.mjs';
 import { loadSiteObject } from './lib/site-config.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ARGS = process.argv.slice(2);
-const ASSETS_ONLY = ARGS.includes('--assets');
-const WITH_DRAFTS = ARGS.includes('--drafts');
-const FORCE = ARGS.includes('--force');       // 忽略增量缓存，全部重算重写
+
+/* 这三个是**变量**不是常量：本模块有两个使用者 ——
+     ① 直接跑：node scripts/build.mjs（参数在 main() 里解析）
+     ② 被导入：site/server.mjs 用 renderSite() 在内存里渲染整站
+   服务器不能吃命令行的 argv，所以参数只在 main() 里读。 */
+let ASSETS_ONLY = false;   // 只重拼样式 / 脚本
+let WITH_DRAFTS = false;   // 连草稿一起生成
+let FORCE = false;         // 忽略增量缓存，全部重算重写
+let QUIET = false;         // 服务器渲染整站时不刷屏（bad() 仍然照报）
 
 const C = { reset: '\x1b[0m', dim: '\x1b[2m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', bold: '\x1b[1m' };
-const log = (m = '') => console.log(m);
-const ok = (m) => console.log(`  ${C.green}✓${C.reset} ${m}`);
-const warn = (m) => console.log(`  ${C.yellow}!${C.reset} ${m}`);
+const log = (m = '') => { if (!QUIET) console.log(m); };
+const ok = (m) => { if (!QUIET) console.log(`  ${C.green}✓${C.reset} ${m}`); };
+const warn = (m) => { if (!QUIET) console.log(`  ${C.yellow}!${C.reset} ${m}`); };
 const bad = (m) => { console.error(`  ${C.red}✗${C.reset} ${m}`); process.exitCode = 1; };
 const head = (n, m) => log(`\n${C.bold}[${n}] ${m}${C.reset}`);
 
@@ -75,6 +80,16 @@ function writeIfChanged(p, text) {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, text);
   STATS.written++;
+  return Buffer.byteLength(text);
+}
+
+/* 生成阶段的产物收集处：相对路径 → 内容。
+   构建脚本随后把它们逐个落盘；服务器直接把它当"内存里的整站"（见 site/server.mjs）。
+   之所以让两边共用同一个出口，是为了保证动态渲染出来的 HTML 与构建产物逐字节一致。 */
+const FILES = new Map();
+function emit(p, text) {
+  PRODUCED.add(p);
+  FILES.set(p, text);
   return Buffer.byteLength(text);
 }
 
@@ -145,8 +160,10 @@ const SCRIPT_MANIFEST = [
 
 /* ------------------------------------------------------------ 站点配置 */
 
-const SITE = loadSiteObject(abs('content/site.js'));
-const PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
+/* 站点配置和下面所有内容都是**模块级变量**，由 loadContent() 一次装好。
+   每次内容变动重装一遍，渲染函数直接引用这些名字 —— 重装后它们看到的就是新内容，
+   所以一行渲染代码都不用为了"动态"改写。 */
+let SITE, PER_PAGE;
 
 /* ------------------------------------------------------- 内容读取 */
 
@@ -229,8 +246,10 @@ const RENDERER_VERSION = createHash('sha1')
   .update(['markdown.mjs', 'highlight.mjs', 'templates.mjs', 'images.mjs'].map((f) => read(`scripts/lib/${f}`)).join('\n'))
   .digest('hex').slice(0, 12);
 
-let renderCache = {};
-if (!FORCE && exists(CACHE_FILE)) {
+let renderCache = {};        // 由 main() 装载；服务器不装（每次都要重渲染）
+function loadRenderCache() {
+  renderCache = {};
+  if (FORCE || !exists(CACHE_FILE)) return;
   try { renderCache = JSON.parse(read(CACHE_FILE)).entries || {}; } catch (e) { renderCache = {}; }
 }
 const cacheHits = { used: new Set(), hit: 0, miss: 0 };
@@ -253,30 +272,10 @@ function renderCached(raw, file, opts, renderFn) {
   return val;
 }
 
-const ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
-const ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
-  .map((p) => Object.assign(p, { kind: 'project' }))
-  .sort((a, b) => (a.order - b.order) || byCode(String(b.date), String(a.date)) || byCode(a.slug, b.slug));
-const RESUME = loadResume();
+let ALL_POSTS, ALL_PROJECTS, RESUME, POSTS, PROJECTS;
+let CONTENT_DATES, LATEST_DATE, SITE_YEAR, TAG_MAP, TAGS;
 
-/** 站点上真正会发布的条目（草稿在 --drafts 时才出现） */
-const POSTS = ALL_POSTS.filter((p) => WITH_DRAFTS || !p.draft);
-const PROJECTS = ALL_PROJECTS.filter((p) => WITH_DRAFTS || !p.draft);
-
-/* ------------------------------------------------------------ 标签 */
-
-/* 最新内容日期。
-   sitemap 的 lastmod 与页脚年份都用它，**不用"今天"** ——
-   构建产物必须只由内容决定，否则 CI 里"产物与提交一致"这条检查隔一天就会误报。 */
-const CONTENT_DATES = [...POSTS, ...PROJECTS]
-  .map((p) => p.date)
-  .filter((d) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(d)))
-  .sort();
-const LATEST_DATE = CONTENT_DATES.length ? CONTENT_DATES[CONTENT_DATES.length - 1] : "1970-01-01";
-const SITE_YEAR = LATEST_DATE.slice(0, 4);
-
-
-const TAG_MAP = new Map();   // slug -> {name, posts:[], projects:[]}
+/** slug -> {name, posts:[], projects:[]}；每次 loadContent() 重建 */
 function collectTag(raw, item) {
   const name = String(raw || '').trim();
   if (!name) return;
@@ -285,10 +284,41 @@ function collectTag(raw, item) {
   const bucket = TAG_MAP.get(slug);
   (item.kind === 'post' ? bucket.posts : bucket.projects).push(item);
 }
-POSTS.forEach((p) => p.tags.forEach((t) => collectTag(t, p)));
-PROJECTS.forEach((p) => p.tech.forEach((t) => collectTag(t, p)));
-const TAGS = [...TAG_MAP.values()].filter((t) => t.posts.length + t.projects.length > 0)
-  .sort((a, b) => (b.posts.length + b.projects.length) - (a.posts.length + a.projects.length) || byCode(a.slug, b.slug));
+
+/** 把 content/ 下的东西全部读进上面那组变量。可以反复调用 —— 服务器每次内容变动都调一遍。 */
+function loadContent() {
+  SITE = loadSiteObject(abs('content/site.js'));
+  PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
+
+  ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
+  ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
+    .map((p) => Object.assign(p, { kind: 'project' }))
+    .sort((a, b) => (a.order - b.order) || byCode(String(b.date), String(a.date)) || byCode(a.slug, b.slug));
+  RESUME = loadResume();
+
+  /* 站点上真正会发布的条目（草稿在 --drafts 时才出现） */
+  POSTS = ALL_POSTS.filter((p) => WITH_DRAFTS || !p.draft);
+  PROJECTS = ALL_PROJECTS.filter((p) => WITH_DRAFTS || !p.draft);
+
+/* ------------------------------------------------------------ 标签 */
+
+/* 最新内容日期。
+   sitemap 的 lastmod 与页脚年份都用它，**不用"今天"** ——
+   构建产物必须只由内容决定，否则 CI 里"产物与提交一致"这条检查隔一天就会误报。 */
+  CONTENT_DATES = [...POSTS, ...PROJECTS]
+    .map((p) => p.date)
+    .filter((d) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(d)))
+    .sort();
+  LATEST_DATE = CONTENT_DATES.length ? CONTENT_DATES[CONTENT_DATES.length - 1] : "1970-01-01";
+  SITE_YEAR = LATEST_DATE.slice(0, 4);
+
+
+  TAG_MAP = new Map();   // slug -> {name, posts:[], projects:[]}
+  POSTS.forEach((p) => p.tags.forEach((t) => collectTag(t, p)));
+  PROJECTS.forEach((p) => p.tech.forEach((t) => collectTag(t, p)));
+  TAGS = [...TAG_MAP.values()].filter((t) => t.posts.length + t.projects.length > 0)
+    .sort((a, b) => (b.posts.length + b.projects.length) - (a.posts.length + a.projects.length) || byCode(a.slug, b.slug));
+}
 
 /* --------------------------------------------------- 1. 样式 / 脚本 */
 
@@ -322,12 +352,18 @@ function pruneGenerated() {
   else log(`  ${C.dim}没有多余产物要清${C.reset}`);
 }
 
+/** 资源版本串：只由样式 / 脚本源码决定。构建和服务器都调它，两边必然一致 */
+const hashOf = (css, js, pages) => createHash('sha1').update(css + js + pages).digest('hex').slice(0, 8);
+export function computeVersion() {
+  return hashOf(concat('src/styles', STYLE_MANIFEST), concat('src/js', SCRIPT_MANIFEST), read('src/js/pages.js'));
+}
+
 function buildAssets() {
   head('1/7', '样式与脚本');
   const css = concat('src/styles', STYLE_MANIFEST);
   const js = concat('src/js', SCRIPT_MANIFEST);
   const pages = read('src/js/pages.js');
-  VERSION = createHash('sha1').update(css + js + pages).digest('hex').slice(0, 8);
+  VERSION = hashOf(css, js, pages);
   ok(`assets/styles.css   ${kb(writeIfChanged('assets/styles.css', css))}`);
   ok(`assets/main.js      ${kb(writeIfChanged('assets/main.js', js))}`);
   ok(`assets/pages.js     ${kb(writeIfChanged('assets/pages.js', pages))}`);
@@ -379,7 +415,7 @@ function buildSiteData() {
     + `window.SITE.assetVersion = ${JSON.stringify(VERSION)};\n`
     + `window.SITE.searchIndex = 'assets/site-index.js';\n`;
 
-  writeIfChanged('assets/site-data.js', out);
+  emit('assets/site-data.js', out);
 
   if (/^https?:\/\/example\.com\/?$/.test(String(SITE.url || ''))) {
     warn(`content/site.js 里的 url 还是占位符 ${SITE.url} —— sitemap / RSS / canonical 里的地址会不对`);
@@ -399,7 +435,7 @@ function buildSiteData() {
     projects: PROJECTS.map((p) => brief(p, `projects/${p.slug}.html`)),
     tags: TAGS.map((t) => ({ t: t.name, u: `tags/${t.slug}.html`, n: t.posts.length + t.projects.length })),
   };
-  ok(`assets/site-index.js ${kb(writeIfChanged('assets/site-index.js', `window.SITE_INDEX=${JSON.stringify(index)};\n`))}（${index.posts.length + index.projects.length} 条）`);
+  ok(`assets/site-index.js ${kb(emit('assets/site-index.js', `window.SITE_INDEX=${JSON.stringify(index)};\n`))}（${index.posts.length + index.projects.length} 条）`);
 }
 
 /* --------------------------------------------------------- 页面片段 */
@@ -488,7 +524,7 @@ function buildPages() {
 
   const shell = (o) => {
     const html = pageShell({ site: SITE, asset: VERSION, year: SITE_YEAR, ...o });
-    writeIfChanged(o.out, html);
+    emit(o.out, html);
     return Buffer.byteLength(html);
   };
 
@@ -730,7 +766,7 @@ ${urls.filter((u) => u.last).map((u) => `  <url>
   </url>`).join('\n')}
 </urlset>
 `;
-  writeIfChanged('sitemap.xml', sitemap);
+  emit('sitemap.xml', sitemap);
   ok(`sitemap.xml          ${urls.length} 条`);
 
   const feed = POSTS.filter((p) => !p.draft);
@@ -752,10 +788,10 @@ ${feed.map((p) => `    <item>
   </channel>
 </rss>
 `;
-  writeIfChanged('rss.xml', rss);
+  emit('rss.xml', rss);
   ok(`rss.xml              ${feed.length} 条`);
 
-  writeIfChanged('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
+  emit('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
   ok('robots.txt');
 }
 
@@ -789,30 +825,84 @@ function buildHome() {
     html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
   }
 
-  writeIfChanged('index.html', html);
+  emit('index.html', html);
   ok('index.html          （来自 src/pages/index.html）');
+}
+
+/* ------------------------------------------------------- 整站渲染 */
+
+/**
+ * 把整站渲染进内存，返回 Map<相对路径, 内容>。**不落盘。**
+ *
+ * 两个使用者共用这一份渲染代码，所以服务器动态渲染出来的页面
+ * 和 `node scripts/build.mjs` 的产物出自同一段代码，不会两套模板走偏：
+ *   · main()：拿到 Map 后逐个 writeIfChanged（带增量与旧产物清理）
+ *   · site/server.mjs：拿到 Map 后按路由直接吐出去
+ */
+export function renderSite({ drafts = false, quiet = false } = {}) {
+  WITH_DRAFTS = !!drafts;
+  QUIET = !!quiet;
+  try {
+    loadContent();
+    VERSION = computeVersion();
+    FILES.clear();
+    buildSiteData();
+    buildPages();
+    buildSeo();
+    buildHome();
+    return FILES;
+  } finally {
+    QUIET = false;      /* 出错也要还原，否则后面的报错会被吞掉 */
+  }
+}
+
+/** 只重算站点配置与搜索索引（--assets 用；页面留给下一次完整构建） */
+export function renderSiteData({ drafts = false, quiet = false } = {}) {
+  WITH_DRAFTS = !!drafts;
+  QUIET = !!quiet;
+  try {
+    loadContent();
+    VERSION = computeVersion();
+    FILES.clear();
+    buildSiteData();
+    return FILES;
+  } finally {
+    QUIET = false;
+  }
 }
 
 /* ------------------------------------------------------------ 启动 */
 
-log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'}${WITH_DRAFTS ? ' · 含草稿' : ''})${C.reset}`);
-buildAssets();
-if (!ASSETS_ONLY) buildImages();
-buildSiteData();
+/** 命令行入口。参数只在这里读 —— 服务器 import 本模块时不会被它的 argv 影响 */
+function main() {
+  const ARGS = process.argv.slice(2);
+  ASSETS_ONLY = ARGS.includes('--assets');
+  WITH_DRAFTS = ARGS.includes('--drafts');
+  FORCE = ARGS.includes('--force');       // 忽略增量缓存，全部重算重写
 
-if (!ASSETS_ONLY) {
-  buildPages();
-  buildSeo();
-  buildHome();
-  head('7/7', '收尾');
-  pruneGenerated();
-  saveRenderCache();
-  ok(`渲染缓存：命中 ${cacheHits.hit} / 未命中 ${cacheHits.miss}`);
-  ok(`落盘 ${STATS.written} 个文件，跳过 ${STATS.skipped} 个没变的`);
-} else {
-  log(`\n${C.dim}--assets：跳过图片与页面生成${C.reset}`);
+  log(`${C.bold}personal-site · build${C.reset} ${C.dim}(${ASSETS_ONLY ? '仅资源' : '完整构建'}${WITH_DRAFTS ? ' · 含草稿' : ''})${C.reset}`);
+  buildAssets();
+  loadRenderCache();
+
+  if (ASSETS_ONLY) {
+    for (const [p, text] of renderSiteData({ drafts: WITH_DRAFTS })) writeIfChanged(p, text);
+    log(`\n${C.dim}--assets：跳过图片与页面生成${C.reset}`);
+  } else {
+    buildImages();
+    for (const [p, text] of renderSite({ drafts: WITH_DRAFTS })) writeIfChanged(p, text);
+    head('7/7', '收尾');
+    pruneGenerated();
+    saveRenderCache();
+    ok(`渲染缓存：命中 ${cacheHits.hit} / 未命中 ${cacheHits.miss}`);
+    ok(`落盘 ${STATS.written} 个文件，跳过 ${STATS.skipped} 个没变的`);
+  }
+
+  log(process.exitCode
+    ? `\n${C.red}构建失败${C.reset}`
+    : `\n${C.green}构建完成${C.reset}  ${C.dim}${POSTS.length} 篇文章 · ${PROJECTS.length} 个项目 · ${TAGS.length} 个标签${WITH_DRAFTS ? ' · 含草稿' : ''}${C.reset}`);
 }
 
-log(process.exitCode
-  ? `\n${C.red}构建失败${C.reset}`
-  : `\n${C.green}构建完成${C.reset}  ${C.dim}${POSTS.length} 篇文章 · ${PROJECTS.length} 个项目 · ${TAGS.length} 个标签${WITH_DRAFTS ? ' · 含草稿' : ''}${C.reset}`);
+/* 只有直接 `node scripts/build.mjs` 才跑构建。
+   import 本模块（site/server.mjs 就是这么用的）什么都不执行 —— 服务器要的是上面的 renderSite()。 */
+const IS_MAIN = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (IS_MAIN) main();
