@@ -1,10 +1,28 @@
 # 部署到云服务器
 
-站点是**纯静态**的：服务器上不需要 Node、不需要数据库、不需要常驻进程，
-只要一个 nginx 把文件发出去。构建在你自己的电脑上做完，再把产物同步上去。
+这个站是**两半**，部署前先分清：
 
-> 为什么不用"服务器上自动构建"：那样服务器要装 Node、要能拉代码，
-> 出问题的地方就从一个变成三个。静态站最舒服的地方就是——**产物即网站**。
+| | 是什么 | 跑在哪 |
+|---|---|---|
+| **公开站** | 按内容现渲染页面 + nginx 直发静态资源 | 只读的 Node 进程 `site/server.mjs`（8080）+ nginx |
+| **写作后台** | 后台写内容、开关板块（可选） | 另一个 Node 进程 `admin/server.mjs`（8787） |
+
+所以服务器上需要 **Node 18+**。比"纯静态"多了一个进程，换来的是
+**后台点保存、线上约 20ms 就是新的** —— 不用等构建，也不用再 rsync。
+
+两个进程是**故意分开**的：
+
+- 公开站那个是**只读**的：它连写文件都不需要，systemd 单元里整个文件系统对它只读
+  （`ProtectSystem=strict`）。给陌生人服务的进程碰不到数据 —— 这是一条文件系统级别的边界，
+  比在代码里判权限靠谱。它挂了 nginx 会给一句人话的 503。
+- 后台那个挂了不影响访客。它才是唯一会写 `content/` 的。
+
+> **还是想要纯静态？** 可以。构建产物一直照旧生成（本地 `node scripts/build.mjs`，
+  或后台的「重新生成静态快照」），把 nginx 的 `location /` 从反代改回 `try_files` 就退回静态站。
+  `index.html` 双击打开也一直能用 —— 产物仍然提交进仓库。
+
+> `content/` 默认**不会**被 `scripts/deploy.sh` 推上去 —— 服务器上那份才是唯一副本，
+> 无脑 rsync `--delete` 会把你在后台写的东西抹掉。要推得显式加 `--with-content`。
 
 ---
 
@@ -50,7 +68,26 @@ node scripts/serve.mjs     # 本地预览 http://127.0.0.1:8000（行为对齐 n
 
 ---
 
-## 2. 服务器：装 nginx
+## 2. 服务器：装 Node 和 nginx
+
+公开站要一个 Node 进程来渲染页面。零依赖，所以**没有 `npm install` 这一步**：
+
+```bash
+sudo apt update
+sudo apt install -y nodejs nginx
+node -v        # ≥ 18 就行（要用到 fetch / AbortSignal.timeout / fs.watch recursive）
+```
+
+然后装渲染进程和它的开机自启（单元文件顶部有完整步骤）：
+
+```bash
+sudo cp deploy/personal-site-site.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now personal-site-site
+curl -s http://127.0.0.1:8081/__status     # 看到 JSON 就成了
+```
+
+下面是 nginx 部分。
 
 ```bash
 sudo apt update
@@ -163,6 +200,10 @@ sudo certbot renew --dry-run
 
 ## 6. 日常发布流程
 
+> **改内容不用走这一节**：后台里点保存，线上约 20ms 就是新的（渲染进程盯着 `content/`，
+> 后台保存后还会主动敲它一下）。下面这套是改**代码**（样式、脚本、配置）时走的，
+> 或者你习惯本地写完再推。
+
 ```bash
 # 1. 写内容
 $EDITOR content/posts/新文章.md
@@ -265,6 +306,11 @@ allow 你的家宽IP; deny all;
 ---
 
 ## 8. 回滚 / 备份
+
+> ⚠️ 动态化之后，**服务器上的 `content/` 就是唯一副本**（后台直接往那儿写）。
+> 以前"服务器只是产物、丢了能重建"这条不成立了。
+> 所以装了 `deploy/personal-site-backup.timer`：每天打包一次 `content/`，留最近 30 份。
+> 安装步骤在那个 timer 文件的顶部 —— **别跳过这一步**。
 
 站点是可重建的：产物全部由 `content/` + `src/` 生成。
 所以**备份内容源就等于备份整个站点**。
