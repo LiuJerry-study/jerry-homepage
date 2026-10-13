@@ -470,8 +470,23 @@ function pruneGenerated() {
 
 /** 资源版本串：只由样式 / 脚本源码决定。构建和服务器都调它，两边必然一致 */
 const hashOf = (css, js, pages) => createHash('sha1').update(css + js + pages).digest('hex').slice(0, 8);
+/**
+ * 资源版本串。页面里 `assets/styles.css?v=…` 的那个 …。
+ *
+ * 优先**读磁盘上的产物**算，而不是读 src/ —— 两个原因：
+ *   1. 这个串的用处是"缓存失效"：它必须和你真正部署出去的那几个文件严格对应。
+ *      动态站的服务器上根本没有 src/（也没必要有），拿源码算出来的串可能
+ *      跟磁盘上的 styles.css 对不上，结果是**版本号没变、浏览器继续用旧 CSS**。
+ *   2. 后台改内容之后渲染进程会重算一遍，读产物几乎没有成本（几十 KB 的 sha1）。
+ *
+ * 产物还不存在时（全新 clone，第一次构建）退回按源码算。
+ */
 export function computeVersion() {
-  return hashOf(concat('src/styles', STYLE_MANIFEST), concat('src/js', SCRIPT_MANIFEST), read('src/js/pages.js'));
+  try {
+    return hashOf(read('assets/styles.css'), read('assets/main.js'), read('assets/pages.js'));
+  } catch (e) {
+    return hashOf(concat('src/styles', STYLE_MANIFEST), concat('src/js', SCRIPT_MANIFEST), read('src/js/pages.js'));
+  }
 }
 
 function buildAssets() {

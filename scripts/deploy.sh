@@ -78,10 +78,13 @@ echo "▶ 自检"
 node scripts/check.mjs
 
 # ---------- 3. 同步 ----------
+# 注意 assets 推的是整个目录，不是那三个文件 —— 上面刻意列过文件名，
+# 结果 assets/site-index.js 从来没被推上去过（页面里引用了它，命令面板就哑了）。
 FILES=(
-  assets/styles.css
-  assets/main.js
-  assets/pages.js
+  assets          # styles.css / main.js / pages.js / site-data.js / site-index.js
+  src             # ⚠ 必须推：渲染进程**每次都读** src/pages/index.html 当首页模板，
+                  #   少了它首页会一直停在旧文案（改动像是"没生效"）。
+                  #   nginx 里 src/ 是 deny 的，不会外泄。
   proto
   site            # 渲染进程
   scripts         # 渲染进程要 import build.mjs
