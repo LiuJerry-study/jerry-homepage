@@ -87,6 +87,11 @@ sudo systemctl enable --now personal-site-site
 curl -s http://127.0.0.1:8081/__status     # 看到 JSON 就成了
 ```
 
+> **端口被占了怎么办**：渲染进程默认用 **8080**，它的本地管理口是 **8081**（PORT + 1）。
+> 这两台如果已经被别的服务占了（阿里云那台上 8080 就是 searxng 的），换个口就行 ——
+> systemd 单元里 `Environment=PORT=8090`，nginx 那边 `proxy_pass` 跟着改成 8090。
+> 本地调试同理：`node site/server.mjs --port 8090`。
+
 下面是 nginx 部分。
 
 ```bash
