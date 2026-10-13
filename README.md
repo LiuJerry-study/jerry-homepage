@@ -62,7 +62,7 @@ bash scripts/deploy.sh                  # 同步到服务器（见 DEPLOY.md）
 
 | 我想改… | 去哪 |
 |---|---|
-| 首页标语、导航卡片、开关、每页文章数 | `content/site.js` |
+| 首页标语、站点名、导航卡片、开关、每页文章数… | **后台 → 设置 / 卡片**（写 `content/settings.json`、`content/nav.json`）；不想开后台就改 `content/site.js` |
 | 写一篇文章 | `content/posts/*.md`（**文件名就是网址**） |
 | 加一个作品 | `content/projects/*.md` |
 | 简历 | `content/resume.json` |
@@ -96,7 +96,10 @@ personal-site/
 │                          site-data.js / site-index.js / images/
 │
 ├─ content/                ← 写内容只动这里
-│  ├─ site.js              站点配置：标语、开关、导航卡片、每页文章数
+│  ├─ site.js              站点配置：标语、导航卡片、每页文章数（**也是后台那些设置的兜底**）
+│  ├─ settings.json        后台「设置」页写的（文字 / 数字 / 下拉 / 开关都在这儿）
+│  ├─ nav.json             后台「卡片」页写的（做了它就用它，没做就用 site.js 里的 nav）
+│  ├─ features.json        上一个版本的后台留下的老文件，还认；设置页能一键并进来
 │  ├─ posts/*.md           博客文章
 │  ├─ projects/*.md        作品
 │  ├─ images/**            正文图片
@@ -240,7 +243,7 @@ order: 1                           # 数字越小越靠前
 想给这一页单独写，就在 `about.json` 里加 `sections`（格式和 `resume.json` 一样）。
 链接写 `links`，只收 `{ label, href }`，`href` 要完整地址（`https://…` 或 `mailto:…`）。
 
-这一页也有自己的开关：`content/features.json` 里的 `pages.about`（后台「开关」页能勾）。
+这一页也有自己的开关：后台「设置 → 板块 → 关于页」（存 `content/settings.json` 的 `pages.about`）。
 关掉之后页面、导航卡片、sitemap 一起消失 —— 包括磁盘上已经生成的那份。
 
 ### 图片
@@ -331,10 +334,22 @@ npm run build | assets | check | serve | deploy | admin
 
 ## 写作后台（可选）
 
-浏览器里写内容的那个后台。**它是独立进程，跟对外站点没关系**：站点始终是纯静态的，
-nginx 直接发文件；后台挂了、停了，站点照常访问。
+浏览器里写内容的那个后台。**它是独立进程**：对外站点由另一个**只读**进程渲染
+（`site/server.mjs`），后台挂了、停了，访客那边一点感觉都没有。
+
+| 页面 | 干什么 |
+|---|---|
+| 文章 / 作品 | 增删改，Markdown + 实时预览 |
+| 简历 / 关于 | 编辑 JSON（有校验） |
+| **卡片** `/admin/cards` | **不用写代码也能加首页入口卡片** —— 表单填标题/说明/图标/链接/角标/关键词/详情，右边实时预览，能上移下移复制删除 |
+| **设置** `/admin/settings` | 一张表管全站：开关 + 文字 + 数字 + 下拉，按类型出控件 |
+
 
 ![写作后台 · 编辑器](docs/admin-editor.png)
+
+![写作后台 · 卡片](docs/admin-cards.png)
+
+![写作后台 · 设置](docs/admin-settings.png)
 
 ```bash
 ADMIN_PASSWORD=你的密码 npm run admin      # → http://127.0.0.1:8787/admin
@@ -343,7 +358,9 @@ ADMIN_PASSWORD=你的密码 npm run admin      # → http://127.0.0.1:8787/admin
 | 它能做 | 怎么做的 |
 |---|---|
 | 增删改文章 / 作品 | 直接读写 `content/` 里的 `.md`；原子写（先写 `.tmp` 再 rename） |
-| 改简历 | 编辑 `content/resume.json`，保存前校验 JSON |
+| 改简历 / 关于 | 编辑 JSON，保存前校验 |
+| 加首页卡片 | 表单 → `content/nav.json`，不用碰 JS |
+| 开关与参数 | `content/settings.json`，改完前台**立刻**是新渲染的（不用重新构建） |
 | **实时预览** | 每敲几下把正文发给服务端，用**构建脚本同一套渲染器**渲染 → 不会"预览挺好、发布变形" |
 | **整页草稿预览** | `/preview/posts/<文件名>` 渲染完整页面（带 `noindex`），不发布也能看真实排版 |
 | 保存即发布 | 保存后自动跑一次增量构建，构建日志直接显示在编辑器里 |
@@ -357,6 +374,38 @@ ADMIN_PASSWORD=你的密码 npm run admin      # → http://127.0.0.1:8787/admin
 
 部署步骤看 [DEPLOY.md](DEPLOY.md) 第 7 节。**不用后台也完全没问题**：
 内容就是 `content/` 里的文件，用任何编辑器写都行。
+
+---
+
+## 设置与开关（一张表管全站）
+
+后台「设置」页那一整张表由 **[scripts/lib/features.mjs](personal-site/scripts/lib/features.mjs) 的 `FEATURE_ITEMS`** 定义。
+注册表是唯一真相：**后台按它渲染控件，写入时按它校验，构建按它决定默认值。**
+
+每一项长这样：
+
+```js
+{ key: 'home.dots', group: 'home', kind: 'bool', level: 'runtime',
+  label: '右侧圆点', def: true, note: '一屏一个的小圆点导航' }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `key` | 存进 `content/settings.json` 的名字。**不能随便改** —— 改了老配置就丢了 |
+| `kind` | `bool` 开关 / `text` 单行 / `textarea` 多行 / `number` 数字 / `select` 下拉 |
+| `group` | 出现在后台哪一组（标题和说明在 `FEATURE_GROUPS`） |
+| `level` | `site` = 渲染期：关掉连页面都不生成，导航卡片 / sitemap / RSS / 搜索索引一起消失，磁盘上的旧页也会被清掉；`runtime` = 只影响首页 |
+| `site` | 写了它 = 这一项的值会盖到 `window.SITE` 上（构建期和浏览器里都是同一份） |
+| `def` | 默认值。不写就是 `true`（开关默认全开） |
+
+**加一项要动的地方**：注册表里加一条 → 后台自动长出控件 →
+在 `src/js/` 里用 `featOn('你的key')` 或 `opt('你的key', 默认值)` 读它。不用改后台、不用改构建。
+
+配置读坏了会怎样：不认识的键、类型不对的值，一律**退回默认 + 打一条 warn**。
+一个配置文件不该把站点关黑。
+
+> 老的 `content/features.json`（上一个版本的后台写的，只有开关）**还认**，
+> 但优先级最低。设置页上有一条提示，能一键把它并进 `settings.json` 然后把老文件改名归档。
 
 ---
 
@@ -380,11 +429,11 @@ ADMIN_PASSWORD=你的密码 npm run admin      # → http://127.0.0.1:8787/admin
 
 ### 三样东西是随机的
 
-| 随机的 | 开关（都在 `content/site.js`） | 网址钉死 |
+| 随机的 | 后台「设置」里选 | 网址钉死 |
 |---|---|---|
-| **翻屏转场**：六套（淡入 / 推移 / 翻卡 / 缩放 / 虚化 / 擦除），不连着重复 | `randomTransition` | — |
-| **点击爆点**：两套，每次点击**独立**掷一次 | `randomBurst` | `?fx=random` / `?fx=new` / `?fx=classic` |
-| **主题**：首次打开随机亮 / 暗，手动切过一次就记住 | `randomTheme` | `?theme=light` / `?theme=dark` |
+| **翻屏转场**：六套（淡入 / 推移 / 翻卡 / 缩放 / 虚化 / 擦除），不连着重复 | 逐屏转场 / 转场用哪套 | — |
+| **点击爆点**：两套，每次点击**独立**掷一次 | 点击爆点 / 爆点用哪套 | `?fx=random` / `?fx=new` / `?fx=classic` |
+| **主题**：首次打开随机亮 / 暗，手动切过一次就记住 | 默认明暗 | `?theme=light` / `?theme=dark` |
 
 两套爆点长什么样、想看左右对照，开 `proto/burst-lab.html`。
 
@@ -462,7 +511,8 @@ body
 - **详情页是整屏滑入**，不是卡片上弹小面板：不用算坐标、不用铺遮罩，
   也不打断「一屏一页」的节奏；底下舞台的状态原样保留。
 - **转场宁短不长**：最长 720ms，翻屏锁在转场期间，避免连点滚轮把状态搞乱。
-- **内容就是文件**：没有数据库、没有后台服务（写作后台是可选的独立进程）。
+- **内容就是文件**：没有数据库。常驻进程只有两个 —— 只读的公开站渲染器和写作后台，
+  两个都是零依赖的 Node 脚本，加起来不到 700 行。
   你的内容永远是几个能直接读、能 git diff、能随时搬走的纯文本。
 
 ### 性能账（每一条都有实测）
@@ -488,7 +538,9 @@ body
 
 ## 部署
 
-站点是纯静态的：服务器上不需要 Node、数据库或常驻进程，**一个 nginx 就够**。
+默认形态是**动态站**：`site/server.mjs` 按内容现渲染（整站约 20ms，零依赖），
+nginx 反代页面、直接发静态资源。同一段渲染代码也会产出一份**静态快照**提交进仓库 ——
+所以 clone 下来双击 `index.html` 就能看，CI 也能比对产物。
 
 **完整步骤见 [DEPLOY.md](DEPLOY.md)**：改域名 → 构建 → 上传 → nginx 配置 → HTTPS →
 写作后台（可选）→ 日常发布 → 回滚备份 → 常见问题。

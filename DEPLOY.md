@@ -5,7 +5,7 @@
 | | 是什么 | 跑在哪 |
 |---|---|---|
 | **公开站** | 按内容现渲染页面 + nginx 直发静态资源 | 只读的 Node 进程 `site/server.mjs`（8080）+ nginx |
-| **写作后台** | 后台写内容、开关板块（可选） | 另一个 Node 进程 `admin/server.mjs`（8787） |
+| **写作后台** | 后台写内容、加卡片、调开关与参数（可选） | 另一个 Node 进程 `admin/server.mjs`（8787） |
 
 所以服务器上需要 **Node 18+**。比"纯静态"多了一个进程，换来的是
 **后台点保存、线上约 20ms 就是新的** —— 不用等构建，也不用再 rsync。
@@ -51,7 +51,7 @@ url: 'https://your-domain.com',
 
 | 想改什么 | 改哪里 |
 |---|---|
-| 首页标语、卡片、开关 | `content/site.js` |
+| 首页标语、卡片、开关、参数 | 后台「卡片」「设置」页（写 `content/nav.json`、`content/settings.json`）；不开后台就改 `content/site.js` |
 | 博客文章 | `content/posts/*.md`（文件名就是网址，如 `my-post.md` → `/blog/my-post.html`） |
 | 作品 | `content/projects/*.md` |
 | 简历 | `content/resume.json` |

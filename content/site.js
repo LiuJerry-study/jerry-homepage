@@ -5,7 +5,11 @@
    博客文章、项目、简历分别放在 content/posts、content/projects、content/resume.json，
    由 node scripts/build.mjs 生成 blog/ 、projects/ 、resume.html。
 
-   加一张卡片 = 往 nav 里加一个对象，卡片自己长出来。
+   ⚠ 首页那几张卡片**不在这儿改**了 —— 打开后台的「卡片」页，填表单就行。
+     后台会写出一份 content/nav.json；那个文件一旦存在，就由它说了算，
+     下面这串 nav 只当备份（把 nav.json 删掉就切回来）。
+
+   非要用文件加卡片：往 nav 里加一个对象，卡片自己长出来。
    href 留空 → 卡片显示「筹备中」，点一下从右侧滑进整屏详情页；
    href 填上 → 卡片自动变成可点的真链接（站内页写 'blog/index.html'，外链写完整 https://）。
 
@@ -40,8 +44,10 @@ window.SITE = {
   /* 主标语：首屏那一行大字，逐字浮现。点它 = 散成粒子（约两秒后重聚），按 R = 重播浮现 */
   tagline: '未来 由我们创造',
 
-  /* 导航卡片区是否显示一张「＋ 添加新站点」的开发用卡片 */
-  showAddCard: true,
+  /* 导航卡片区是否显示一张「＋ 添加新站点」的开发用卡片。
+     默认关掉：现在加卡片有后台表单了（/admin/cards），墙上不需要再挂一张说明书。
+     想在本地开发时看到它，改成 true。 */
+  showAddCard: false,
 
   /* 逐屏转场：true = 每次翻屏随机换一套动效（淡入 / 推移 / 翻卡 / 缩放 / 虚化 / 擦除）
      false = 全部用最朴素的淡入 */

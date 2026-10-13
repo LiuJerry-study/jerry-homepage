@@ -64,9 +64,10 @@
      网址参数优先且能钉死：?fx=new / ?fx=classic / ?fx=random。
      proto/burst-lab.html 就是靠它做左右对照的。 */
   const FX_ARG = new URLSearchParams(location.search).get('fx');
-  const FX_MODE = (FX_ARG === 'new' || FX_ARG === 'classic' || FX_ARG === 'random')
-    ? FX_ARG
+  const FX_STYLE = (SITE.burstStyle === 'new' || SITE.burstStyle === 'classic' || SITE.burstStyle === 'random')
+    ? SITE.burstStyle
     : (SITE.randomBurst === false ? 'new' : 'random');
+  const FX_MODE = (FX_ARG === 'new' || FX_ARG === 'classic' || FX_ARG === 'random') ? FX_ARG : FX_STYLE;
 
   /* ======================== 1. 提示条 ======================== */
   const toastEl = document.getElementById('toast');
@@ -1016,10 +1017,12 @@
       s.setAttribute('aria-hidden', 'true');
       frag.appendChild(s);
     });
-    const caret = document.createElement('span');
-    caret.className = 'caret';
-    caret.setAttribute('aria-hidden', 'true');
-    frag.appendChild(caret);
+    if (featOn('home.taglineCaret')) {            /* 开关：标语末尾那根闪的竖线 */
+      const caret = document.createElement('span');
+      caret.className = 'caret';
+      caret.setAttribute('aria-hidden', 'true');
+      frag.appendChild(caret);
+    }
 
     h1.textContent = '';
     h1.appendChild(frag);
@@ -1484,7 +1487,7 @@
     const isScrollable = (p) => p.classList.contains('is-scrollable');
 
     function pickTrans() {
-      if (SITE.randomTransition === false) return TRANSITIONS[0];
+      if (SITE.randomTransition === false || SITE.transitionStyle === 'fade') return TRANSITIONS[0];
       let i = Math.floor(Math.random() * TRANSITIONS.length);
       if (TRANSITIONS.length > 1 && i === lastTrans) i = (i + 1 + Math.floor(Math.random() * (TRANSITIONS.length - 1))) % TRANSITIONS.length;
       lastTrans = i;
@@ -2198,13 +2201,18 @@
   }
 
   /* ------------------------------------------------------------------
-     开关：由构建脚本写进 assets/site-data.js（定义见 scripts/lib/features.mjs），
-     后台的「开关」页改的就是它。取不到一律当"开" ——
+     设置：由构建脚本写进 assets/site-data.js（定义见 scripts/lib/features.mjs），
+     后台的「设置」页改的就是它。取不到一律当"开" ——
      万一 site-data.js 还是旧版（没重新构建过），也不会突然少东西。
+     featOn() 问"开着吗"，opt() 问"值是多少"（文字 / 数字 / 下拉）。
      ------------------------------------------------------------------ */
   function featOn(key) {
     const f = (window.SITE && window.SITE.features) || {};
     return f[key] !== false;
+  }
+  function opt(key, dflt) {
+    const f = (window.SITE && window.SITE.features) || {};
+    return f[key] === undefined ? dflt : f[key];
   }
 
   /** 关掉的入口元素直接摘掉：留在屏幕上却点不动，比没有更难懂 */
@@ -2218,8 +2226,28 @@
        （圆点会多一个、翻屏计数也会算上它）。 */
     if (!featOn('home.aboutPanel')) drop('#about');
 
-    /* 关掉逐屏转场 = 全部用最朴素的淡入（09-stage.js 读的就是这个） */
-    if (!featOn('effects.transition') && window.SITE) window.SITE.randomTransition = false;
+    /* 后台「设置」里能关掉的那些零碎。一律"连元素一起摘掉"——
+       留在屏幕上却点不动、或者空占一块地方，比没有更难懂。
+       注意顺序：摘 .foot 要在 initClock() 之前，免得它抓到一个已经被摘掉的 #clock。 */
+    if (!featOn('home.heroTitle')) drop('#hero-title');
+    if (!featOn('home.footer')) {
+      drop('#about .foot');
+    } else {
+      if (!featOn('home.clock')) drop('#clock');
+      if (!featOn('home.tips')) drop('.kbd-hint');
+    }
+    if (!featOn('effects.wash')) drop('#bg .wash');
+    if (!featOn('effects.noise')) drop('#bg .noise');
+    if (!featOn('tools.meter')) drop('#meter');
+
+    /* 转场：总开关关掉、或者风格选了"只用淡入"，都是同一件事 ——
+       把 SITE.randomTransition 置 false（09-stage.js 的 pickTrans() 读的就是它） */
+    if (!featOn('effects.transition') || opt('effects.transitionStyle') === 'fade') {
+      /* 注意改的是本文件顶部的 SITE（第 01 节的常量），不是 window.SITE ——
+         01-core.js 当初是 Object.assign 复制出来的，改 window.SITE 那份它看不见。
+         （这个开关以前就是这么失效的：写 window.SITE，09-stage.js 读的却是 SITE。） */
+      SITE.randomTransition = false;
+    }
 
     fx = featOn('effects.particles') ? initFx() : null;
     applyTheme(html.dataset.theme || 'light', false);

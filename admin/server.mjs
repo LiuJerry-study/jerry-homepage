@@ -15,7 +15,9 @@
      · 文章 / 作品 的增删改，简历 / 关于页 JSON 编辑
      · 实时预览（服务端渲染，和构建脚本同一套渲染器）
      · 整页草稿预览 /preview/<kind>/<slug>（不用发布就能看真实排版）
-     · 开关页 /admin/settings：一页控制全站有哪些板块、哪些功能
+     · 卡片页 /admin/cards：不写代码也能加首页入口卡片（写 content/nav.json）
+     · 设置页 /admin/settings：一页控制全站有哪些板块、哪些功能、各种参数
+       （写 content/settings.json；老的 content/features.json 还能读，页面上能一键并进来）
      · 保存后敲一下渲染进程，公开站约 20ms 就是新的（不用重新构建）
 
    环境变量：
@@ -35,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 
 import * as store from './lib/store.mjs';
 import { renderBody, renderDraftPage, decorate, loadSite } from './lib/render.mjs';
-import { layout, loginPage, listPage, editorPage, resumePage, aboutPage, settingsPage } from './lib/ui.mjs';
+import { layout, loginPage, listPage, editorPage, resumePage, aboutPage, settingsPage, cardsPage } from './lib/ui.mjs';
 import { FEATURE_GROUPS, FEATURE_ITEMS } from '../scripts/lib/features.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -345,13 +347,25 @@ const server = createServer(async (req, res) => {
       }));
     }
 
-    /* ---------- 开关 ---------- */
+    /* ---------- 卡片 / 设置 ---------- */
+    const when = () => (lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '');
+
+    if (p === '/admin/cards') {
+      const nav = store.readNav();
+      return sendHtml(res, 200, cardsPage({
+        items: nav.items, saved: nav.saved, placeholders: store.cardPlaceholders(), lastBuild: when(),
+      }));
+    }
+
     if (p === '/admin/settings') {
+      const cur = store.readSettings();
       return sendHtml(res, 200, settingsPage({
         groups: FEATURE_GROUPS,
         items: FEATURE_ITEMS,
-        features: store.readFeatures(),
-        lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
+        settings: cur.settings,
+        notes: cur.notes,
+        hasLegacy: cur.hasLegacy,
+        lastBuild: when(),
       }));
     }
 
@@ -410,11 +424,34 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, build });
     }
 
+    if (p === '/api/settings' && req.method === 'POST') {
+      const j = await readJson(req);
+      const saved = store.writeSettings(j.settings || {});
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, settings: saved, build });
+    }
+
+    if (p === '/api/settings/import-legacy' && req.method === 'POST') {
+      const out = store.importLegacy();
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, movedTo: out.movedTo, build });
+    }
+
+    /* 老接口：上一个版本的后台往这儿写 content/features.json。
+       现在还收，但落到 settings.json —— 顺手把老调用方也升级掉。 */
     if (p === '/api/features' && req.method === 'POST') {
       const j = await readJson(req);
-      const saved = store.writeFeatures(j.features || {});
+      const incoming = j.settings || j.features || {};
+      const saved = store.writeSettings(Object.assign({}, store.readSettings().settings, incoming));
       const build = await publish();
-      return sendJson(res, 200, { ok: true, features: saved, build });
+      return sendJson(res, 200, { ok: true, features: saved, settings: saved, build });
+    }
+
+    if (p === '/api/cards' && req.method === 'POST') {
+      const j = await readJson(req);
+      const items = store.writeNav(j.items);
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, items, build });
     }
 
     if (p === '/api/rebuild' && req.method === 'POST') {

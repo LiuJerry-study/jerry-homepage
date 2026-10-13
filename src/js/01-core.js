@@ -40,8 +40,9 @@
      网址参数优先且能钉死：?fx=new / ?fx=classic / ?fx=random。
      proto/burst-lab.html 就是靠它做左右对照的。 */
   const FX_ARG = new URLSearchParams(location.search).get('fx');
-  const FX_MODE = (FX_ARG === 'new' || FX_ARG === 'classic' || FX_ARG === 'random')
-    ? FX_ARG
+  const FX_STYLE = (SITE.burstStyle === 'new' || SITE.burstStyle === 'classic' || SITE.burstStyle === 'random')
+    ? SITE.burstStyle
     : (SITE.randomBurst === false ? 'new' : 'random');
+  const FX_MODE = (FX_ARG === 'new' || FX_ARG === 'classic' || FX_ARG === 'random') ? FX_ARG : FX_STYLE;
 
   

@@ -31,7 +31,7 @@ import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h }
 import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
 import { imageSizeOfFile } from './lib/images.mjs';
 import { loadSiteObject } from './lib/site-config.mjs';
-import { loadFeatures, sectionOn, offHrefs } from './lib/features.mjs';
+import { loadSettings, seedFromSite, siteOverrides, sectionOn, offHrefs } from './lib/features.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -245,6 +245,31 @@ function loadAbout() {
   }
 }
 
+/**
+ * 读 content/nav.json（后台「卡片」页写的文件）。
+ * 返回 null = 没有这个文件 / 读不懂 / 里面没有 items —— 那就继续用 site.js 里的 nav。
+ * 返回 [] = 明确写了"一张卡片都不要"。这两种情况必须分开，不然清空卡片会被当成没配过。
+ */
+function loadNavFile() {
+  if (!exists('content/nav.json')) return null;
+  let d;
+  try { d = JSON.parse(read('content/nav.json')); }
+  catch (e) { bad(`content/nav.json 解析失败（继续用 site.js 里的 nav）：${e.message}`); return null; }
+  if (!d || typeof d !== 'object' || !Array.isArray(d.items)) {
+    warn('content/nav.json 里应该有 items 数组（继续用 site.js 里的 nav）');
+    return null;
+  }
+  return d.items.map((it) => ({
+    title: String((it && it.title) || ''),
+    desc: String((it && it.desc) || ''),
+    icon: String((it && it.icon) || 'grid'),
+    href: String((it && it.href) || ''),
+    badge: String((it && it.badge) || ''),
+    tags: Array.isArray(it && it.tags) ? it.tags.map(String) : [],
+    details: Array.isArray(it && it.details) ? it.details.map(String) : [],
+  }));
+}
+
 function loadResume() {
   if (!exists('content/resume.json')) return null;
   try {
@@ -294,7 +319,9 @@ function renderCached(raw, file, opts, renderFn) {
 
 let ALL_POSTS, ALL_PROJECTS, RESUME, ABOUT, POSTS, PROJECTS;
 let CONTENT_DATES, LATEST_DATE, SITE_YEAR, TAG_MAP, TAGS;
-let FEATURES = {};
+let FEATURES = {};              /* 后台「设置」页里那一整套值（含开关和参数） */
+let SETTINGS_NOTES = [];        /* 配置文件里读不懂的地方，由 loadContent() 喊出来 */
+let NAV_FILE = null;            /* content/nav.json 里的卡片；null = 用 site.js 里的那份 */
 
 /** slug -> {name, posts:[], projects:[]}；每次 loadContent() 重建 */
 function collectTag(raw, item) {
@@ -309,12 +336,25 @@ function collectTag(raw, item) {
 /** 把 content/ 下的东西全部读进上面那组变量。可以反复调用 —— 服务器每次内容变动都调一遍。 */
 function loadContent() {
   SITE = loadSiteObject(abs('content/site.js'));
-  PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
 
-  /* 开关（content/features.json）。读坏了就当全开 —— 不让一个配置文件把站点关黑。 */
-  const f = loadFeatures(ROOT, readFileSync, existsSync);
-  FEATURES = f.features;
-  for (const n of f.notes) warn(n);
+  /* 后台「设置」页那一整张表（content/settings.json）。
+     顺序很重要：先拿 site.js 里现有的值当种子，再让配置文件往上盖 ——
+     这样"后台没动过的项"就等于保持 site.js 原样，不会被注册表里的默认值抹掉。
+     读坏了就当默认值 —— 不让一个配置文件把站点关黑。 */
+  const f = loadSettings(ROOT, readFileSync, existsSync, seedFromSite(SITE));
+  FEATURES = f.settings;
+  SETTINGS_NOTES = f.notes;
+  for (const n of SETTINGS_NOTES) warn(n);
+
+  /* 带 site 的项盖回 SITE：构建期（标题 / sitemap / RSS）与浏览器里用的是同一份 */
+  Object.assign(SITE, siteOverrides(FEATURES));
+
+  /* 卡片墙：content/nav.json 在就用它，否则用 site.js 的 nav（见 scripts/lib/features.mjs）
+     后台的「卡片」页写这个文件；它不存在时，后台会自动把 site.js 的那份读出来当草稿。 */
+  NAV_FILE = loadNavFile();
+  if (NAV_FILE) SITE.nav = NAV_FILE;
+
+  PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
 
   ALL_POSTS = loadMarkdownDir('content/posts', { prefix: '../' });
   ALL_PROJECTS = loadMarkdownDir('content/projects', { prefix: '../' })
@@ -355,16 +395,30 @@ function isSectionOff(out) {
   return offHrefs(FEATURES).some((p) => out === p || out.startsWith(p));
 }
 
-/** 追加在 assets/site-data.js 末尾的运行时开关：导航过滤 + 各模块自己读的开关表 */
+/**
+ * 追加在 assets/site-data.js 末尾的运行时配置。
+ *
+ * 三件事：
+ *   1. window.SITE.features —— 后台「设置」页里那一整套值（开关 + 参数）。
+ *      名字没改：main.js 里的 featOn() 一直在读它。非布尔的项放进来也无害，
+ *      featOn() 只判断 !== false。
+ *   2. window.SITE 上的覆盖 —— 主标语、站点名、卡片列表这些。
+ *      用的是覆盖而不是改 site.js：那份文件是给人读的，注释必须留着。
+ *   3. 按板块开关过滤卡片 —— 关掉的板块，入口卡片不该留在墙上点了 404。
+ */
 function featureRuntimeScript() {
   const off = offHrefs(FEATURES);
-  return '\n/* ↓ 由构建脚本追加：开关（见 content/features.json 与后台「开关」页） */\n'
+  const over = Object.assign({}, siteOverrides(FEATURES), { nav: SITE.nav || [] });
+  return '\n/* ↓ 由构建脚本追加：后台设置 + 卡片列表（见 content/settings.json 与后台「设置」页） */\n'
     + `window.SITE.features = ${JSON.stringify(FEATURES)};\n`
-    + '(function () {\n'
+    + `window.SITE.settings = window.SITE.features;   /* 同一个对象的别名，读哪个都行 */\n`
+    + `(function () {\n`
+    + `  var o = ${JSON.stringify(over)};\n`
+    + '  for (var k in o) window.SITE[k] = o[k];\n'
     + `  var off = ${JSON.stringify(off)};\n`
     + '  window.SITE.nav = (window.SITE.nav || []).filter(function (c) {\n'
     + "    var href = String((c && c.href) || '');\n"
-    + '    return !off.some(function (p) { return href === p || href.indexOf(p) === 0; });\n'
+    + '    return !href || !off.some(function (p) { return href === p || href.indexOf(p) === 0; });\n'
     + '  });\n'
     + '})();\n';
 }
@@ -591,7 +645,7 @@ function buildPages() {
      开关开了又关，不会留一堆孤儿页。 */
   const shell = (o) => {
     if (isSectionOff(o.out)) { STATS.skipped++; return 0; }
-    const html = pageShell({ site: SITE, asset: VERSION, year: SITE_YEAR, ...o });
+    const html = pageShell({ site: SITE, asset: VERSION, year: SITE_YEAR, rss: sectionOn(FEATURES, 'rss'), ...o });
     emit(o.out, html);
     return Buffer.byteLength(html);
   };
@@ -887,8 +941,10 @@ ${urls.filter((u) => u.last).map((u) => `  <url>
   </url>`).join('\n')}
 </urlset>
 `;
-  emit('sitemap.xml', sitemap);
-  ok(`sitemap.xml          ${urls.length} 条`);
+  if (sectionOn(FEATURES, 'sitemap')) {
+    emit('sitemap.xml', sitemap);
+    ok(`sitemap.xml          ${urls.length} 条`);
+  }
 
   const feed = sectionOn(FEATURES, 'blog') ? POSTS.filter((p) => !p.draft) : [];
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
@@ -909,11 +965,15 @@ ${feed.map((p) => `    <item>
   </channel>
 </rss>
 `;
-  emit('rss.xml', rss);
-  ok(`rss.xml              ${feed.length} 条`);
+  if (sectionOn(FEATURES, 'rss')) {
+    emit('rss.xml', rss);
+    ok(`rss.xml              ${feed.length} 条`);
+  }
 
-  emit('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
-  ok('robots.txt');
+  if (sectionOn(FEATURES, 'robots')) {
+    emit('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${home}/sitemap.xml\n`);
+    ok('robots.txt');
+  }
 }
 
 /* ------------------------------------------------------------ 6. 首页 */
@@ -926,7 +986,21 @@ function buildHome() {
   if (!html.includes('<!--THEME_BOOT-->')) {
     bad('src/pages/index.html 里找不到 <!--THEME_BOOT--> 标记');
   } else {
-    html = html.replace('<!--THEME_BOOT-->', themeBootScript(SITE.randomTheme !== false).trim());
+    html = html.replace('<!--THEME_BOOT-->', themeBootScript(SITE.themeMode || (SITE.randomTheme !== false)).trim());
+  }
+
+  /* 文案占位符：后台改了站点名 / 主标语 / 描述，首页自己就跟着变 */
+  const brand = String(SITE.brand || '个人门户');
+  const tagline = String(SITE.tagline || '');
+  const fill = {
+    '{{TITLE}}': brand === tagline || !tagline ? brand : `${brand} · ${tagline}`,
+    '{{DESC}}': String(SITE.description || ''),
+    '{{TAGLINE}}': tagline,
+    '{{YEAR}}': SITE_YEAR,
+  };
+  for (const [k, v] of Object.entries(fill)) {
+    if (!html.includes(k)) { bad(`src/pages/index.html 里找不到占位符 ${k}`); continue; }
+    html = html.split(k).join(h(v));
   }
 
   // 资源版本串：改了 CSS/JS 之后，访客不会拿到旧缓存

@@ -22,7 +22,10 @@ const THEME_COLOR = { light: '#F4F9F5', dark: '#07130F' };
  * 所以整站的优先级和结果一定是统一的。
  *
  * 优先级：?theme= ＞ localStorage（手动选过）＞ sessionStorage（本标签页掷出的随机结果）
- *         ＞ 随机（randomTheme）＞ 系统偏好
+ *         ＞ 后台设的默认（theme.mode）＞ 系统偏好
+ *
+ * @param {string|boolean} mode 后台「主题」那一项。可传 'random' | 'system' | 'light' | 'dark'；
+ *   老代码传的 true/false 也认（true = random，false = system），因为 site.js 里还有 randomTheme。
  *
  * 关于 sessionStorage：随机主题只在「从没手动选过」时掷一次，
  * 掷完把结果记进当前标签页 —— 否则从首页点进博客会突然变成另一个主题。
@@ -34,11 +37,14 @@ const THEME_COLOR = { light: '#F4F9F5', dark: '#07130F' };
 export const THEME_KEY = 'portal-theme';
 export const THEME_SESSION_KEY = 'portal-theme-session';
 
-export function themeBootScript(randomTheme = true) {
+export function themeBootScript(mode = 'random') {
+  const m = mode === true ? 'random' : mode === false ? 'system'
+    : (mode === 'random' || mode === 'system' || mode === 'light' || mode === 'dark') ? mode : 'random';
   return `<script>
   /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
     var t = 'light';
+    var MODE = '${m}';          /* 后台「主题」里设的默认：random | system | light | dark */
     try {
       var q = new URLSearchParams(location.search).get('theme');
       var saved = null, picked = null;
@@ -51,7 +57,9 @@ export function themeBootScript(randomTheme = true) {
         t = saved;
       } else if (picked === 'light' || picked === 'dark') {
         t = picked;
-      } else if (${randomTheme ? 'true' : 'false'}) {
+      } else if (MODE === 'light' || MODE === 'dark') {
+        t = MODE;
+      } else if (MODE === 'random') {
         t = Math.random() < 0.5 ? 'light' : 'dark';
         try { sessionStorage.setItem('${THEME_SESSION_KEY}', t); } catch (e) { /* 忽略 */ }
       } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -103,13 +111,13 @@ function topbar(site, current, prefix) {
  *   （否则 CI 里"产物与提交一致"这条检查跨年就会误报）。访客看到的真实年份由
  *   assets/pages.js 在运行时覆盖，这里只是禁用 JS 时的兜底。
  */
-function pageFooter(site, prefix, year) {
+function pageFooter(site, prefix, year, rss = true) {
   return `<footer class="page-foot">
     <span>© <span id="year">${year || new Date().getFullYear()}</span> · ${h(site.author || site.brand || '')}</span>
     <span class="dot" aria-hidden="true"></span>
-    <a href="${prefix}index.html">返回首页</a>
+    <a href="${prefix}index.html">返回首页</a>${rss ? `
     <span class="dot" aria-hidden="true"></span>
-    <a href="${prefix}rss.xml">RSS</a>
+    <a href="${prefix}rss.xml">RSS</a>` : ''}
   </footer>`;
 }
 
@@ -173,7 +181,7 @@ export function pageShell(o) {
 <html lang="zh-CN" data-theme="light" data-layout="page">
 <head>
 ${meta}
-${themeBootScript(site.randomTheme !== false)}
+${themeBootScript(site.themeMode || (site.randomTheme !== false))}
 <link rel="stylesheet" href="${prefix}assets/styles.css${asset}">
 </head>
 
@@ -183,7 +191,7 @@ ${themeBootScript(site.randomTheme !== false)}
   <main class="page-main${o.narrow ? ' page-main--narrow' : ''}" id="main">
 ${o.body}
   </main>
-  ${pageFooter(site, prefix, o.year)}
+  ${pageFooter(site, prefix, o.year, o.rss !== false)}
   <script src="${prefix}assets/pages.js${asset}"></script>
 </body>
 </html>

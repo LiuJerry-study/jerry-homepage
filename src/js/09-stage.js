@@ -37,7 +37,7 @@
     const isScrollable = (p) => p.classList.contains('is-scrollable');
 
     function pickTrans() {
-      if (SITE.randomTransition === false) return TRANSITIONS[0];
+      if (SITE.randomTransition === false || SITE.transitionStyle === 'fade') return TRANSITIONS[0];
       let i = Math.floor(Math.random() * TRANSITIONS.length);
       if (TRANSITIONS.length > 1 && i === lastTrans) i = (i + 1 + Math.floor(Math.random() * (TRANSITIONS.length - 1))) % TRANSITIONS.length;
       lastTrans = i;

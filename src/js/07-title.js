@@ -19,10 +19,12 @@
       s.setAttribute('aria-hidden', 'true');
       frag.appendChild(s);
     });
-    const caret = document.createElement('span');
-    caret.className = 'caret';
-    caret.setAttribute('aria-hidden', 'true');
-    frag.appendChild(caret);
+    if (featOn('home.taglineCaret')) {            /* 开关：标语末尾那根闪的竖线 */
+      const caret = document.createElement('span');
+      caret.className = 'caret';
+      caret.setAttribute('aria-hidden', 'true');
+      frag.appendChild(caret);
+    }
 
     h1.textContent = '';
     h1.appendChild(frag);

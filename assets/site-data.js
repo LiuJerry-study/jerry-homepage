@@ -5,7 +5,11 @@
    博客文章、项目、简历分别放在 content/posts、content/projects、content/resume.json，
    由 node scripts/build.mjs 生成 blog/ 、projects/ 、resume.html。
 
-   加一张卡片 = 往 nav 里加一个对象，卡片自己长出来。
+   ⚠ 首页那几张卡片**不在这儿改**了 —— 打开后台的「卡片」页，填表单就行。
+     后台会写出一份 content/nav.json；那个文件一旦存在，就由它说了算，
+     下面这串 nav 只当备份（把 nav.json 删掉就切回来）。
+
+   非要用文件加卡片：往 nav 里加一个对象，卡片自己长出来。
    href 留空 → 卡片显示「筹备中」，点一下从右侧滑进整屏详情页；
    href 填上 → 卡片自动变成可点的真链接（站内页写 'blog/index.html'，外链写完整 https://）。
 
@@ -40,8 +44,10 @@ window.SITE = {
   /* 主标语：首屏那一行大字，逐字浮现。点它 = 散成粒子（约两秒后重聚），按 R = 重播浮现 */
   tagline: '未来 由我们创造',
 
-  /* 导航卡片区是否显示一张「＋ 添加新站点」的开发用卡片 */
-  showAddCard: true,
+  /* 导航卡片区是否显示一张「＋ 添加新站点」的开发用卡片。
+     默认关掉：现在加卡片有后台表单了（/admin/cards），墙上不需要再挂一张说明书。
+     想在本地开发时看到它，改成 true。 */
+  showAddCard: false,
 
   /* 逐屏转场：true = 每次翻屏随机换一套动效（淡入 / 推移 / 翻卡 / 缩放 / 虚化 / 擦除）
      false = 全部用最朴素的淡入 */
@@ -149,15 +155,18 @@ window.SITE = {
 };
 
 /* ↓ 由构建脚本追加：资源版本 + 搜索索引地址（不要手改这一段） */
-window.SITE.assetVersion = "ac4bae6c";
+window.SITE.assetVersion = "9dc47595";
 window.SITE.searchIndex = 'assets/site-index.js';
 
-/* ↓ 由构建脚本追加：开关（见 content/features.json 与后台「开关」页） */
-window.SITE.features = {"pages.blog":true,"pages.projects":true,"pages.resume":true,"pages.tags":true,"pages.about":true,"home.aboutPanel":true,"home.cards":true,"home.dots":true,"home.clock":true,"effects.particles":true,"effects.blobs":true,"effects.halo":true,"effects.burst":true,"effects.titleDissolve":true,"effects.transition":true,"effects.magnetic":true,"tools.cmdk":true,"tools.themeToggle":true,"tools.keys":true,"tools.hoverPeek":true};
+/* ↓ 由构建脚本追加：后台设置 + 卡片列表（见 content/settings.json 与后台「设置」页） */
+window.SITE.features = {"site.brand":"个人门户","site.author":"Jerry","site.url":"https://xixid.cloud","site.description":"一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。","home.tagline":"未来 由我们创造","blog.perPage":10,"theme.mode":"random","pages.blog":true,"pages.projects":true,"pages.resume":true,"pages.tags":true,"pages.about":true,"pages.rss":true,"pages.sitemap":true,"pages.robots":true,"home.heroTitle":true,"home.taglineCaret":true,"home.cards":true,"home.addCard":false,"home.aboutPanel":true,"home.dots":true,"home.footer":true,"home.clock":true,"home.tips":true,"effects.particles":true,"effects.wash":true,"effects.blobs":true,"effects.noise":true,"effects.halo":true,"effects.burst":true,"effects.burstStyle":"random","effects.titleDissolve":true,"effects.transition":true,"effects.transitionStyle":"random","effects.magnetic":true,"tools.cmdk":true,"tools.themeToggle":true,"tools.keys":true,"tools.hoverPeek":true,"tools.meter":true};
+window.SITE.settings = window.SITE.features;   /* 同一个对象的别名，读哪个都行 */
 (function () {
+  var o = {"brand":"个人门户","author":"Jerry","url":"https://xixid.cloud","description":"一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。","tagline":"未来 由我们创造","postsPerPage":10,"themeMode":"random","showAddCard":false,"burstStyle":"random","nav":[{"title":"个人简历","desc":"教育经历 · 技能栈 · 项目经验","icon":"resume","href":"resume.html","badge":"{{resume}}","tags":["简历","resume","cv","教育","技能","项目"],"details":["教育经历：学校 / 专业 / 时间线","技能栈：按熟练度分层列出，不堆关键词","项目经验：挑三个讲清楚「做了什么、结果如何」","导出 PDF，一页装得下"]},{"title":"博客","desc":"随笔 · 技术笔记 · 学习记录","icon":"pen","href":"blog/index.html","badge":"{{posts}}","tags":["博客","blog","文章","随笔","笔记"],"details":["随笔：想到哪写到哪，先写起来","技术笔记：踩过的坑 + 解决过程","学习记录：四级 / 课程 / 读书","按年份归档，支持全文搜索"]},{"title":"作品集","desc":"做过的东西，都放在这里","icon":"grid","href":"projects/index.html","badge":"{{projects}}","tags":["作品","作品集","项目","portfolio","demo"],"details":["每个作品配一张图 + 一段人话说明","能跑的 demo 直接嵌进来，点开就能玩","GitHub 链接与提交记录","按「做完了 / 在做 / 想做」分栏，进度一眼可见"]},{"title":"笔记库","desc":"知识管理 · 长文归档","icon":"book","href":"","badge":"筹备中","tags":["笔记","知识库","obsidian","归档","长文"],"details":["Obsidian 库整理后放这里","标签 + 双向链接，知识之间连起来","长文归档，适合慢慢读","定期更新一张索引页，不至于迷路"]},{"title":"关于我","desc":"我是谁，正在做什么","icon":"user","href":"about.html","badge":"已上线","tags":["关于","about","介绍","我","自我介绍"],"details":["我是谁：一段不超过十行的自我介绍","正在做什么：当前最重要的三件事","喜欢什么：书 / 音乐 / 运动，随便聊聊","这一页会一直改，因为它一直在变"]},{"title":"联系","desc":"邮箱 · 社交 · 留言","icon":"mail","href":"about.html#contact","badge":"已上线","tags":["联系","contact","邮箱","邮件","社交"],"details":["邮箱：点一下直接复制到剪贴板","社交账号与主页链接","留言板（以后再加）","通常 24 小时内回信"]}]};
+  for (var k in o) window.SITE[k] = o[k];
   var off = [];
   window.SITE.nav = (window.SITE.nav || []).filter(function (c) {
     var href = String((c && c.href) || '');
-    return !off.some(function (p) { return href === p || href.indexOf(p) === 0; });
+    return !href || !off.some(function (p) { return href === p || href.indexOf(p) === 0; });
   });
 })();

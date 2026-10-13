@@ -11,8 +11,16 @@
    ========================================================================== */
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { frontMatter } from '../../scripts/lib/markdown.mjs';
+import { ITEM_BY_KEY, loadSettings, normalizeValue, seedFromSite } from '../../scripts/lib/features.mjs';
+import { loadSiteObject } from '../../scripts/lib/site-config.mjs';
+
+/* 仓库根。下面老的那些相对路径靠"进程的工作目录正好是仓库根"，
+   新加的这几个文件**不赌这个** —— 定时器 / systemd / 别的启动方式都可能换工作目录，
+   找不到文件时报的错会非常难查。 */
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 export const KINDS = {
   posts: { dir: 'content/posts', label: '文章', type: 'post' },
@@ -172,27 +180,143 @@ export function writeAbout(text) {
   return obj;
 }
 
-/* ---------------------------------------------------------------- 开关 */
+/* ==========================================================================
+   设置（content/settings.json）
+   --------------------------------------------------------------------------
+   后台「设置」页写这个文件。每个键和值都要过一遍注册表（scripts/lib/features.mjs）——
+   注册表是唯一真相：后台按它渲染控件，这里按它校验，构建按它决定默认值。
+   ========================================================================== */
 
-const FEATURES_FILE = 'content/features.json';
+const SETTINGS_FILE = join(ROOT, 'content/settings.json');
+const LEGACY_FILE = join(ROOT, 'content/features.json');
+const NAV_FILE = join(ROOT, 'content/nav.json');
 
-export function readFeatures() {
-  if (!existsSync(FEATURES_FILE)) return {};
-  const o = JSON.parse(readFileSync(FEATURES_FILE, 'utf8'));
-  if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('content/features.json 应该是一个对象');
-  return o;
+const SETTINGS_HEAD = {
+  _说明: '这个文件是后台「设置」页写的。每一项的类型和说明见 scripts/lib/features.mjs 的 FEATURE_ITEMS。',
+  _改法: '手改也行：删掉某一项 = 恢复默认值；删掉整个文件 = 全部恢复默认。保存后前台立刻生效。',
+};
+
+/** 读一份"当前生效"的设置 + 一些给界面看的元信息 */
+export function readSettings() {
+  /* 种子必须和构建脚本用的是同一份（seedFromSite）：后台输入框里显示的
+     应该是 site.js 里的当前值，而不是注册表里的硬编码默认值 ——
+     否则「站点地址」会是空的，一点保存就把真地址覆盖成空字符串。 */
+  const r = loadSettings(ROOT, readFileSync, existsSync, readSiteSeed());
+  return {
+    settings: r.settings,
+    notes: r.notes,
+    hasLegacy: existsSync(LEGACY_FILE),      // 老文件还在？界面上提示一句可以并进来
+    legacyKeys: r.legacyUsed || [],
+    hasFile: existsSync(SETTINGS_FILE),
+  };
 }
 
-/** 只收 true/false（下划线开头的是注释，照留）。别的键一律丢掉 —— 别把垃圾写进配置。 */
-export function writeFeatures(obj) {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('开关必须是一个对象');
-  const notes = {}, flags = {};
+/** 写设置。脏值直接报错，不悄悄吞掉 —— 用户点了保存就该知道为什么没存上。 */
+export function writeSettings(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('设置必须是一个对象');
+  const out = {};
   for (const [k, v] of Object.entries(obj)) {
-    if (k.startsWith('_') && typeof v === 'string') notes[k] = v;
-    else if (typeof v === 'boolean') flags[k] = v;
+    if (k.startsWith('_')) continue;
+    const item = ITEM_BY_KEY.get(k);
+    if (!item) continue;                                   // 不认识的键：丢掉，不报错（前端的锅）
+    const val = normalizeValue(item, v);
+    if (val === undefined) throw new Error(`「${item.label}」的值不合法：${JSON.stringify(v)}`);
+    out[k] = val;
   }
-  /* 注释排在前面：这文件是给人看的，写回去之后不该变成"注释跑到底下去了" */
-  const out = { ...notes, ...flags };
-  writeAtomic(FEATURES_FILE, JSON.stringify(out, null, 2) + '\n');
+  if (!Object.keys(out).length) throw new Error('没有可保存的项');
+  /* 安全阀：板块全关掉，站点就只剩 404 了。这种事不该靠"用户想清楚"来避免。 */
+  const pageKeys = Object.keys(out).filter((k) => k.startsWith('pages.'));
+  if (pageKeys.length && pageKeys.every((k) => out[k] === false)) {
+    throw new Error('至少留一个板块开着 —— 全关掉之后站点就只剩一个 404 了');
+  }
+  writeAtomic(SETTINGS_FILE, JSON.stringify({ ...SETTINGS_HEAD, ...out }, null, 2) + '\n');
   return out;
+}
+
+/**
+ * 把老文件 content/features.json 并进 settings.json，然后把老文件改名留档。
+ * 改名而不是删除 —— 和删文章一样，留一次后悔的机会。
+ */
+export function importLegacy() {
+  if (!existsSync(LEGACY_FILE)) throw new Error('没有 content/features.json 可以并');
+  const cur = loadSettings(ROOT, readFileSync, existsSync, readSiteSeed());
+  const saved = writeSettings(cur.settings);              // 当前生效的全量 = 老文件 + 新文件的结果
+  const bak = `${LEGACY_FILE}.imported-${new Date().toISOString().slice(0, 10)}`;
+  renameSync(LEGACY_FILE, bak);
+  return { saved, movedTo: bak.replace(ROOT + '/', '') };
+}
+
+/* ==========================================================================
+   卡片墙（content/nav.json）
+   --------------------------------------------------------------------------
+   没有 nav.json 的时候，后台会把 content/site.js 里的 nav 读出来当草稿 ——
+   这样老用户第一次打开「卡片」页看到的是自己那几张卡，而不是一张白纸。
+   nav.json 一旦存在，构建立刻改用它（content/site.js 里的那份就只是备份了）。
+   ========================================================================== */
+
+const CARD_FIELDS = ['title', 'desc', 'icon', 'href', 'badge', 'tags', 'details'];
+
+/** 把一张卡片洗成固定字段 + 固定类型，免得手写的怪东西混进去 */
+export function cleanCard(raw) {
+  const it = raw && typeof raw === 'object' ? raw : {};
+  return {
+    title: String(it.title || '').slice(0, 120),
+    desc: String(it.desc || '').slice(0, 300),
+    icon: String(it.icon || 'grid').slice(0, 24),
+    href: String(it.href || '').slice(0, 400),
+    badge: String(it.badge || '').slice(0, 40),
+    tags: (Array.isArray(it.tags) ? it.tags : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 40),
+    details: (Array.isArray(it.details) ? it.details : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 40),
+  };
+}
+
+/** 读卡片：返回 { items, saved }。saved=false 表示这是从 site.js 借来的草稿 */
+export function readNav() {
+  if (existsSync(NAV_FILE)) {
+    let d;
+    try { d = JSON.parse(readFileSync(NAV_FILE, 'utf8')); }
+    catch (e) { throw new Error(`content/nav.json 解析失败：${e.message}`); }
+    const items = Array.isArray(d) ? d : (d && Array.isArray(d.items) ? d.items : null);
+    if (!items) throw new Error('content/nav.json 里应该有 items 数组');
+    return { items: items.map(cleanCard), saved: true };
+  }
+  let site = {};
+  try { site = loadSiteObject(join(ROOT, 'content/site.js')); } catch (e) { /* site.js 坏了就空着 */ }
+  return { items: (Array.isArray(site.nav) ? site.nav : []).map(cleanCard), saved: false };
+}
+
+export function writeNav(items) {
+  if (!Array.isArray(items)) throw new Error('items 必须是数组');
+  if (items.length > 40) throw new Error('卡片最多 40 张 —— 再多就不「简约」了');
+  const out = items.map(cleanCard);
+  out.forEach((c, i) => {
+    if (!c.title) throw new Error(`第 ${i + 1} 张卡片没有标题`);
+  });
+  writeAtomic(NAV_FILE, JSON.stringify({
+    _说明: '这个文件是后台「卡片」页写的。删掉它 = 回到 content/site.js 里那份 nav。',
+    _字段: 'title 标题 / desc 一句话说明 / icon 图标 / href 链接（留空=筹备中，点开详情）/ badge 角标 / tags 搜索关键词 / details 详情条目',
+    items: out,
+  }, null, 2) + '\n');
+  return out;
+}
+
+/**
+ * 卡片角标里能用三个占位符。构建脚本会把它们换成真实数量 ——
+ * 后台的预览也得换，不然输入框旁边写着「构建时替换」，预览里却原样显示 {{posts}}。
+ */
+export function cardPlaceholders() {
+  const pub = (kind) => listContent(kind).filter((x) => !x.draft).length;
+  let n = 0;
+  try { n = (readResume().sections || []).reduce((a, s) => a + ((s.items && s.items.length) || 0), 0); } catch (e) { n = 0; }
+  return {
+    '{{posts}}': pub('posts') + ' 篇',
+    '{{projects}}': pub('projects') + ' 个',
+    '{{resume}}': n > 0 ? '已上线' : '筹备中',
+  };
+}
+
+/** site.js 里的值，给「设置」页当输入框的初始值 */
+export function readSiteSeed() {
+  try { return seedFromSite(loadSiteObject(join(ROOT, 'content/site.js'))); }
+  catch (e) { return {}; }
 }

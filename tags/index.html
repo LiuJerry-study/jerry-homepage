@@ -18,6 +18,7 @@
   /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
   (function () {
     var t = 'light';
+    var MODE = 'random';          /* 后台「主题」里设的默认：random | system | light | dark */
     try {
       var q = new URLSearchParams(location.search).get('theme');
       var saved = null, picked = null;
@@ -30,7 +31,9 @@
         t = saved;
       } else if (picked === 'light' || picked === 'dark') {
         t = picked;
-      } else if (true) {
+      } else if (MODE === 'light' || MODE === 'dark') {
+        t = MODE;
+      } else if (MODE === 'random') {
         t = Math.random() < 0.5 ? 'light' : 'dark';
         try { sessionStorage.setItem('portal-theme-session', t); } catch (e) { /* 忽略 */ }
       } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -43,7 +46,7 @@
     if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
   })();
 </script>
-<link rel="stylesheet" href="../assets/styles.css?v=ac4bae6c">
+<link rel="stylesheet" href="../assets/styles.css?v=9dc47595">
 </head>
 
 <body class="page">
@@ -81,6 +84,6 @@
     <span class="dot" aria-hidden="true"></span>
     <a href="../rss.xml">RSS</a>
   </footer>
-  <script src="../assets/pages.js?v=ac4bae6c"></script>
+  <script src="../assets/pages.js?v=9dc47595"></script>
 </body>
 </html>
