@@ -11,4 +11,12 @@ Type=oneshot
 User=www-data
 Group=www-data
 WorkingDirectory=/srv/personal-site
+
+# 想把备份镜像到 GitHub，就把 GIT_REMOTE 写进这个文件：
+#     sudo tee /etc/personal-site-backup.env >/dev/null <<'EOF'
+#     GIT_REMOTE=git@github.com:你的名字/jerry-content.git
+#     EOF
+# 前面那个减号 = 文件不存在也不报错，所以不配也能正常跑（那就只打包，不推）。
+EnvironmentFile=-/etc/personal-site-backup.env
+
 ExecStart=/bin/sh /srv/personal-site/deploy/backup-content.sh
