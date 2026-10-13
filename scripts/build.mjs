@@ -138,6 +138,7 @@ const STYLE_MANIFEST = [
   '19-responsive.css',
   '20-reduced-motion.css',
   '21-pages.css',        // 长页面（博客 / 项目 / 简历 / 标签）—— 只作用于 html[data-layout="page"]
+  '22-about.css',        // 关于页专属：数字卡 + 社交链接行
 ];
 
 const SCRIPT_MANIFEST = [
@@ -226,6 +227,24 @@ function loadMarkdownDir(dir, { prefix }) {
     .sort((a, b) => byCode(String(b.date), String(a.date)) || byCode(a.slug, b.slug));
 }
 
+/** 关于页：结构照 resume.json，改起来不用学新东西 */
+function loadAbout() {
+  if (!exists('content/about.json')) return null;
+  try {
+    const d = JSON.parse(read('content/about.json'));
+    return {
+      title: d.title || '关于我',
+      intro: d.intro || '',
+      stats: Array.isArray(d.stats) ? d.stats : [],
+      links: Array.isArray(d.links) ? d.links : [],
+      sections: Array.isArray(d.sections) ? d.sections : [],
+    };
+  } catch (e) {
+    bad(`content/about.json 解析失败：${e.message}`);
+    return null;
+  }
+}
+
 function loadResume() {
   if (!exists('content/resume.json')) return null;
   try {
@@ -273,7 +292,7 @@ function renderCached(raw, file, opts, renderFn) {
   return val;
 }
 
-let ALL_POSTS, ALL_PROJECTS, RESUME, POSTS, PROJECTS;
+let ALL_POSTS, ALL_PROJECTS, RESUME, ABOUT, POSTS, PROJECTS;
 let CONTENT_DATES, LATEST_DATE, SITE_YEAR, TAG_MAP, TAGS;
 let FEATURES = {};
 
@@ -302,6 +321,7 @@ function loadContent() {
     .map((p) => Object.assign(p, { kind: 'project' }))
     .sort((a, b) => (a.order - b.order) || byCode(String(b.date), String(a.date)) || byCode(a.slug, b.slug));
   RESUME = loadResume();
+  ABOUT = loadAbout();
 
   /* 站点上真正会发布的条目（草稿在 --drafts 时才出现） */
   POSTS = ALL_POSTS.filter((p) => WITH_DRAFTS || !p.draft);
@@ -363,7 +383,14 @@ const PRODUCED = new Set();
 function pruneGenerated() {
   if (process.exitCode) { warn('构建有错误，跳过清理旧产物'); return; }
   const dirs = ['blog', 'projects', 'tags', 'assets/images'];
+  /* 顶层也归构建管：板块被开关关掉时 resume.html / about.html 不该留在磁盘上。
+     index.html 和 404.html 永远会重新产出，所以它们不会被误删。 */
+  const rootFiles = ['index.html', '404.html', 'resume.html', 'about.html', 'sitemap.xml', 'rss.xml', 'robots.txt'];
   let removed = 0;
+
+  for (const f of rootFiles) {
+    if (exists(f) && !PRODUCED.has(f)) { rmSync(abs(f)); removed++; }
+  }
   const walk = (rel) => {
     for (const name of readdirSync(abs(rel))) {
       const p = `${rel}/${name}`;
@@ -732,7 +759,9 @@ function buildPages() {
   }
 
   /* ---------- 简历 ---------- */
-  const sectionHtml = (RESUME ? RESUME.sections : []).map((s) => {
+  /** 简历页和关于页共用这一个：type=skill 出胶囊，其余出「年份 + 角色」的时间线。
+      一样的渲染抄成两份，改了一边另一边迟早对不上。 */
+  const renderSections = (list) => (list || []).map((s) => {
     const en = s.en ? `<span class="mono">${h(s.en)}</span>` : '';
     const title = `<h2>${en}${h(s.title || '')}</h2>`;
     const items = Array.isArray(s.items) ? s.items : [];
@@ -752,6 +781,7 @@ function buildPages() {
         </li>`).join('')}</ul>
     </section>`;
   }).join('');
+  const sectionHtml = renderSections(RESUME ? RESUME.sections : []);
   const resumeBody = `${pageHead({ eyebrow: 'Resume', label: '简历', title: '简历', lede: '' })}
     ${RESUME ? `<p class="resume-intro">${h(RESUME.intro)}</p>${sectionHtml}` : emptyHint('简历内容', 'content/resume.json')}`;
   shell({
@@ -765,6 +795,55 @@ function buildPages() {
     body: resumeBody,
   });
   ok(`resume.html          ${RESUME ? RESUME.count : 0} 条`);
+
+  /* ---------- 关于 ---------- */
+  /* 这一页的定位是「一分钟版」：数字卡 + 技能胶囊 + 社交链接，
+     更长的东西留在简历页 —— 首页那句「一屏一页、页面本身不滚」的克制感，
+     长页面上也要保持。 */
+  if (!sectionOn(FEATURES, 'about')) {
+    warn('「关于」页被开关关掉了');
+  } else if (!ABOUT) {
+    warn('没有 content/about.json，"关于"页不生成');
+  } else {
+    const stats = (ABOUT.stats || []).filter((s) => s && (s.value || s.label));
+    const statsHtml = stats.length
+      ? `<ul class="stat-grid">${stats.map((s) => `<li><b class="stat-n">${h(s.value || '')}</b><span class="stat-l">${h(s.label || '')}</span></li>`).join('')}</ul>`
+      : '';
+
+    const links = (ABOUT.links || []).filter((l) => l && l.href);
+    const linksHtml = links.length
+      ? `<ul class="link-row" id="contact">${links.map((l) => {
+          const out2 = /^https?:/i.test(l.href);
+          return `<li><a class="btn btn-ghost magnetic" href="${h(l.href)}"${out2 ? ' rel="noopener"' : ''}>${h(l.label || l.href)}<span class="btn-ico" aria-hidden="true">${out2 ? '↗' : '→'}</span></a></li>`;
+        }).join('')}</ul>`
+      : '';
+
+    /* 技能胶囊默认沿用简历里 type=skill 的那一段 —— 同一份东西写两遍迟早对不上。
+       about.json 里真的写了 sections，那就用他自己的。 */
+    const own = ABOUT.sections.length
+      ? ABOUT.sections
+      : (RESUME ? RESUME.sections.filter((s) => s.type === 'skill') : []);
+    const more = sectionOn(FEATURES, 'resume')
+      ? '<nav class="pager"><span></span><span class="pager-next"><a href="resume.html">完整简历 →</a></span></nav>'
+      : '';
+
+    shell({
+      out: 'about.html',
+      prefix: '',
+      current: 'about',
+      narrow: true,
+      title: `${ABOUT.title} · ${SITE.brand || '个人门户'}`,
+      description: ABOUT.intro.slice(0, 120) || '关于我',
+      canonical: 'about.html',
+      body: `${pageHead({ eyebrow: 'About', label: '关于', title: ABOUT.title, lede: '' })}
+    <p class="about-intro">${h(ABOUT.intro)}</p>
+    ${statsHtml}
+    ${linksHtml}
+    <div class="about-sections">${renderSections(own)}</div>
+    ${more}`,
+    });
+    ok(`about.html           数字卡 ${stats.length} 个 · 链接 ${links.length} 个 · 段落 ${own.length} 段`);
+  }
 
   /* ---------- 404 ---------- */
   const nf = `<div class="page-head">
@@ -791,6 +870,7 @@ function buildSeo() {
   const urls = [
     { loc: '', last: latest, pri: '1.0' },
     { loc: 'resume.html', last: latest, pri: '0.8' },
+    { loc: 'about.html', last: latest, pri: '0.7' },
     { loc: 'blog/', last: POSTS[0] ? POSTS[0].date : latest, pri: '0.9' },
     { loc: 'projects/', last: PROJECTS[0] ? PROJECTS[0].date : latest, pri: '0.9' },
     ...(TAGS.length ? [{ loc: 'tags/', last: latest, pri: '0.5' }] : []),

@@ -121,8 +121,8 @@ window.SITE = {
       title: '关于我',
       desc: '我是谁，正在做什么',
       icon: 'user',
-      href: '',            // 想直接跳到第二屏就写 '#about'
-      badge: '筹备中',
+      href: 'about.html',
+      badge: '已上线',
       tags: ['关于', 'about', '介绍', '我', '自我介绍'],
       details: [
         '我是谁：一段不超过十行的自我介绍',
@@ -135,8 +135,8 @@ window.SITE = {
       title: '联系',
       desc: '邮箱 · 社交 · 留言',
       icon: 'mail',
-      href: '',            // 例如 'mailto:you@example.com'
-      badge: '筹备中',
+      href: 'about.html#contact',
+      badge: '已上线',
       tags: ['联系', 'contact', '邮箱', '邮件', '社交'],
       details: [
         '邮箱：点一下直接复制到剪贴板',
@@ -149,11 +149,11 @@ window.SITE = {
 };
 
 /* ↓ 由构建脚本追加：资源版本 + 搜索索引地址（不要手改这一段） */
-window.SITE.assetVersion = "ef96466a";
+window.SITE.assetVersion = "ac4bae6c";
 window.SITE.searchIndex = 'assets/site-index.js';
 
 /* ↓ 由构建脚本追加：开关（见 content/features.json 与后台「开关」页） */
-window.SITE.features = {"pages.blog":true,"pages.projects":true,"pages.resume":true,"pages.tags":true,"home.aboutPanel":true,"home.cards":true,"home.dots":true,"home.clock":true,"effects.particles":true,"effects.blobs":true,"effects.halo":true,"effects.burst":true,"effects.titleDissolve":true,"effects.transition":true,"effects.magnetic":true,"tools.cmdk":true,"tools.themeToggle":true,"tools.keys":true,"tools.hoverPeek":true};
+window.SITE.features = {"pages.blog":true,"pages.projects":true,"pages.resume":true,"pages.tags":true,"pages.about":true,"home.aboutPanel":true,"home.cards":true,"home.dots":true,"home.clock":true,"effects.particles":true,"effects.blobs":true,"effects.halo":true,"effects.burst":true,"effects.titleDissolve":true,"effects.transition":true,"effects.magnetic":true,"tools.cmdk":true,"tools.themeToggle":true,"tools.keys":true,"tools.hoverPeek":true};
 (function () {
   var off = [];
   window.SITE.nav = (window.SITE.nav || []).filter(function (c) {

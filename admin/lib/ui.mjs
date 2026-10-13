@@ -97,7 +97,7 @@ label{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 5px}
 
 /** 后台整体骨架 */
 export function layout({ title, body, active = '', user = true }) {
-  const nav = [['posts', '文章'], ['projects', '作品'], ['resume', '简历'], ['settings', '开关']]
+  const nav = [['posts', '文章'], ['projects', '作品'], ['resume', '简历'], ['about', '关于'], ['settings', '开关']]
     .map(([k, label]) => `<a href="/admin/${k}" class="${active === k ? 'on' : ''}">${label}</a>`).join('');
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head>
@@ -346,16 +346,22 @@ export function editorPage({ kind, slug, data, body, exists, lastBuild }) {
   });
 }
 
-export function resumePage({ text, lastBuild }) {
+/* ==========================================================================
+   JSON 文件编辑页（简历 / 关于共用）
+   --------------------------------------------------------------------------
+   只做一件事：把一个 JSON 文件原样放进 textarea，存回去。
+   两个页面的差别只有文案和接口，所以是同一段代码 —— 不然改了一边另一边迟早走样。
+   ========================================================================== */
+export function jsonPage({ title, active, file, preview, api, hint, text, lastBuild }) {
   return layout({
-    title: '简历',
-    active: 'resume',
+    title,
+    active,
     body: `<div class="wrap">
-      <h1>简历</h1>
-      <p class="sub">直接改 <span class="mono">content/resume.json</span>。保存后前台 <span class="mono">resume.html</span> 会重新生成。${lastBuild ? `上次构建：${h(lastBuild)}` : ''}</p>
+      <h1>${h(title)}</h1>
+      <p class="sub">直接改 <span class="mono">${h(file)}</span>。${h(hint)}保存后前台立刻生效，不用重新构建。${lastBuild ? ` 上次操作：${h(lastBuild)}` : ''}</p>
       <div class="toolbar">
-        <button class="btn primary" id="save">保存并重新构建</button>
-        <a class="btn" href="/resume.html" target="_blank" rel="noopener">看效果 ↗</a>
+        <button class="btn primary" id="save">保存并生效</button>
+        <a class="btn" href="${h(preview)}" target="_blank" rel="noopener">看效果 ↗</a>
         <span class="meta" id="state">未修改</span>
       </div>
       <div class="card" style="padding:0">
@@ -371,7 +377,7 @@ export function resumePage({ text, lastBuild }) {
   window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
   $('save').addEventListener('click', async () => {
     const log = $('log'); log.classList.add('on'); log.classList.remove('err'); log.textContent = '保存中…';
-    const r = await fetch('/api/resume', {
+    const r = await fetch(${JSON.stringify(api)}, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: $('f-json').value }),
     });
@@ -379,13 +385,41 @@ export function resumePage({ text, lastBuild }) {
     if (!j.ok) { log.classList.add('err'); log.textContent = j.error || '保存失败'; toast('保存失败'); return; }
     dirty = false; $('state').textContent = '已保存 ' + new Date().toLocaleTimeString();
     log.textContent = (j.build && j.build.log) || '';
-    toast('已保存并重新构建');
+    toast('已保存并生效');
   });
   window.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); $('save').click(); }
   });
 })();
 </script>`,
+  });
+}
+
+/** 简历：content/resume.json → /resume.html */
+export function resumePage({ text, lastBuild }) {
+  return jsonPage({
+    title: '简历',
+    active: 'resume',
+    file: 'content/resume.json',
+    preview: '/resume.html',
+    api: '/api/resume',
+    hint: '结构是 <code>intro</code> + <code>sections</code>（type 为 skill 出胶囊，其余出时间线）。',
+    text,
+    lastBuild,
+  });
+}
+
+/** 关于：content/about.json → /about.html */
+export function aboutPage({ text, lastBuild }) {
+  return jsonPage({
+    title: '关于',
+    active: 'about',
+    file: 'content/about.json',
+    preview: '/about.html',
+    api: '/api/about',
+    hint: '技能胶囊默认沿用简历里那份；想给这一页单独写就加 <code>sections</code>。',
+    text,
+    lastBuild,
   });
 }
 

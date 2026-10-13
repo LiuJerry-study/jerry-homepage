@@ -2056,3 +2056,65 @@ a.page-no:hover { border-color: var(--border); color: var(--ink); }
   .pagination { font-size: 13px; }
   .page-no { min-width: 26px; }
 }
+/* ======================== 关于页（/about.html） ========================
+   这一页只干一件事：让访客一眼看清"你是谁"。
+   技能胶囊和经历时间线**不在这里重新实现** —— 它们直接复用简历页的
+   .chip-list / .resume-line（见 21-pages.css），同一份东西在哪都长得一样。
+   所以这里只有两小块新东西：数字卡、社交链接行。
+   没有动画：关于页要的是"看得清"，不是"好看"。
+   ======================================================================== */
+
+/* 数字卡：一眼能扫过去的几个事实。
+   用 auto-fit 而不是固定列数 —— 三张卡在手机上会自己叠成一列，
+   不用为断点再写一遍。 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+  margin: 30px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.stat-grid li {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.stat-n {
+  display: block;
+  font-size: 1.85rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;   /* 数字等宽：几个卡并排时不会对不齐 */
+}
+.stat-l {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* 社交链接行 */
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+/* 关于页的正文段落间距：简历页用 .resume-intro，这里语义不同所以单开一个，
+   但值保持一致，免得两页的字距看着不一样 */
+.about-intro {
+  margin: 0 0 4px;
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: var(--ink-2);
+  max-width: 46em;
+}
+
+/* 「关于」页里复用简历段落时的间距收一点 */
+.about-sections .resume-section:first-of-type { margin-top: 34px; }

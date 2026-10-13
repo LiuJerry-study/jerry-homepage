@@ -31,6 +31,7 @@ const REQUIRED = [
   'blog/index.html',
   'projects/index.html',
   'resume.html',
+  'about.html',
   '404.html',
   'sitemap.xml',
   'rss.xml',

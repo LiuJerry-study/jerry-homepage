@@ -155,6 +155,23 @@ export function writeResume(text) {
   return obj;
 }
 
+/* -------------------------------------------------------------- 关于页 */
+
+const ABOUT_FILE = 'content/about.json';
+
+export function readAbout() {
+  if (!existsSync(ABOUT_FILE)) return {};
+  return JSON.parse(readFileSync(ABOUT_FILE, 'utf8'));
+}
+
+export function writeAbout(text) {
+  let obj;
+  try { obj = JSON.parse(text); } catch (e) { throw new Error(`JSON 格式不对：${e.message}`); }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('根节点必须是一个对象');
+  writeAtomic(ABOUT_FILE, JSON.stringify(obj, null, 2) + '\n');
+  return obj;
+}
+
 /* ---------------------------------------------------------------- 开关 */
 
 const FEATURES_FILE = 'content/features.json';
@@ -169,10 +186,13 @@ export function readFeatures() {
 /** 只收 true/false（下划线开头的是注释，照留）。别的键一律丢掉 —— 别把垃圾写进配置。 */
 export function writeFeatures(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('开关必须是一个对象');
-  const clean = {};
+  const notes = {}, flags = {};
   for (const [k, v] of Object.entries(obj)) {
-    if (typeof v === 'boolean' || (k.startsWith('_') && typeof v === 'string')) clean[k] = v;
+    if (k.startsWith('_') && typeof v === 'string') notes[k] = v;
+    else if (typeof v === 'boolean') flags[k] = v;
   }
-  writeAtomic(FEATURES_FILE, JSON.stringify(clean, null, 2) + '\n');
-  return clean;
+  /* 注释排在前面：这文件是给人看的，写回去之后不该变成"注释跑到底下去了" */
+  const out = { ...notes, ...flags };
+  writeAtomic(FEATURES_FILE, JSON.stringify(out, null, 2) + '\n');
+  return out;
 }

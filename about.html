@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-layout="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>关于我 · 个人门户</title>
+<meta name="description" content="我是 Jerry，一个觉得「做出来才算数」的开发者。平时在写 TypeScript 和 Node，喜欢把复杂的东西拆成简单的，也喜欢把界面调到手感对为止。这一页只用一分钟说明我是谁，更长的都在简历、博客和作品集里。">
+<meta name="theme-color" content="#F4F9F5">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://xixid.cloud/about.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="关于我 · 个人门户">
+<meta property="og:description" content="我是 Jerry，一个觉得「做出来才算数」的开发者。平时在写 TypeScript 和 Node，喜欢把复杂的东西拆成简单的，也喜欢把界面调到手感对为止。这一页只用一分钟说明我是谁，更长的都在简历、博客和作品集里。">
+<meta property="og:url" content="https://xixid.cloud/about.html">
+<meta property="og:site_name" content="个人门户">
+<meta name="twitter:card" content="summary">
+<script>
+  /* 主题要在首次绘制前定下来，否则会闪一下白。逻辑由构建脚本注入，和长页面完全一致。 */
+  (function () {
+    var t = 'light';
+    try {
+      var q = new URLSearchParams(location.search).get('theme');
+      var saved = null, picked = null;
+      try { saved = localStorage.getItem('portal-theme'); } catch (e) { /* 隐私模式 */ }
+      try { picked = sessionStorage.getItem('portal-theme-session'); } catch (e) { /* 隐私模式 */ }
+
+      if (q === 'light' || q === 'dark') {
+        t = q;
+      } else if (saved === 'light' || saved === 'dark') {
+        t = saved;
+      } else if (picked === 'light' || picked === 'dark') {
+        t = picked;
+      } else if (true) {
+        t = Math.random() < 0.5 ? 'light' : 'dark';
+        try { sessionStorage.setItem('portal-theme-session', t); } catch (e) { /* 忽略 */ }
+      } else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+        t = 'dark';
+      }
+    } catch (e) { /* 老浏览器：用默认浅色 */ }
+    document.documentElement.dataset.theme = t;
+    /* 地址栏配色跟着主题走（<meta name="theme-color"> 就在上面，这里能直接改到） */
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#07130F' : '#F4F9F5');
+  })();
+</script>
+<link rel="stylesheet" href="assets/styles.css?v=ac4bae6c">
+</head>
+
+<body class="page">
+  <a class="skip" href="#main">跳到正文</a>
+  <header class="topbar">
+    <a class="brand" href="index.html" title="回到首页">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-txt">个人门户</span>
+    </a>
+    <div class="top-actions">
+      <nav class="page-nav" aria-label="站点导航"><a class="page-nav-a" href="blog/index.html">博客</a><a class="page-nav-a" href="projects/index.html">项目</a><a class="page-nav-a" href="resume.html">简历</a></nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" aria-pressed="false" title="切换主题（T）">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.1A8.6 8.6 0 1 1 9.9 3.5a7 7 0 0 0 10.6 10.6z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main class="page-main page-main--narrow" id="main">
+<header class="page-head">
+    <p class="eyebrow"><span class="mono">About</span><span class="sep" aria-hidden="true"></span><span>关于</span></p>
+    <h1 class="page-title">关于我</h1>
+    
+  </header>
+    <p class="about-intro">我是 Jerry，一个觉得「做出来才算数」的开发者。平时在写 TypeScript 和 Node，喜欢把复杂的东西拆成简单的，也喜欢把界面调到手感对为止。这一页只用一分钟说明我是谁，更长的都在简历、博客和作品集里。</p>
+    <ul class="stat-grid"><li><b class="stat-n">3</b><span class="stat-l">篇文章</span></li><li><b class="stat-n">2</b><span class="stat-l">个项目</span></li><li><b class="stat-n">2021</b><span class="stat-l">开始写代码</span></li></ul>
+    <ul class="link-row" id="contact"><li><a class="btn btn-ghost magnetic" href="https://github.com/LiuJerry-study" rel="noopener">GitHub<span class="btn-ico" aria-hidden="true">↗</span></a></li></ul>
+    <div class="about-sections"><section class="resume-section"><h2><span class="mono">Skills</span>技能栈</h2>
+        <ul class="chip-list"><li>TypeScript / JavaScript<span class="lv">熟练</span></li><li>React / Next.js<span class="lv">熟练</span></li><li>Node.js<span class="lv">熟练</span></li><li>CSS / 动效与 Canvas<span class="lv">熟练</span></li><li>PostgreSQL / SQLite<span class="lv">了解</span></li><li>Linux / Nginx 部署<span class="lv">了解</span></li></ul>
+      </section></div>
+    <nav class="pager"><span></span><span class="pager-next"><a href="resume.html">完整简历 →</a></span></nav>
+  </main>
+  <footer class="page-foot">
+    <span>© <span id="year">2026</span> · Jerry</span>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="index.html">返回首页</a>
+    <span class="dot" aria-hidden="true"></span>
+    <a href="rss.xml">RSS</a>
+  </footer>
+  <script src="assets/pages.js?v=ac4bae6c"></script>
+</body>
+</html>

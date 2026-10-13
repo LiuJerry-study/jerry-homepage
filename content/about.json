@@ -1,0 +1,28 @@
+{
+  "_说明": "「关于」页（/about.html）的内容。改完保存、构建一次就生效。",
+  "_技能": "这一页的技能胶囊**直接沿用 content/resume.json 里 type=skill 的那一段** —— 同一份东西抄两遍迟早对不上。想给这一页单独写，就在下面加 sections（格式照抄 resume.json）。",
+  "_链接": "社交链接。href 要写完整地址：https://… 或 mailto:…。留空数组就不显示这一行。",
+  "title": "关于我",
+  "intro": "我是 Jerry，一个觉得「做出来才算数」的开发者。平时在写 TypeScript 和 Node，喜欢把复杂的东西拆成简单的，也喜欢把界面调到手感对为止。这一页只用一分钟说明我是谁，更长的都在简历、博客和作品集里。",
+  "stats": [
+    {
+      "value": "3",
+      "label": "篇文章"
+    },
+    {
+      "value": "2",
+      "label": "个项目"
+    },
+    {
+      "value": "2021",
+      "label": "开始写代码"
+    }
+  ],
+  "links": [
+    {
+      "label": "GitHub",
+      "href": "https://github.com/LiuJerry-study"
+    }
+  ],
+  "sections": []
+}

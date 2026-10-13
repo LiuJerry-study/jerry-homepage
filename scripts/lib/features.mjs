@@ -24,6 +24,7 @@ export const FEATURE_ITEMS = [
   { key: 'pages.projects', group: 'pages', level: 'site', href: 'projects/',      label: '作品集', note: '项目列表 + 详情' },
   { key: 'pages.resume',   group: 'pages', level: 'site', href: 'resume.html',    label: '简历',   note: '读 content/resume.json' },
   { key: 'pages.tags',     group: 'pages', level: 'site', href: 'tags/',          label: '标签页', note: '按标签翻文章与作品；标签是从文章和项目里长出来的' },
+  { key: 'pages.about',    group: 'pages', level: 'site', href: 'about.html',     label: '关于页', note: '自我介绍 + 数字卡 + 技能胶囊 + 社交链接。读 content/about.json' },
 
   /* ---------------- 首页 ---------------- */
   { key: 'home.aboutPanel', group: 'home', level: 'runtime', label: '「关于」屏', note: '首页第二屏。关掉后只剩一屏，右侧圆点也跟着少一个' },

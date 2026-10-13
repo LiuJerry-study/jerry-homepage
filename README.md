@@ -220,6 +220,17 @@ order: 1                           # 数字越小越靠前
 
 教育背景也用 `timeline`，多写 `major` / `degree` 两个字段即可。
 
+### 关于页 `content/about.json`
+
+首页「关于我」那张卡指向的 `/about.html`：一段自我介绍 + 几个数字 + 技能胶囊 + 社交链接。
+
+技能胶囊**默认沿用简历里 `type: "skill"` 的那一段** —— 同一份东西写两遍迟早对不上。
+想给这一页单独写，就在 `about.json` 里加 `sections`（格式和 `resume.json` 一样）。
+链接写 `links`，只收 `{ label, href }`，`href` 要完整地址（`https://…` 或 `mailto:…`）。
+
+这一页也有自己的开关：`content/features.json` 里的 `pages.about`（后台「开关」页能勾）。
+关掉之后页面、导航卡片、sitemap 一起消失 —— 包括磁盘上已经生成的那份。
+
 ### 图片
 
 放进 `content/images/`，正文写相对路径：

@@ -29,7 +29,7 @@ const C = { reset: '\x1b[0m', dim: '\x1b[2m', green: '\x1b[32m', red: '\x1b[31m'
 
 /** 构建产物里"由渲染器产出"的那部分（样式/脚本/图片不在此列，它们是 nginx 直发） */
 function expectedFiles() {
-  const out = ['index.html', '404.html', 'resume.html', 'sitemap.xml', 'rss.xml', 'robots.txt',
+  const out = ['index.html', '404.html', 'resume.html', 'about.html', 'sitemap.xml', 'rss.xml', 'robots.txt',
     'assets/site-data.js', 'assets/site-index.js'];
   for (const dir of ['blog', 'projects', 'tags']) {
     const abs = join(ROOT, dir);

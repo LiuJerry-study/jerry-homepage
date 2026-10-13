@@ -121,8 +121,8 @@ window.SITE = {
       title: '关于我',
       desc: '我是谁，正在做什么',
       icon: 'user',
-      href: '',            // 想直接跳到第二屏就写 '#about'
-      badge: '筹备中',
+      href: 'about.html',
+      badge: '已上线',
       tags: ['关于', 'about', '介绍', '我', '自我介绍'],
       details: [
         '我是谁：一段不超过十行的自我介绍',
@@ -135,8 +135,8 @@ window.SITE = {
       title: '联系',
       desc: '邮箱 · 社交 · 留言',
       icon: 'mail',
-      href: '',            // 例如 'mailto:you@example.com'
-      badge: '筹备中',
+      href: 'about.html#contact',
+      badge: '已上线',
       tags: ['联系', 'contact', '邮箱', '邮件', '社交'],
       details: [
         '邮箱：点一下直接复制到剪贴板',

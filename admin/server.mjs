@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 
 import * as store from './lib/store.mjs';
 import { renderBody, renderDraftPage, decorate, loadSite } from './lib/render.mjs';
-import { layout, loginPage, listPage, editorPage, resumePage, settingsPage } from './lib/ui.mjs';
+import { layout, loginPage, listPage, editorPage, resumePage, aboutPage, settingsPage } from './lib/ui.mjs';
 import { FEATURE_GROUPS, FEATURE_ITEMS } from '../scripts/lib/features.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -336,6 +336,14 @@ const server = createServer(async (req, res) => {
       }));
     }
 
+    if (p === '/admin/about') {
+      const text = JSON.stringify(store.readAbout(), null, 2);
+      return sendHtml(res, 200, aboutPage({
+        text,
+        lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
+      }));
+    }
+
     /* ---------- 开关 ---------- */
     if (p === '/admin/settings') {
       return sendHtml(res, 200, settingsPage({
@@ -390,6 +398,13 @@ const server = createServer(async (req, res) => {
     if (p === '/api/resume' && req.method === 'POST') {
       const j = await readJson(req);
       store.writeResume(String(j.text || ''));
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, build });
+    }
+
+    if (p === '/api/about' && req.method === 'POST') {
+      const j = await readJson(req);
+      store.writeAbout(String(j.text || ''));
       const build = await publish();
       return sendJson(res, 200, { ok: true, build });
     }
