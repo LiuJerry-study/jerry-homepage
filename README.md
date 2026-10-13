@@ -34,15 +34,27 @@
 ```bash
 cd personal-site
 
-node scripts/build.mjs        # 改完内容后构建（本文档里所有命令都零依赖）
-node scripts/check.mjs        # 上线前自检：死链、遗漏的占位符、产物完整性
-node scripts/serve.mjs        # 本地预览 → http://127.0.0.1:8000
+# ① 看效果：起一个渲染进程。线上就是这么跑的，本地一个字节都不差
+node site/server.mjs                    # → http://127.0.0.1:8080
+                                        #   状态：http://127.0.0.1:8081/__status
 
-ADMIN_PASSWORD=你的密码 npm run admin    # 可选的写作后台 → http://127.0.0.1:8787/admin
-bash scripts/deploy.sh                   # 构建 → 自检 → 同步到服务器（见 DEPLOY.md）
+# ② 写内容：起后台（可选；不想用它就直接改 content/ 里的文件）
+ADMIN_PASSWORD=你的密码 npm run admin    # → http://127.0.0.1:8787/admin
+                                        #   保存即生效，不用重新构建
+
+# ③ 改代码 / 改配置时：
+node scripts/build.mjs                  # 重新生成静态快照（双击看的那份 + CI 比对用）
+node scripts/check.mjs                  # 上线前自检：死链、占位符、产物完整性
+node scripts/verify-server.mjs          # 逐字节比对「服务器渲染 == 构建产物」
+
+bash scripts/deploy.sh                  # 同步到服务器（见 DEPLOY.md）
 ```
 
-**只想看看长什么样？** 直接双击 `index.html`，不用跑上面任何一条命令。
+**只是想看看长什么样？** 直接双击 `index.html` —— 构建产物一直提交在仓库里，
+不用跑上面任何一条命令。
+
+> 本地开发用 `site/server.mjs`（和线上一模一样）；`node scripts/serve.mjs`
+> 是旧的静态预览（8000 端口），现在只在"想确认快照本身没问题"时才用得上。
 
 ---
 
@@ -263,7 +275,15 @@ node scripts/build.mjs --drafts   # 连草稿一起生成
 node scripts/build.mjs --assets   # 只重拼 CSS/JS/配置（调样式时最快，发布前别用）
 node scripts/build.mjs --force    # 忽略增量缓存，全部重算重写
 node scripts/check.mjs            # 上线前自检
-node scripts/serve.mjs            # 本地预览 http://127.0.0.1:8000
+
+# 动态那一半（线上就是这么跑的）
+node site/server.mjs              # 公开站渲染进程 → http://127.0.0.1:8080
+                                  #   本地管理口 8081：/__status 看状态、POST /__reload 催重渲染
+node site/server.mjs --drafts     # 连草稿一起渲染（本地预览草稿用）
+node scripts/verify-server.mjs    # 逐字节比对「服务器渲染 == 构建产物」
+
+node admin/server.mjs             # 写作后台（要 ADMIN_PASSWORD，默认 8787）
+node scripts/serve.mjs            # 静态快照预览 http://127.0.0.1:8000（旧的那套）
 bash scripts/deploy.sh            # 构建 → 自检 → 同步到服务器
 bash scripts/deploy.sh --dry-run  # 只看会传哪些文件
 ```
