@@ -9,7 +9,13 @@
   gap: 16px;
   padding: clamp(14px, 2.4vh, 22px) var(--gutter);
   border-bottom: 1px solid transparent;
-  background: linear-gradient(180deg, var(--topbar-bg) 0%, transparent 100%);
+  /* 渐变必须写 no-repeat + border-box，否则会多出一条 1px 的亮线。
+     原因：background-origin 默认是 padding-box、background-clip 默认是 border-box、
+     background-repeat 默认是 repeat —— 渐变这张"图"按 padding 盒排版，
+     下面那 1px 边框区就轮到第二块瓦片，露出的正好是渐变的**第一行**
+     （也就是 --topbar-bg 那个接近不透明的浅色）。屏幕上看就是一条白线。
+     写 no-repeat 就不铺第二块；再把 origin 也设成 border-box，连缝都没有。 */
+  background: linear-gradient(180deg, var(--topbar-bg) 0%, transparent 100%) no-repeat border-box;
   /* 磁吸位移上限：顶栏贴着屏幕边，只许挪 5px（正文按钮是 9px）。
      JS 那边还有一层「让开兄弟元素」的限位。 */
   --mag: 5px;
