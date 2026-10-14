@@ -1468,16 +1468,16 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
       if (act === 'edit' || act === 'toggle') { r.classList.toggle('open'); }
       else if (act === 'del') {
         if (!confirm('删掉第 ' + (i + 1) + ' 张卡片？保存之后首页上就没它了。')) return;
-        r.remove();
-      } else if (act === 'up' && i > 0) { list.insertBefore(r, list.children[i - 1]); }
-      else if (act === 'down') { list.insertBefore(r, list.children[i + 2] || null); }
+        r.remove(); paintAll(); mark();
+      } else if (act === 'up' && i > 0) { list.insertBefore(r, list.children[i - 1]); paintAll(); mark(); }
+      else if (act === 'down') { list.insertBefore(r, list.children[i + 2] || null); paintAll(); mark(); }
       else if (act === 'dup') {
         const clone = r.cloneNode(true);
         list.insertBefore(clone, r.nextSibling);
         const t = clone.querySelector('[data-f="title"]');
         if (t) t.value = (t.value || '') + ' 副本';
+        paintAll(); mark();
       }
-      paintAll(); mark();
     } else if (e.target.closest('.card-head')) {
       r.classList.toggle('open');
     }
