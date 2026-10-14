@@ -24,7 +24,6 @@ if (!html.includes('内容管理')) throw new Error('缺少内容管理导航');
 const listHtml = (await import('../admin/lib/ui.mjs')).listPage({ kind: 'posts', label: '文章', items: [], stats: '0 篇已发布' });
 if (!listHtml.includes('id="sort"')) throw new Error('缺少排序控件');
 if (!listHtml.includes('id="page-size"')) throw new Error('缺少分页控件');
-if (!listHtml.includes('回收站')) throw new Error('缺少回收站入口');
 
 const editorHtml = (await import('../admin/lib/ui.mjs')).editorPage({ kind: 'posts', slug: 'demo', data: { title: '演示' }, body: '# 标题', exists: true, lastBuild: '' });
 if (!editorHtml.includes('class="editor editor-compact"')) throw new Error('编辑器未启用紧凑布局');
@@ -49,6 +48,35 @@ for (const [name, pageHtml] of Object.entries(pages)) {
   if (!pageHtml.includes('写作后台')) throw new Error(name + ' 页面缺少统一后台骨架');
   if (!pageHtml.includes('/admin')) throw new Error(name + ' 页面缺少后台导航链接');
 }
+
+/* I6：导航恢复作品 / 简历 / 关于入口 */
+for (const label of ['作品', '简历', '关于']) {
+  if (!dashHtml.includes(label)) throw new Error('导航缺少「' + label + '」入口');
+}
+
+/* I5：列表页回收站死入口已移除 */
+if (listHtml.includes('回收站')) throw new Error('列表页仍残留回收站死入口');
+if (listHtml.includes('移入回收站')) throw new Error('删除文案仍误写「移入回收站」');
+
+/* I2：列表行带真实 mtime 供排序 */
+const listWithItem = (await import('../admin/lib/ui.mjs')).listPage({
+  kind: 'posts', label: '文章',
+  items: [{ slug: 'a', title: 'A', draft: false, mtime: '2026-10-14T10:00:00.000Z', tags: [] }],
+  stats: '1 篇已发布',
+});
+if (!listWithItem.includes('data-mtime=')) throw new Error('列表行缺少 data-mtime');
+
+/* I4：图片库保存按钮已绑定重新构建 */
+const imagesHtml = (await import('../admin/lib/ui.mjs')).imagesPage({ items: [], lastBuild: '' });
+if (!imagesHtml.includes("$('save').addEventListener")) throw new Error('图片库保存按钮未绑定');
+
+/* C1：历史接口拒绝路径穿越 */
+const { readHistory, restoreHistory } = await import('../admin/lib/store.mjs');
+let c1ok = false;
+try { readHistory('posts', '../../admin/plans', '2026-01-01T00-00-00-000'); } catch (e) { c1ok = true; }
+if (!c1ok) throw new Error('readHistory 未拦截路径穿越');
+try { restoreHistory('posts', 'a/b', '2026-01-01T00-00-00-000'); } catch (e) { c1ok = true; }
+if (!c1ok) throw new Error('restoreHistory 未拦截非法 slug');
 
 const { listContent, readNav } = await import('../admin/lib/store.mjs');
 const realPosts = listContent('posts');

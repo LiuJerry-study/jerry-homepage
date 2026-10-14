@@ -99,15 +99,18 @@ export function saveImage(rawName, buf) {
   };
 }
 
-/** 删除一张图片；只允许删 content/images 里的文件（防路径穿越） */
+/** 删除一张图片；只允许删 content/images 里的文件（逐段校验防路径穿越） */
 export function deleteImage(rawName) {
-  const name = safeImageName(rawName);
-  if (!name) throw new Error('文件名不合法');
-  const abs = resolve(IMAGES_DIR, name);
+  const rel = String(rawName == null ? '' : rawName).trim();
+  if (!rel) throw new Error('图片名不合法');
+  /* 逐段校验：每段都必须是合法文件名（含中文），不允许 ..、空段、绝对路径 */
+  const parts = rel.split('/');
+  if (parts.some((p) => !safeImageName(p))) throw new Error('图片名不合法');
+  const abs = resolve(IMAGES_DIR, rel);
   if (abs !== IMAGES_DIR && !abs.startsWith(IMAGES_DIR + sep)) throw new Error('路径越界，拒绝');
   if (!existsSync(abs) || !statSync(abs).isFile()) throw new Error('图片不存在');
   unlinkSync(abs);
-  return { name };
+  return { name: rel };
 }
 
 /* ------------------------------------------------------------ 历史快照 */
@@ -153,21 +156,32 @@ export function listHistory(kind, id) {
 
 /** 读某个历史版本的内容 */
 export function readHistory(kind, id, ts) {
-  const file = join(HISTORY_ROOT, kind, id, ts + '.md');
+  const safeId = safeSlug(id);
+  if (!safeId) throw new Error('文件名不合法');
+  if (!isValidTs(ts)) throw new Error('版本号不合法');
+  const file = join(HISTORY_ROOT, kind, safeId, ts + '.md');
   if (!existsSync(file)) throw new Error('找不到这个版本');
   return readFileSync(file, 'utf8');
 }
 
 /** 恢复某个历史版本：先把当前版留档，再写回 */
 export function restoreHistory(kind, id, ts) {
-  const file = join(HISTORY_ROOT, kind, id, ts + '.md');
+  const safeId = safeSlug(id);
+  if (!safeId) throw new Error('文件名不合法');
+  if (!isValidTs(ts)) throw new Error('版本号不合法');
+  const file = join(HISTORY_ROOT, kind, safeId, ts + '.md');
   if (!existsSync(file)) throw new Error('找不到这个版本');
   const { dir } = kindOf(kind);
-  const target = join(dir, id + '.md');
-  if (!existsSync(target)) throw new Error(`「${id}」当前文件不存在，无法恢复`);
-  snapshot(kind, id, target);
+  const target = join(dir, safeId + '.md');
+  if (!existsSync(target)) throw new Error(`「${safeId}」当前文件不存在，无法恢复`);
+  snapshot(kind, safeId, target);
   writeAtomic(target, readFileSync(file, 'utf8'));
-  return { slug: id };
+  return { slug: safeId };
+}
+
+/** 历史版本时间戳白名单：只允许形如 2026-10-14T10-00-00-000 的串 */
+function isValidTs(ts) {
+  return typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}$/.test(ts);
 }
 
 /** 文件名白名单：挡掉路径穿越和各种奇怪字符；允许中文 */

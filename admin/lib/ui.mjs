@@ -294,8 +294,11 @@ export function layout({ title, body, active = '', user = true }) {
   const items = [
     ['dashboard', '总览', '/admin'],
     ['posts', '内容管理', '/admin/posts'],
+    ['projects', '作品', '/admin/projects'],
     ['cards', '首页卡片', '/admin/cards'],
     ['images', '素材库', '/admin/images'],
+    ['resume', '简历', '/admin/resume'],
+    ['about', '关于', '/admin/about'],
     ['settings', '站点设置', '/admin/settings'],
   ];
   const nav = items.map(([k, label, href]) =>
@@ -383,7 +386,7 @@ export function listPage({ kind, label, items, stats = null }) {
   const newHref = `/admin/edit?kind=${encodeURIComponent(kind)}`;
   const colSpan = 6;
   const rows = items.length
-    ? items.map((it) => `<tr data-slug="${h(it.slug)}" data-draft="${it.draft ? 1 : 0}" data-search="${h((it.title + ' ' + it.slug + ' ' + (it.tags || []).join(' ')).toLowerCase())}">
+    ? items.map((it) => `<tr data-slug="${h(it.slug)}" data-draft="${it.draft ? 1 : 0}" data-mtime="${h(it.mtime)}" data-search="${h((it.title + ' ' + it.slug + ' ' + (it.tags || []).join(' ')).toLowerCase())}">
         <td class="chk"><input type="checkbox" class="row-chk" data-slug="${h(it.slug)}" aria-label="选择 ${h(it.title)}"></td>
         <td>
           <a href="/admin/edit?kind=${encodeURIComponent(kind)}&slug=${encodeURIComponent(it.slug)}"><strong>${h(it.title)}</strong></a>
@@ -423,7 +426,6 @@ export function listPage({ kind, label, items, stats = null }) {
         </div>
         <label class="compact-select">排序 <select id="sort"><option value="mtime">最近更新</option><option value="date">发布日期</option><option value="title">标题</option></select></label>
         <label class="compact-select">每页 <select id="page-size"><option>10</option><option>20</option><option>50</option></select></label>
-        <a class="btn" href="/admin/${encodeURIComponent(kind)}?view=trash">回收站</a>
       </div>
 
       <div class="batchbar" id="batchbar">
@@ -468,8 +470,12 @@ export function listPage({ kind, label, items, stats = null }) {
     });
     const mode = sort.value;
     filtered.sort((a, b) => {
-      const av = mode === 'title' ? a.dataset.search : mode === 'date' ? (a.querySelector('td:nth-child(3)')?.textContent || '') : (a.querySelector('.meta')?.textContent || '');
-      const bv = mode === 'title' ? b.dataset.search : mode === 'date' ? (b.querySelector('td:nth-child(3)')?.textContent || '') : (b.querySelector('.meta')?.textContent || '');
+      const av = mode === 'title' ? a.dataset.search
+        : mode === 'date' ? (a.querySelector('td:nth-child(3)')?.textContent || '')
+        : (a.dataset.mtime || '');
+      const bv = mode === 'title' ? b.dataset.search
+        : mode === 'date' ? (b.querySelector('td:nth-child(3)')?.textContent || '')
+        : (b.dataset.mtime || '');
       return String(bv).localeCompare(String(av), 'zh');
     });
     const size = Number(pageSize.value) || 10;
@@ -523,7 +529,7 @@ export function listPage({ kind, label, items, stats = null }) {
     const slugs = selected();
     if (!slugs.length) { toast('先勾选要处理的内容'); return; }
     const verb = action === 'publish' ? '发布' : action === 'unpublish' ? '转为草稿' : '删除';
-    if (action === 'delete' && !confirm('确定将选中的 ' + slugs.length + ' 项移入回收站？系统会先创建快照。')) return;
+    if (action === 'delete' && !confirm('确定永久删除选中的 ' + slugs.length + ' 项？删除后无法恢复（历史快照除外）。')) return;
     const r = await fetch('/api/batch', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind, action, slugs }),
@@ -1251,10 +1257,14 @@ export function aboutPage({ data = {}, raw = '', lastBuild }) {
     const t = e.target.closest('select[data-f="type"]');
     if (!t) return;
     const sec = t.closest('.sec');
-    const it = {};
-    [...sec.querySelectorAll('.item [data-f]')].forEach((n) => { it[n.dataset.f] = n.value; });
+    /* 把现有条目收集成数组，切换类型时保留数据（skill ↔ timeline 字段映射） */
+    const items = [...sec.querySelectorAll('.item')].map((row) => {
+      const o = {};
+      row.querySelectorAll('[data-f]').forEach((n) => { o[n.dataset.f] = n.value.trim(); });
+      return o;
+    }).filter((o) => Object.values(o).some((v) => v));
     const nn = document.createElement('div');
-    nn.innerHTML = itemHtml(t.value, { title: sec.querySelector('[data-f="title"]').value, en: sec.querySelector('[data-f="en"]').value, items: it.items || [] });
+    nn.innerHTML = itemHtml(t.value, { title: sec.querySelector('[data-f="title"]').value, en: sec.querySelector('[data-f="en"]').value, items });
     const fresh = nn.firstElementChild;
     sec.replaceWith(fresh);
     mark();
@@ -1460,7 +1470,7 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
     const sw = e.target.closest('.card-switch');
     const r = e.target.closest('.cardrow');
     if (!r) return;
-    if (sw) { e.stopPropagation(); }
+    if (sw) { e.stopPropagation(); return; }
     if (op) {
       e.stopPropagation();
       const i = [...list.children].indexOf(r);
@@ -1752,6 +1762,20 @@ export function imagesPage({ items = [], lastBuild = '' }) {
   const $ = (id) => document.getElementById(id);
   const grid = $('grid');
   const log = $('log');
+
+  $('save').addEventListener('click', async () => {
+    log.classList.add('on'); log.classList.remove('err'); log.textContent = '重新构建中…';
+    try {
+      const r = await fetch('/api/rebuild', { method: 'POST' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || '构建失败');
+      log.textContent = (j.build && j.build.log) || '构建完成';
+      toast('已重新构建');
+    } catch (e) {
+      log.classList.add('err'); log.textContent = String(e.message || e);
+      toast('构建失败：' + (e.message || e));
+    }
+  });
 
   async function uploadFile(file) {
     if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) { toast('不支持的格式：' + file.name); return; }
