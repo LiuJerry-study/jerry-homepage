@@ -136,19 +136,22 @@ select:focus,input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 
 .sw input:checked~.sw-txt{color:var(--accent-2)}
 
 /* ---------- 卡片页 ---------- */
-.cardrow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;
-  padding:18px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin-bottom:14px}
-@media (max-width:1000px){ .cardrow{grid-template-columns:1fr} }
-.cardrow .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
-.cardrow .tools .num{font-family:var(--mono);font-size:12px;color:var(--muted);margin-right:auto}
-.cardrow .mini-hide{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12.5px;color:var(--muted)}
-.cardrow .mini-hide input{width:auto;margin:0}
+.cardrow{display:block;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin-bottom:12px;overflow:hidden}
+.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px}
+.card-head .num{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.card-head .card-title{font-weight:600;min-width:0;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-head .btn{padding:4px 10px;font-size:12px}
+.card-head .mini-hide{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12.5px;color:var(--muted)}
+.card-head .mini-hide input{width:auto;margin:0}
+.card-body{display:none;border-top:1px solid var(--line);padding:16px;gap:20px}
+.cardrow.open .card-body{display:grid;grid-template-columns:minmax(0,1fr) 300px}
+@media (max-width:1000px){ .cardrow.open .card-body{grid-template-columns:1fr} }
 .mini{display:flex;flex-direction:column;gap:10px}
 .mini .half{display:flex;gap:10px;flex-wrap:wrap}
 .mini .half>*{flex:1;min-width:130px}
 .mini label{margin:10px 0 4px}
 .mini label:first-child{margin-top:0}
-.pv-wrap{position:sticky;top:78px;align-self:start}
+.pv-wrap{align-self:start}
 .pv{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:150px}
 .pv-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;
   box-shadow:0 10px 30px -22px rgba(0,0,0,.4)}
@@ -168,6 +171,8 @@ select:focus,input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 
   border-bottom:1px solid var(--border);margin-bottom:6px}
 
 /* ===== 后台通用增强：折叠 / 登录氛围 / 列表工具 / 图库 / 历史 / 表单行 ===== */
+.fold-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;align-items:start}
+@media (max-width:760px){ .fold-grid{grid-template-columns:1fr} }
 details.fold{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin:0 0 14px;overflow:hidden}
 details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px;font-weight:600;border:0;user-select:none}
 details.fold>summary::-webkit-details-marker{display:none}
@@ -275,7 +280,6 @@ export function layout({ title, body, active = '', user = true }) {
     ['cards', '首页卡片', '/admin/cards'],
     ['images', '素材库', '/admin/images'],
     ['settings', '站点设置', '/admin/settings'],
-    ['publish', '发布中心', '/admin/settings'],
   ];
   const nav = items.map(([k, label, href]) =>
     `<a href="${href}" class="${active === k ? 'on' : ''}">${label}</a>`
@@ -1295,34 +1299,39 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
 
   const blank = { title: '', desc: '', icon: 'grid', href: '', badge: '', tags: [], details: [] };
   const row = (c, i) => `<div class="cardrow" data-i="${i}" data-card-index="${i}">
-    <div class="mini">
-      <div class="tools">
-        <span class="num mono">第 ${String(i + 1).padStart(2, '0')} 张</span>
-        <button class="btn" type="button" data-act="up" title="上移">↑</button>
-        <button class="btn" type="button" data-act="down" title="下移">↓</button>
-        <button class="btn" type="button" data-act="dup" title="复制一张">复制</button>
-        <button class="btn danger" type="button" data-act="del">删除</button>
-        <label class="mini-hide" title="关掉后，保存生效时公开首页不再显示这张卡片"><input type="checkbox" data-f="hidden" ${c.hidden ? 'checked' : ''}> 显示</label>
-      </div>
-      <label>标题</label>
-      <input type="text" data-f="title" value="${h(c.title)}" placeholder="比如：个人简历">
-      <label>一句话说明</label>
-      <input type="text" data-f="desc" value="${h(c.desc)}" placeholder="比如：教育经历 · 技能栈 · 项目经验">
-      <div class="half">
-        <div><label>图标</label><select data-f="icon">${iconOpts(c.icon)}</select></div>
-        <div><label>角标（留空自动）</label><input type="text" data-f="badge" value="${h(c.badge)}" placeholder="已上线 / 3 篇 / 筹备中">
-          <div class="meta" style="margin-top:5px;line-height:1.5">可以写占位符，构建时换成真数：<b>{{posts}}</b> <b>{{projects}}</b> <b>{{resume}}</b></div></div>
-      </div>
-      <label>链接（留空 = 显示「筹备中」，点开是站内详情）</label>
-      <input type="text" data-f="href" value="${h(c.href)}" placeholder="resume.html 或 https://…">
-      <label>搜索关键词（逗号分隔，命令面板里搜得到）</label>
-      <input type="text" data-f="tags" value="${h(c.tags.join(', '))}" placeholder="简历, resume, cv">
-      <label>详情条目（一行一条，点开卡片后显示）</label>
-      <textarea data-f="details" placeholder="教育经历：学校 / 专业 / 时间线">${h(c.details.join('\n'))}</textarea>
+    <div class="card-head">
+      <span class="num mono">第 ${String(i + 1).padStart(2, '0')} 张</span>
+      <span class="card-title">${h(c.title || '（未命名卡片）')}</span>
+      <span style="flex:1"></span>
+      <label class="mini-hide" title="关掉后，保存生效时公开首页不再显示这张卡片"><input type="checkbox" data-f="hidden" ${c.hidden ? 'checked' : ''}> 显示</label>
+      <button class="btn" type="button" data-act="edit" title="展开 / 收起编辑">编辑</button>
+      <button class="btn" type="button" data-act="up" title="上移">↑</button>
+      <button class="btn" type="button" data-act="down" title="下移">↓</button>
+      <button class="btn" type="button" data-act="dup" title="复制一张">复制</button>
+      <button class="btn danger" type="button" data-act="del">删除</button>
     </div>
-    <div class="pv-wrap">
-      <div class="pv" data-pv data-card-preview></div>
-      <p class="pv-note">预览 ≈ 首页上长这样</p>
+    <div class="card-body">
+      <div class="mini">
+        <label>标题</label>
+        <input type="text" data-f="title" value="${h(c.title)}" placeholder="比如：个人简历">
+        <label>一句话说明</label>
+        <input type="text" data-f="desc" value="${h(c.desc)}" placeholder="比如：教育经历 · 技能栈 · 项目经验">
+        <div class="half">
+          <div><label>图标</label><select data-f="icon">${iconOpts(c.icon)}</select></div>
+          <div><label>角标（留空自动）</label><input type="text" data-f="badge" value="${h(c.badge)}" placeholder="已上线 / 3 篇 / 筹备中">
+            <div class="meta" style="margin-top:5px;line-height:1.5">可以写占位符，构建时换成真数：<b>{{posts}}</b> <b>{{projects}}</b> <b>{{resume}}</b></div></div>
+        </div>
+        <label>链接（留空 = 显示「筹备中」，点开是站内详情）</label>
+        <input type="text" data-f="href" value="${h(c.href)}" placeholder="resume.html 或 https://…">
+        <label>搜索关键词（逗号分隔，命令面板里搜得到）</label>
+        <input type="text" data-f="tags" value="${h(c.tags.join(', '))}" placeholder="简历, resume, cv">
+        <label>详情条目（一行一条，点开卡片后显示）</label>
+        <textarea data-f="details" placeholder="教育经历：学校 / 专业 / 时间线">${h(c.details.join('\n'))}</textarea>
+      </div>
+      <div class="pv-wrap">
+        <div class="pv" data-pv data-card-preview></div>
+        <p class="pv-note">预览 ≈ 首页上长这样</p>
+      </div>
     </div>
   </div>`;
 
@@ -1387,13 +1396,17 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
   function paint(el) {
     const c = readRow(el);
     const live = !!(c.href && c.href !== '#');
+    const headTitle = el.querySelector('.card-title');
+    if (headTitle) headTitle.textContent = c.title || '（未命名卡片）';
     el.classList.toggle('is-off', c.hidden || !live);
+    const pv = el.querySelector('[data-pv]');
+    if (!pv) return;
     if (c.hidden) {
-      el.querySelector('[data-pv]').innerHTML = '<div class="pv-card"><div class="pv-t" style="color:var(--muted)">已隐藏 — 保存生效后公开首页不显示</div></div>';
+      pv.innerHTML = '<div class="pv-card"><div class="pv-t" style="color:var(--muted)">已隐藏 — 保存生效后公开首页不显示</div></div>';
       return;
     }
     const badge = fill(c.badge || (live ? '已上线' : '筹备中'));
-    el.querySelector('[data-pv]').innerHTML =
+    pv.innerHTML =
       '<div class="pv-card">'
       + '<div class="pv-top"><span class="pv-ico">' + icon(c.icon) + '</span>'
       + '<span class="pv-num">' + String([...list.children].indexOf(el) + 1).padStart(2, '0') + '</span></div>'
@@ -1419,7 +1432,8 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
     const r = b.closest('.cardrow');
     const i = [...list.children].indexOf(r);
     const act = b.dataset.act;
-    if (act === 'del') {
+    if (act === 'edit') { r.classList.toggle('open'); }
+    else if (act === 'del') {
       if (!confirm('删掉第 ' + (i + 1) + ' 张卡片？保存之后首页上就没它了。')) return;
       r.remove();
     } else if (act === 'up' && i > 0) { list.insertBefore(r, list.children[i - 1]); }
@@ -1506,7 +1520,7 @@ export function settingsPage({ groups, items, settings, notes = [], hasLegacy = 
     }
   }
 
-  const body = groups.map((g, gi) => {
+  const body = `<div class="fold-grid">${groups.map((g, gi) => {
     const rows = items.filter((it) => it.group === g.key).map((it) => {
       const v = settings[it.key];
       return `<div class="setrow${v === false ? ' is-off' : ''}" data-row="${h(it.key)}">
@@ -1525,7 +1539,7 @@ export function settingsPage({ groups, items, settings, notes = [], hasLegacy = 
         ${rows}
       </div>
     </details>`;
-  }).join('');
+  }).join('')}</div>`;
 
   const banner = (hasLegacy || notes.length)
     ? `<div class="banner"><div>
