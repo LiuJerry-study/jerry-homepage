@@ -355,6 +355,7 @@ function loadContent() {
      后台的「卡片」页写这个文件；它不存在时，后台会自动把 site.js 的那份读出来当草稿。 */
   NAV_FILE = loadNavFile();
   if (NAV_FILE) SITE.nav = NAV_FILE;
+  else if (Array.isArray(SITE.nav)) SITE.nav = SITE.nav.filter((it) => !(it && it.hidden));
 
   PER_PAGE = Math.max(1, Number(SITE.postsPerPage) || 10);
 

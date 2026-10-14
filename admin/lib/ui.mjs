@@ -1257,14 +1257,25 @@ export function aboutPage({ data = {}, raw = '', lastBuild }) {
     const t = e.target.closest('select[data-f="type"]');
     if (!t) return;
     const sec = t.closest('.sec');
-    /* 把现有条目收集成数组，切换类型时保留数据（skill ↔ timeline 字段映射） */
+    const target = t.value;    /* 目标类型：skill 或 timeline */
+    /* 把现有条目收集并映射到目标类型字段（skill ↔ timeline），切换时数据不丢 */
     const items = [...sec.querySelectorAll('.item')].map((row) => {
       const o = {};
       row.querySelectorAll('[data-f]').forEach((n) => { o[n.dataset.f] = n.value.trim(); });
-      return o;
+      const m = {};
+      if (target === 'timeline') {
+        m.role = o.name || o.role || '';
+        m.company = o.level || o.company || '';
+        m.period = o.period || '';
+        m.description = o.description || '';
+      } else {
+        m.name = o.role || o.name || '';
+        m.level = o.company || o.level || '';
+      }
+      return m;
     }).filter((o) => Object.values(o).some((v) => v));
     const nn = document.createElement('div');
-    nn.innerHTML = itemHtml(t.value, { title: sec.querySelector('[data-f="title"]').value, en: sec.querySelector('[data-f="en"]').value, items });
+    nn.innerHTML = itemHtml(target, { title: sec.querySelector('[data-f="title"]').value, en: sec.querySelector('[data-f="en"]').value, items });
     const fresh = nn.firstElementChild;
     sec.replaceWith(fresh);
     mark();
