@@ -37,7 +37,8 @@ import { fileURLToPath } from 'node:url';
 
 import * as store from './lib/store.mjs';
 import { renderBody, renderDraftPage, decorate, loadSite } from './lib/render.mjs';
-import { layout, loginPage, listPage, editorPage, resumePage, aboutPage, settingsPage, cardsPage } from './lib/ui.mjs';
+import { layout, loginPage, listPage, editorPage, resumePage, aboutPage, settingsPage, cardsPage, imagesPage, historyPage, dashboardPage } from './lib/ui.mjs';
+import { getDashboardData } from './lib/dashboard.mjs';
 import { FEATURE_GROUPS, FEATURE_ITEMS } from '../scripts/lib/features.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,7 +48,8 @@ const PASSWORD = String(process.env.ADMIN_PASSWORD || '');
 const SESSION_MS = (Number(process.env.ADMIN_SESSION_HOURS) || 168) * 3600 * 1000;
 const SECURE_COOKIE = process.env.ADMIN_SECURE === '1' || process.env.ADMIN_SECURE === 'true';
 const COOKIE = 'ps_admin';
-const MAX_BODY = 4 * 1024 * 1024;          // 请求体上限：4MB，够写长文了
+const MAX_BODY = 12 * 1024 * 1024;         // 请求体上限：12MB（JSON 正文 + 图片原始字节）
+const MAX_IMAGE = 8 * 1024 * 1024;          // 单张图片上限 8MB
 
 if (!PASSWORD) {
   console.error(`
@@ -158,6 +160,21 @@ async function readJson(req) {
   try { return text ? JSON.parse(text) : {}; } catch (e) { throw new Error('请求不是合法 JSON'); }
 }
 
+/** 读原始字节（图片上传用）。上限 MAX_IMAGE。 */
+function readRaw(req) {
+  return new Promise((ok, no) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX_IMAGE) { no(new Error('图片超过 8MB')); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => ok(Buffer.concat(chunks)));
+    req.on('error', no);
+  });
+}
+
 /** 同源校验：跨站表单/脚本发过来的写操作一律拒绝 */
 function sameOrigin(req) {
   const origin = req.headers.origin;
@@ -241,6 +258,15 @@ function serveStatic(req, res, pathname) {
   if (abs !== ROOT && !abs.startsWith(ROOT + sep)) return send(res, 403, 'Forbidden');
 
   let file = abs;
+  /* 上传的图在 content/images，产物在 assets/images。后台端口优先看 content 那份，
+     这样刚传完的图不用等构建就能在图片页/编辑器里看到。 */
+  if (rel.startsWith('assets/images/')) {
+    const imagesRoot = resolve(ROOT, 'content/images');
+    const alt = resolve(imagesRoot, rel.slice('assets/images/'.length));
+    if (alt === imagesRoot || alt.startsWith(imagesRoot + sep)) {
+      try { if (existsSync(alt) && statSync(alt).isFile()) file = alt; } catch (e) { /* 回退产物 */ }
+    }
+  }
   try {
     if (statSync(file).isDirectory()) file = join(file, 'index.html');
   } catch (e) {
@@ -303,7 +329,11 @@ const server = createServer(async (req, res) => {
     if (needsAuth && req.method === 'POST' && !sameOrigin(req)) return sendJson(res, 403, { ok: false, error: '跨站请求被拒绝' });
 
     /* ---------- 页面 ---------- */
-    if (p === '/admin' || p === '/admin/') return redirect(res, '/admin/posts');
+    if (p === '/admin' || p === '/admin/') {
+      const site = loadSite(ROOT);
+      const data = getDashboardData({ store, site, lastBuild });
+      return sendHtml(res, 200, dashboardPage({ data }));
+    }
 
     if (p === '/admin/posts' || p === '/admin/projects') {
       const kind = p.endsWith('projects') ? 'projects' : 'posts';
@@ -331,18 +361,38 @@ const server = createServer(async (req, res) => {
       return sendHtml(res, 200, editorPage({ kind, slug: '', data: {}, body: '', exists: false, lastBuild: null }));
     }
 
+    if (p === '/admin/images') {
+      return sendHtml(res, 200, imagesPage({
+        items: store.listImages(),
+        lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
+      }));
+    }
+
+    if (p === '/admin/history') {
+      const kind = url.searchParams.get('kind') === 'projects' ? 'projects' : 'posts';
+      const slug = String(url.searchParams.get('slug') || '').trim();
+      const cur = slug ? store.readContent(kind, slug) : null;
+      const items = slug && cur ? store.listHistory(kind, cur.slug) : [];
+      return sendHtml(res, 200, historyPage({
+        kind, slug: cur ? cur.slug : slug, items,
+        lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
+      }));
+    }
+
     if (p === '/admin/resume') {
-      const text = JSON.stringify(store.readResume(), null, 2);
+      const data = store.readResume();
+      const text = JSON.stringify(data, null, 2);
       return sendHtml(res, 200, resumePage({
-        text,
+        data, raw: text,
         lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
       }));
     }
 
     if (p === '/admin/about') {
-      const text = JSON.stringify(store.readAbout(), null, 2);
+      const data = store.readAbout();
+      const text = JSON.stringify(data, null, 2);
       return sendHtml(res, 200, aboutPage({
-        text,
+        data, raw: text,
         lastBuild: lastBuild ? `${lastBuild.at.slice(0, 19).replace('T', ' ')}（${lastBuild.ok ? '成功' : '失败'}）` : '',
       }));
     }
@@ -456,6 +506,67 @@ const server = createServer(async (req, res) => {
 
     if (p === '/api/rebuild' && req.method === 'POST') {
       return sendJson(res, 200, { ok: true, build: rebuild() });
+    }
+
+    /* ---------- 图片库 ---------- */
+    if (p === '/api/images' && req.method === 'GET') {
+      return sendJson(res, 200, { ok: true, items: store.listImages() });
+    }
+
+    if (p === '/api/images' && req.method === 'POST') {
+      const name = url.searchParams.get('name') || '';
+      const buf = await readRaw(req);
+      const out = store.saveImage(name, buf);
+      return sendJson(res, 200, { ok: true, image: out });
+    }
+
+    if (p === '/api/images/delete' && req.method === 'POST') {
+      const j = await readJson(req);
+      store.deleteImage(String(j.name || ''));
+      return sendJson(res, 200, { ok: true });
+    }
+
+    /* ---------- 历史版本 ---------- */
+    if (p === '/api/history' && req.method === 'GET') {
+      const kind = url.searchParams.get('kind') === 'projects' ? 'projects' : 'posts';
+      const slug = String(url.searchParams.get('slug') || '').trim();
+      const items = slug ? store.listHistory(kind, slug) : [];
+      return sendJson(res, 200, { ok: true, items });
+    }
+
+    if (p === '/api/history/read' && req.method === 'GET') {
+      const kind = url.searchParams.get('kind') === 'projects' ? 'projects' : 'posts';
+      const slug = String(url.searchParams.get('slug') || '').trim();
+      const ts = String(url.searchParams.get('ts') || '').trim();
+      return sendJson(res, 200, { ok: true, text: store.readHistory(kind, slug, ts) });
+    }
+
+    if (p === '/api/history/restore' && req.method === 'POST') {
+      const j = await readJson(req);
+      const kind = j.kind === 'projects' ? 'projects' : 'posts';
+      const out = store.restoreHistory(kind, String(j.slug || ''), String(j.ts || ''));
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, slug: out.slug, build });
+    }
+
+    /* ---------- 批量 ---------- */
+    if (p === '/api/batch' && req.method === 'POST') {
+      const j = await readJson(req);
+      const kind = j.kind === 'projects' ? 'projects' : 'posts';
+      const slugs = Array.isArray(j.slugs) ? j.slugs.map((s) => String(s)).filter(Boolean) : [];
+      if (!slugs.length) return sendJson(res, 400, { ok: false, error: '没选任何内容' });
+      const action = j.action === 'publish' || j.action === 'unpublish' || j.action === 'delete' ? j.action : null;
+      if (!action) return sendJson(res, 400, { ok: false, error: '不认识的批量操作' });
+      const done = [];
+      for (const s of slugs) {
+        try {
+          if (action === 'delete') store.deleteContent(kind, s);
+          else store.setDraft(kind, s, action === 'unpublish');
+          done.push(s);
+        } catch (e) { /* 单个失败跳过 */ }
+      }
+      const build = await publish();
+      return sendJson(res, 200, { ok: true, done, build });
     }
 
     if (p.startsWith('/api/') || p.startsWith('/admin/')) {

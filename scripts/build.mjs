@@ -259,15 +259,17 @@ function loadNavFile() {
     warn('content/nav.json 里应该有 items 数组（继续用 site.js 里的 nav）');
     return null;
   }
-  return d.items.map((it) => ({
-    title: String((it && it.title) || ''),
-    desc: String((it && it.desc) || ''),
-    icon: String((it && it.icon) || 'grid'),
-    href: String((it && it.href) || ''),
-    badge: String((it && it.badge) || ''),
-    tags: Array.isArray(it && it.tags) ? it.tags.map(String) : [],
-    details: Array.isArray(it && it.details) ? it.details.map(String) : [],
-  }));
+  return d.items
+    .filter((it) => !(it && it.hidden))
+    .map((it) => ({
+      title: String((it && it.title) || ''),
+      desc: String((it && it.desc) || ''),
+      icon: String((it && it.icon) || 'grid'),
+      href: String((it && it.href) || ''),
+      badge: String((it && it.badge) || ''),
+      tags: Array.isArray(it && it.tags) ? it.tags.map(String) : [],
+      details: Array.isArray(it && it.details) ? it.details.map(String) : [],
+    }));
 }
 
 function loadResume() {

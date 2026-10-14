@@ -11,7 +11,8 @@
    ========================================================================== */
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname, resolve, extname, sep, normalize } from 'node:path';
+import { imageSizeOfFile } from '../../scripts/lib/images.mjs';
 import { fileURLToPath } from 'node:url';
 import { frontMatter } from '../../scripts/lib/markdown.mjs';
 import { ITEM_BY_KEY, loadSettings, normalizeValue, seedFromSite } from '../../scripts/lib/features.mjs';
@@ -26,6 +27,148 @@ export const KINDS = {
   posts: { dir: 'content/posts', label: '文章', type: 'post' },
   projects: { dir: 'content/projects', label: '作品', type: 'project' },
 };
+
+/* ------------------------------------------------------------ 图片库 */
+
+const IMAGES_DIR = join(ROOT, 'content/images');
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;   // 8MB，够正文插图
+
+/** 图片文件名白名单：去掉路径与怪字符，保留中文/字母/数字/点/横线/下划线 */
+export function safeImageName(raw) {
+  const s = String(raw == null ? '' : raw).trim().replace(/\\/g, '/').split('/').pop() || '';
+  if (!s || s.length > 120) return null;
+  if (/[\\/:*?"<>|\u0000-\u001f]/.test(s)) return null;
+  if (s === '.' || s === '..' || s.startsWith('.')) return null;
+  return s;
+}
+
+/** 列出 content/images 下所有图片（递归，支持子目录） */
+export function listImages() {
+  if (!existsSync(IMAGES_DIR)) return [];
+  const out = [];
+  const walk = (dir, rel) => {
+    for (const name of readdirSync(dir)) {
+      const abs = join(dir, name);
+      let st;
+      try { st = statSync(abs); } catch (e) { continue; }
+      const relPath = rel ? rel + '/' + name : name;
+      if (st.isDirectory()) walk(abs, relPath);
+      else if (IMAGE_EXTS.has(extname(name).toLowerCase())) {
+        out.push({
+          name: relPath,
+          url: '/assets/images/' + relPath.split('/').map(encodeURIComponent).join('/'),
+          bytes: st.size,
+          mtime: st.mtime.toISOString(),
+          dim: imageSizeOfFile(abs) || null,
+        });
+      }
+    }
+  };
+  walk(IMAGES_DIR, '');
+  return out.sort((a, b) => String(b.mtime).localeCompare(String(a.mtime)) || a.name.localeCompare(b.name, 'zh'));
+}
+
+/** 保存一张图片；重名自动加 -1 -2 */
+export function saveImage(rawName, buf) {
+  const name = safeImageName(rawName);
+  if (!name) throw new Error('文件名不合法（不能含路径或特殊字符）');
+  const ext = extname(name).toLowerCase();
+  if (!IMAGE_EXTS.has(ext)) throw new Error(`不支持的图片格式：${ext}（支持 png/jpg/jpeg/gif/webp/svg）`);
+  if (!buf || buf.length === 0) throw new Error('空文件');
+  if (buf.length > MAX_IMAGE_BYTES) throw new Error('图片超过 8MB 上限');
+
+  let final = name;
+  let i = 1;
+  while (existsSync(join(IMAGES_DIR, final))) {
+    final = name.replace(/\.\w+$/, '') + '-' + i + ext;
+    i += 1;
+    if (i > 50) throw new Error('重名太多了，换个名字试试');
+  }
+  mkdirSync(IMAGES_DIR, { recursive: true });
+  const abs = join(IMAGES_DIR, final);
+  const tmp = abs + '.tmp-' + process.pid;
+  writeFileSync(tmp, buf);
+  renameSync(tmp, abs);
+  return {
+    name: final,
+    url: '/assets/images/' + encodeURIComponent(final),
+    bytes: buf.length,
+    mtime: new Date().toISOString(),
+    dim: imageSizeOfFile(abs) || null,
+  };
+}
+
+/** 删除一张图片；只允许删 content/images 里的文件（防路径穿越） */
+export function deleteImage(rawName) {
+  const name = safeImageName(rawName);
+  if (!name) throw new Error('文件名不合法');
+  const abs = resolve(IMAGES_DIR, name);
+  if (abs !== IMAGES_DIR && !abs.startsWith(IMAGES_DIR + sep)) throw new Error('路径越界，拒绝');
+  if (!existsSync(abs) || !statSync(abs).isFile()) throw new Error('图片不存在');
+  unlinkSync(abs);
+  return { name };
+}
+
+/* ------------------------------------------------------------ 历史快照 */
+
+const HISTORY_ROOT = join(ROOT, '.history');
+const HISTORY_KEEP = 40;   // 每个内容保留最近 40 个版本
+
+function tsNow() {
+  const d = new Date();
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}-${String(d.getMilliseconds()).padStart(3, '0')}`;
+}
+
+/** 把当前文件复制一份进 .history/<kind>/<id>/ 作为快照 */
+export function snapshot(kind, id, absFile) {
+  if (!existsSync(absFile)) return null;
+  const dir = join(HISTORY_ROOT, kind, id);
+  mkdirSync(dir, { recursive: true });
+  const ext = extname(absFile) || '.md';
+  const dst = join(dir, tsNow() + ext);
+  writeAtomic(dst, readFileSync(absFile, 'utf8'));
+  /* 只留最近的 HISTORY_KEEP 份 */
+  const files = readdirSync(dir).filter((f) => f.endsWith(ext)).sort();
+  while (files.length > HISTORY_KEEP) {
+    const old = files.shift();
+    try { unlinkSync(join(dir, old)); } catch (e) { /* 忽略 */ }
+  }
+  return dst;
+}
+
+/** 某个内容的历史版本列表（新的在前） */
+export function listHistory(kind, id) {
+  const dir = join(HISTORY_ROOT, kind, id);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => /\.(md|json)$/.test(f))
+    .map((f) => {
+      const st = statSync(join(dir, f));
+      return { file: f, ts: f.replace(/\.(md|json)$/, ''), bytes: st.size, mtime: st.mtime.toISOString() };
+    })
+    .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+}
+
+/** 读某个历史版本的内容 */
+export function readHistory(kind, id, ts) {
+  const file = join(HISTORY_ROOT, kind, id, ts + '.md');
+  if (!existsSync(file)) throw new Error('找不到这个版本');
+  return readFileSync(file, 'utf8');
+}
+
+/** 恢复某个历史版本：先把当前版留档，再写回 */
+export function restoreHistory(kind, id, ts) {
+  const file = join(HISTORY_ROOT, kind, id, ts + '.md');
+  if (!existsSync(file)) throw new Error('找不到这个版本');
+  const { dir } = kindOf(kind);
+  const target = join(dir, id + '.md');
+  if (!existsSync(target)) throw new Error(`「${id}」当前文件不存在，无法恢复`);
+  snapshot(kind, id, target);
+  writeAtomic(target, readFileSync(file, 'utf8'));
+  return { slug: id };
+}
 
 /** 文件名白名单：挡掉路径穿越和各种奇怪字符；允许中文 */
 export function safeSlug(raw) {
@@ -130,6 +273,7 @@ export function writeContent(kind, rawSlug, data, body, opts = {}) {
   const clean = Object.assign({}, data);
   if (!clean.title) clean.title = slug;
   if (!clean.date) clean.date = new Date().toISOString().slice(0, 10);
+  if (existsSync(file)) snapshot(kind, slug, file);   /* 覆盖前留旧版 */
   writeAtomic(file, serializeMarkdown(clean, body));
   return { slug, file };
 }
@@ -139,6 +283,7 @@ export function deleteContent(kind, rawSlug) {
   if (!slug) throw new Error('文件名不合法');
   const file = join(kindOf(kind).dir, `${slug}.md`);
   if (!existsSync(file)) throw new Error('要删的文件不存在');
+  snapshot(kind, slug, file);              /* 删除前留档 */
   const backup = `${file}.deleted-${Date.now()}`;
   renameSync(file, backup);          // 先改名再删：留一次后悔的机会
   unlinkSync(backup);
@@ -159,6 +304,7 @@ export function writeResume(text) {
   try { obj = JSON.parse(text); } catch (e) { throw new Error(`JSON 格式不对：${e.message}`); }
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('根节点必须是一个对象');
   if (!Array.isArray(obj.sections)) throw new Error('缺少 sections 数组');
+  if (existsSync(RESUME_FILE)) snapshot('meta', 'resume', RESUME_FILE);
   writeAtomic(RESUME_FILE, JSON.stringify(obj, null, 2) + '\n');
   return obj;
 }
@@ -176,6 +322,7 @@ export function writeAbout(text) {
   let obj;
   try { obj = JSON.parse(text); } catch (e) { throw new Error(`JSON 格式不对：${e.message}`); }
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('根节点必须是一个对象');
+  if (existsSync(ABOUT_FILE)) snapshot('meta', 'about', ABOUT_FILE);
   writeAtomic(ABOUT_FILE, JSON.stringify(obj, null, 2) + '\n');
   return obj;
 }
@@ -229,6 +376,7 @@ export function writeSettings(obj) {
   if (pageKeys.length && pageKeys.every((k) => out[k] === false)) {
     throw new Error('至少留一个板块开着 —— 全关掉之后站点就只剩一个 404 了');
   }
+  if (existsSync(SETTINGS_FILE)) snapshot('meta', 'settings', SETTINGS_FILE);
   writeAtomic(SETTINGS_FILE, JSON.stringify({ ...SETTINGS_HEAD, ...out }, null, 2) + '\n');
   return out;
 }
@@ -254,7 +402,7 @@ export function importLegacy() {
    nav.json 一旦存在，构建立刻改用它（content/site.js 里的那份就只是备份了）。
    ========================================================================== */
 
-const CARD_FIELDS = ['title', 'desc', 'icon', 'href', 'badge', 'tags', 'details'];
+const CARD_FIELDS = ['title', 'desc', 'icon', 'href', 'badge', 'tags', 'details', 'hidden'];
 
 /** 把一张卡片洗成固定字段 + 固定类型，免得手写的怪东西混进去 */
 export function cleanCard(raw) {
@@ -267,6 +415,7 @@ export function cleanCard(raw) {
     badge: String(it.badge || '').slice(0, 40),
     tags: (Array.isArray(it.tags) ? it.tags : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 40),
     details: (Array.isArray(it.details) ? it.details : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 40),
+    hidden: it.hidden === true,
   };
 }
 
@@ -292,6 +441,7 @@ export function writeNav(items) {
   out.forEach((c, i) => {
     if (!c.title) throw new Error(`第 ${i + 1} 张卡片没有标题`);
   });
+  if (existsSync(NAV_FILE)) snapshot('meta', 'nav', NAV_FILE);
   writeAtomic(NAV_FILE, JSON.stringify({
     _说明: '这个文件是后台「卡片」页写的。删掉它 = 回到 content/site.js 里那份 nav。',
     _字段: 'title 标题 / desc 一句话说明 / icon 图标 / href 链接（留空=筹备中，点开详情）/ badge 角标 / tags 搜索关键词 / details 详情条目',
@@ -319,4 +469,13 @@ export function cardPlaceholders() {
 export function readSiteSeed() {
   try { return seedFromSite(loadSiteObject(join(ROOT, 'content/site.js'))); }
   catch (e) { return {}; }
+}
+
+/* ------------------------------------------------------------ 批量操作 */
+
+/** 批量切草稿状态：true = 标记草稿（下线），false = 发布 */
+export function setDraft(kind, rawSlug, draft) {
+  const found = readContent(kind, rawSlug);
+  if (!found || !found.exists) throw new Error(`「${rawSlug}」不存在`);
+  return writeContent(kind, found.slug, Object.assign({}, found.data, { draft: !!draft }), found.body);
 }
