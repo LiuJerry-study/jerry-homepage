@@ -11,6 +11,7 @@
     "build": "node scripts/build.mjs",
     "assets": "node scripts/build.mjs --assets",
     "check": "node scripts/check.mjs",
+    "admin-check": "node scripts/admin-check.mjs",
     "serve": "node scripts/serve.mjs",
     "site": "node site/server.mjs",
     "verify": "node scripts/verify-server.mjs",
