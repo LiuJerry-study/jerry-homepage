@@ -42,4 +42,20 @@ const cleanedCard = cleanCard({ title: '隐藏测试', desc: '', icon: 'grid', h
 if (cleanedCard.hidden !== true) throw new Error('cleanCard 未保留 hidden 字段');
 if (cleanCard({ title: '默认显示', tags: [], details: [] }).hidden !== false) throw new Error('cleanCard 默认 hidden 应为 false');
 
+const { dashboardPage } = await import('../admin/lib/ui.mjs');
+const dashHtml = dashboardPage({ data });
+const pages = { 总览: dashHtml, 列表: listHtml, 编辑器: editorHtml, 卡片: cardsHtml };
+for (const [name, pageHtml] of Object.entries(pages)) {
+  if (!pageHtml.includes('写作后台')) throw new Error(name + ' 页面缺少统一后台骨架');
+  if (!pageHtml.includes('/admin')) throw new Error(name + ' 页面缺少后台导航链接');
+}
+
+const { listContent, readNav } = await import('../admin/lib/store.mjs');
+const realPosts = listContent('posts');
+const realProjects = listContent('projects');
+if (!Array.isArray(realPosts) || !Array.isArray(realProjects)) throw new Error('内容列表不是数组');
+if (realPosts.some((item) => typeof item.slug !== 'string' || typeof item.draft !== 'boolean')) throw new Error('文章列表字段不完整');
+const realNav = readNav();
+if (!Array.isArray(realNav.items)) throw new Error('卡片列表不是数组');
+
 console.log('后台自检通过');
