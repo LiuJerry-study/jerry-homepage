@@ -136,16 +136,33 @@ select:focus,input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 
 .sw input:checked~.sw-txt{color:var(--accent-2)}
 
 /* ---------- 卡片页 ---------- */
-.cardrow{display:block;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin-bottom:12px;overflow:hidden}
-.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px}
-.card-head .num{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.card-head .card-title{font-weight:600;min-width:0;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-head .btn{padding:4px 10px;font-size:12px}
-.card-head .mini-hide{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12.5px;color:var(--muted)}
-.card-head .mini-hide input{width:auto;margin:0}
+.cardrow{display:block;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin-bottom:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.cardrow:hover{border-color:rgba(18,184,134,.4)}
+.cardrow.open{border-color:var(--accent);box-shadow:0 8px 28px -20px rgba(18,184,134,.55)}
+.card-head{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;user-select:none}
+.card-head:hover{background:var(--accent-soft)}
+.card-ico{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent-2);display:grid;place-items:center;flex:none}
+.card-ico svg{width:18px;height:18px}
+.card-main{flex:1;min-width:0}
+.card-title{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-desc{font-size:12px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-badge{flex:none;font-size:11px;padding:2px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
+.card-badge.live{background:var(--accent-soft);color:var(--accent-2);border-color:var(--accent)}
+.card-badge.hidden{background:var(--surface-2);color:var(--muted);opacity:.6}
+.card-switch{position:relative;display:inline-flex;align-items:center;gap:7px;margin:0;font-size:12px;color:var(--muted);flex:none;cursor:pointer}
+.card-switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.card-switch .sw-track{width:34px;height:19px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);position:relative;display:inline-block;flex:none;transition:.18s}
+.card-switch .sw-dot{position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--muted);transition:.18s}
+.card-switch input:checked+.sw-track{background:var(--accent-soft);border-color:var(--accent)}
+.card-switch input:checked+.sw-track .sw-dot{left:17px;background:var(--accent)}
+.card-ops{display:flex;gap:2px;flex:none}
+.card-ops .btn{padding:6px 9px;font-size:12px;background:transparent;border-color:transparent}
+.card-ops .btn:hover{border-color:var(--accent);color:var(--accent-2);background:var(--surface)}
+.card-ops .btn.danger:hover{border-color:var(--danger);color:var(--danger)}
 .card-body{display:none;border-top:1px solid var(--line);padding:16px;gap:20px}
 .cardrow.open .card-body{display:grid;grid-template-columns:minmax(0,1fr) 300px}
 @media (max-width:1000px){ .cardrow.open .card-body{grid-template-columns:1fr} }
+@media (max-width:760px){ .card-head{flex-wrap:wrap} .card-ops{width:100%;justify-content:flex-end;border-top:1px solid var(--line);padding-top:8px;margin-top:2px} }
 .mini{display:flex;flex-direction:column;gap:10px}
 .mini .half{display:flex;gap:10px;flex-wrap:wrap}
 .mini .half>*{flex:1;min-width:130px}
@@ -1299,16 +1316,21 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
 
   const blank = { title: '', desc: '', icon: 'grid', href: '', badge: '', tags: [], details: [] };
   const row = (c, i) => `<div class="cardrow" data-i="${i}" data-card-index="${i}">
-    <div class="card-head">
-      <span class="num mono">第 ${String(i + 1).padStart(2, '0')} 张</span>
-      <span class="card-title">${h(c.title || '（未命名卡片）')}</span>
-      <span style="flex:1"></span>
-      <label class="mini-hide" title="关掉后，保存生效时公开首页不再显示这张卡片"><input type="checkbox" data-f="hidden" ${c.hidden ? 'checked' : ''}> 显示</label>
-      <button class="btn" type="button" data-act="edit" title="展开 / 收起编辑">编辑</button>
-      <button class="btn" type="button" data-act="up" title="上移">↑</button>
-      <button class="btn" type="button" data-act="down" title="下移">↓</button>
-      <button class="btn" type="button" data-act="dup" title="复制一张">复制</button>
-      <button class="btn danger" type="button" data-act="del">删除</button>
+    <div class="card-head" data-act="toggle" title="点击展开 / 收起编辑">
+      <span class="card-ico">${svg(c.icon || 'grid')}</span>
+      <span class="card-main">
+        <span class="card-title">${h(c.title || '（未命名卡片）')}</span>
+        <span class="card-desc">${h(c.desc || (c.href ? c.href : '点击展开编辑此卡片'))}</span>
+      </span>
+      <span class="card-badge ${c.hidden ? 'hidden' : (c.href ? 'live' : '')}" data-card-status>${c.hidden ? '已隐藏' : (c.href ? '已上线' : '筹备中')}</span>
+      <label class="card-switch" title="保存生效后公开首页是否显示"><input type="checkbox" data-f="hidden" ${c.hidden ? 'checked' : ''}><span class="sw-track"><span class="sw-dot"></span></span><span>显示</span></label>
+      <span class="card-ops">
+        <button class="btn" type="button" data-act="edit" title="展开 / 收起编辑">✎</button>
+        <button class="btn" type="button" data-act="up" title="上移">↑</button>
+        <button class="btn" type="button" data-act="down" title="下移">↓</button>
+        <button class="btn" type="button" data-act="dup" title="复制一张">⧉</button>
+        <button class="btn danger" type="button" data-act="del" title="删除">✕</button>
+      </span>
     </div>
     <div class="card-body">
       <div class="mini">
@@ -1398,6 +1420,13 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
     const live = !!(c.href && c.href !== '#');
     const headTitle = el.querySelector('.card-title');
     if (headTitle) headTitle.textContent = c.title || '（未命名卡片）';
+    const headDesc = el.querySelector('.card-desc');
+    if (headDesc) headDesc.textContent = c.desc || (c.href ? c.href : '点击展开编辑此卡片');
+    const badge = el.querySelector('[data-card-status]');
+    if (badge) {
+      badge.className = 'card-badge ' + (c.hidden ? 'hidden' : (live ? 'live' : ''));
+      badge.textContent = c.hidden ? '已隐藏' : (live ? '已上线' : '筹备中');
+    }
     el.classList.toggle('is-off', c.hidden || !live);
     const pv = el.querySelector('[data-pv]');
     if (!pv) return;
@@ -1405,14 +1434,14 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
       pv.innerHTML = '<div class="pv-card"><div class="pv-t" style="color:var(--muted)">已隐藏 — 保存生效后公开首页不显示</div></div>';
       return;
     }
-    const badge = fill(c.badge || (live ? '已上线' : '筹备中'));
+    const badge2 = fill(c.badge || (live ? '已上线' : '筹备中'));
     pv.innerHTML =
       '<div class="pv-card">'
       + '<div class="pv-top"><span class="pv-ico">' + icon(c.icon) + '</span>'
       + '<span class="pv-num">' + String([...list.children].indexOf(el) + 1).padStart(2, '0') + '</span></div>'
       + '<div class="pv-t">' + (esc(c.title) || '<span style="color:var(--muted)">（还没写标题）</span>') + '</div>'
       + '<span class="pv-d">' + esc(c.desc) + '</span>'
-      + '<div class="pv-f"><span class="pv-b' + (live ? ' live' : '') + '">' + esc(badge) + '</span>'
+      + '<div class="pv-f"><span class="pv-b' + (live ? ' live' : '') + '">' + esc(badge2) + '</span>'
       + '<span class="pv-go">' + (live ? '前往' : '查看详情') + ' ↗</span></div></div>';
   }
 
@@ -1427,24 +1456,31 @@ export function cardsPage({ items, saved, placeholders = {}, lastBuild = '' }) {
   list.addEventListener('input', (e) => { const r = e.target.closest('.cardrow'); if (r) { paint(r); mark(); } });
   list.addEventListener('change', (e) => { const r = e.target.closest('.cardrow'); if (r) { paint(r); mark(); } });
   list.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-act]');
-    if (!b) return;
-    const r = b.closest('.cardrow');
-    const i = [...list.children].indexOf(r);
-    const act = b.dataset.act;
-    if (act === 'edit') { r.classList.toggle('open'); }
-    else if (act === 'del') {
-      if (!confirm('删掉第 ' + (i + 1) + ' 张卡片？保存之后首页上就没它了。')) return;
-      r.remove();
-    } else if (act === 'up' && i > 0) { list.insertBefore(r, list.children[i - 1]); }
-    else if (act === 'down') { list.insertBefore(r, list.children[i + 2] || null); }
-    else if (act === 'dup') {
-      const clone = r.cloneNode(true);
-      list.insertBefore(clone, r.nextSibling);
-      const t = clone.querySelector('[data-f="title"]');
-      if (t) t.value = (t.value || '') + ' 副本';
+    const op = e.target.closest('[data-act]');
+    const sw = e.target.closest('.card-switch');
+    const r = e.target.closest('.cardrow');
+    if (!r) return;
+    if (sw) { e.stopPropagation(); }
+    if (op) {
+      e.stopPropagation();
+      const i = [...list.children].indexOf(r);
+      const act = op.dataset.act;
+      if (act === 'edit' || act === 'toggle') { r.classList.toggle('open'); }
+      else if (act === 'del') {
+        if (!confirm('删掉第 ' + (i + 1) + ' 张卡片？保存之后首页上就没它了。')) return;
+        r.remove();
+      } else if (act === 'up' && i > 0) { list.insertBefore(r, list.children[i - 1]); }
+      else if (act === 'down') { list.insertBefore(r, list.children[i + 2] || null); }
+      else if (act === 'dup') {
+        const clone = r.cloneNode(true);
+        list.insertBefore(clone, r.nextSibling);
+        const t = clone.querySelector('[data-f="title"]');
+        if (t) t.value = (t.value || '') + ' 副本';
+      }
+      paintAll(); mark();
+    } else if (e.target.closest('.card-head')) {
+      r.classList.toggle('open');
     }
-    paintAll(); mark();
   });
 
   /* 「＋ 添加一张卡片」= 克隆服务端渲染好的那张空卡片（<template> 里）。
