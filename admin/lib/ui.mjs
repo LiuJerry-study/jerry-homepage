@@ -108,8 +108,12 @@ label{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 5px}
   background:var(--warn-bg);color:var(--warn);font-size:13.5px;margin:0 0 16px}
 .banner .btn{margin-left:auto;flex:none}
 
-/* ---------- 设置页：一行一个控件 ---------- */
-.setrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,300px);gap:10px 20px;
+/* ---------- 设置页：一行一个控件 ----------
+   第一列的 fr 轨道带最小宽度（minmax(160px,1fr)）：
+   之前是 minmax(0,1fr)，在 3 列折叠卡片把宽度压到 ~340-380px 时，
+   第二列（有固定 300px 上限）优先占满，第一列被压到 1 个字符宽，
+   所有 label/说明文字就竖着排了 —— 给 label 列一个明确下限就不会再发生。 */
+.setrow{display:grid;grid-template-columns:minmax(160px,1fr) minmax(140px,240px);gap:10px 16px;
   align-items:center;padding:14px 0;border-top:1px solid var(--line)}
 .setrow:first-of-type{border-top:0}
 .setrow .lab strong{display:block}
@@ -188,7 +192,7 @@ select:focus,input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 
   border-bottom:1px solid var(--border);margin-bottom:6px}
 
 /* ===== 后台通用增强：折叠 / 登录氛围 / 列表工具 / 图库 / 历史 / 表单行 ===== */
-.fold-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;align-items:start}
+.fold-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:14px;align-items:start}
 @media (max-width:760px){ .fold-grid{grid-template-columns:1fr} }
 details.fold{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin:0 0 14px;overflow:hidden}
 details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px;font-weight:600;border:0;user-select:none}
