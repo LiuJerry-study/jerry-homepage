@@ -37,8 +37,11 @@
         (peak ? '   峰值 ' + peak + ' 颗' : '');
     }
 
+    let perfRaf = 0;
     function tick(now) {
-      requestAnimationFrame(tick);
+      perfRaf = 0;
+      if (document.hidden || mqReduce.matches) return;
+      perfRaf = requestAnimationFrame(tick);
       const gap = now - last;
       last = now;
       const s = stat();
@@ -55,7 +58,15 @@
         sample();
       }
     }
-    requestAnimationFrame(tick);
+    function wake() {
+      cancelAnimationFrame(perfRaf); perfRaf = 0;
+      if (document.hidden || mqReduce.matches) return;
+      last = t0 = performance.now(); frames = 0;
+      perfRaf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', wake);
+    mqReduce.addEventListener('change', wake);
+    wake();
 
     /* 消散的开始 / 结束不用去改第 6 节：那两下本来就会给标题加、摘 .is-gone，
        这里盯着 class 变化就够了，两边逻辑互不打扰。 */
@@ -75,5 +86,3 @@
     }
     sample();
   }
-
-  

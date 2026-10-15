@@ -12,7 +12,7 @@
     { k: ['Esc'], d: '关掉当前浮层 / 详情页' },
     { k: ['拖动空白处'], d: '拖拽翻屏：跟手、松手有惯性，够远或够快就翻' },
     { k: ['点标题'], d: '整行字散成粒子（鼠标能推开它们、还会连线）；约两秒后自己聚回来' },
-    { k: ['点击任意处'], d: '核心闪光 + 冲击波 + 火星拖尾，鼠标附近的粒子会被推开' },
+    { k: ['可选点击爆点'], d: '可在设置中开启；默认关闭辅助爆点' },
     { k: ['悬停卡片'], d: '停留一下看这条目的预览' },
     { k: ['点击卡片'], d: '从右侧滑进整屏详情页（返回按钮 / Esc / 向右滑回来）' }
   ];
@@ -36,6 +36,7 @@
   function openKeys() {
     if (!keysEl) return;
     openFlags.keys = true;
+    keysEl._focusTrigger = document.activeElement;
     keysEl.hidden = false;
     const close = $('.keys-head .icon-btn', keysEl);
     if (close) close.focus();
@@ -45,5 +46,3 @@
     openFlags.keys = false;
     keysEl.hidden = true;
   }
-
-  

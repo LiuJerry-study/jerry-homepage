@@ -44,5 +44,3 @@
     ? SITE.burstStyle
     : (SITE.randomBurst === false ? 'new' : 'random');
   const FX_MODE = (FX_ARG === 'new' || FX_ARG === 'classic' || FX_ARG === 'random') ? FX_ARG : FX_STYLE;
-
-  

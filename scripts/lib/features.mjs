@@ -59,7 +59,7 @@ export const FEATURE_ITEMS = [
   { key: 'blog.perPage',     group: 'site', kind: 'number', level: 'site', site: 'postsPerPage', label: '博客每页几篇', def: 10, min: 1, max: 999, unit: '篇', note: '超过就自动分成 blog/page2.html、page3.html…。想一页到底就填 999' },
 
   /* ---------------- 主题 ---------------- */
-  { key: 'theme.mode', group: 'theme', kind: 'select', level: 'runtime', site: 'themeMode', label: '默认明暗', def: 'random', note: '访客第一次打开时用哪种。他自己切过一次之后就记住他的选择，这里管不到了', options: [
+  { key: 'theme.mode', group: 'theme', kind: 'select', level: 'runtime', site: 'themeMode', label: '默认明暗', def: 'system', note: '访客第一次打开时用哪种。他自己切过一次之后就记住他的选择，这里管不到了', options: [
     ['random', '每次随机（亮 / 暗）'], ['system', '跟随系统'],
     ['light', '固定浅色'], ['dark', '固定深色'],
   ] },
@@ -90,8 +90,8 @@ export const FEATURE_ITEMS = [
   { key: 'effects.wash',          group: 'effects', kind: 'bool', level: 'runtime', label: '背景柔光', note: '背景里那团大面积的颜色晕染' },
   { key: 'effects.blobs',         group: 'effects', kind: 'bool', level: 'runtime', label: '光斑色块', note: '缓慢漂移的两块模糊色斑' },
   { key: 'effects.noise',         group: 'effects', kind: 'bool', level: 'runtime', label: '颗粒噪点', note: '一层几乎看不见的胶片颗粒，让大面积纯色不那么"塑料"' },
-  { key: 'effects.halo',          group: 'effects', kind: 'bool', level: 'runtime', label: '光标光晕', note: '跟着指针走的那团柔光' },
-  { key: 'effects.burst',         group: 'effects', kind: 'bool', level: 'runtime', label: '点击爆点', note: '点一下炸开的那一圈' },
+  { key: 'effects.halo',          group: 'effects', kind: 'bool', level: 'runtime', label: '光标光晕', def: true, note: '跟着指针走的那团柔光' },
+  { key: 'effects.burst',         group: 'effects', kind: 'bool', level: 'runtime', label: '点击爆点', def: true, note: '点一下炸开的那一圈' },
   { key: 'effects.burstStyle',    group: 'effects', kind: 'select', level: 'runtime', site: 'burstStyle', label: '爆点用哪套', def: 'random', note: '两套风格：新的那套是闪光 + 冲击波 + 火星拖尾，旧的那套是巨大圆环', options: [
     ['random', '每次随机'], ['new', '只用新的'], ['classic', '只用旧的'],
   ] },
@@ -100,7 +100,9 @@ export const FEATURE_ITEMS = [
   { key: 'effects.transitionStyle', group: 'effects', kind: 'select', level: 'runtime', label: '转场用哪套', def: 'random', note: '六套：淡入 / 推移 / 翻卡 / 缩放 / 虚化 / 擦除', options: [
     ['random', '每次随机（不连着重复）'], ['fade', '只用淡入'],
   ] },
-  { key: 'effects.magnetic',      group: 'effects', kind: 'bool', level: 'runtime', label: '按钮磁吸', note: '指针靠近时按钮轻轻让开一点' },
+  { key: 'effects.magnetic',      group: 'effects', kind: 'bool', level: 'runtime', label: '按钮磁吸', def: true, note: '指针靠近时按钮轻轻让开一点' },
+
+  { key: 'effects.quality', group: 'effects', kind: 'select', level: 'runtime', label: '动效质量', def: 'standard', note: '标准保留标题特色；轻量降低背景粒子与画布分辨率。触屏采用轻量预设，减少动效时静态显示。', options: [['standard', '标准'], ['light', '轻量']] },
 
   /* ---------------- 工具 ---------------- */
   { key: 'tools.cmdk',        group: 'tools', kind: 'bool', level: 'runtime', label: '命令面板', note: 'Ctrl / ⌘ + K 搜索与跳转' },

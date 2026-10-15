@@ -2,10 +2,12 @@
   function initPointer() {
     const halo = featOn('effects.halo') ? document.getElementById('halo') : null;
 
-    if (!coarse && motionOK) {
+    if (!coarse) {
       window.addEventListener('pointermove', (e) => {
+        if (!motionOK || document.hidden) return;
         state.tx = e.clientX;
         state.ty = e.clientY;
+        if (!halo) { state.px = e.clientX; state.py = e.clientY; }
         if (!body.classList.contains('has-pointer')) body.classList.add('has-pointer');
         const hot = e.target && e.target.closest
           ? e.target.closest('a, button, .card, #hero-title, [data-hot]')
@@ -69,8 +71,9 @@
       return { dx: dx, dy: dy };
     }
 
-    if (mags.length && !coarse && motionOK) {
+    if (mags.length && !coarse) {
       window.addEventListener('pointermove', (e) => {
+        if (!motionOK || document.hidden) { magRelease(magOn); magOn = null; return; }
         /* ① 先挑出「离指针最近、且在感应圈里」的那一个 */
         let pick = null, pickB = null, pickD = 1e9, pickR = 1;
         for (let i = 0; i < mags.length; i++) {
@@ -102,10 +105,13 @@
     }
 
     /* 光晕：跟手缓动，还会顺着移动方向稍微拉长（速度越快越明显） */
-    if (!halo || coarse || !motionOK) return;
+    if (!halo || coarse) return;
     let lx = state.px, ly = state.py, lastTf = '';
-    (function loop() {
-      requestAnimationFrame(loop);
+    let haloRaf = 0;
+    function wakeHalo() { if (!haloRaf && !mqReduce.matches && !document.hidden) haloRaf = requestAnimationFrame(loop); }
+    function loop() {
+      haloRaf = 0;
+      if (!motionOK || document.hidden) return;
       state.px += (state.tx - state.px) * 0.11;
       state.py += (state.ty - state.py) * 0.11;
       let ang = 0, st = 0;
@@ -121,7 +127,10 @@
         + ' scale(' + (1 + st).toFixed(3) + ',' + (1 - st * 0.7).toFixed(3) + ')';
       /* 值没变就不写。写一次 transform 就是一次样式重算，而光晕绝大多数时间是不动的 */
       if (tf !== lastTf) { lastTf = tf; halo.style.transform = tf; }
-    })();
+      if (Math.abs(state.tx - state.px) + Math.abs(state.ty - state.py) > .1) wakeHalo();
+    }
+    window.addEventListener('pointermove', wakeHalo, { passive: true });
+    mqReduce.addEventListener('change', () => { cancelAnimationFrame(haloRaf); haloRaf = 0; wakeHalo(); });
+    document.addEventListener('visibilitychange', () => { cancelAnimationFrame(haloRaf); haloRaf = 0; wakeHalo(); });
+    wakeHalo();
   }
-
-  

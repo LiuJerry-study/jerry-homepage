@@ -1,0 +1,305 @@
+{
+  "browser": "155.0.4283.45",
+  "errors": [],
+  "results": [
+    {
+      "colorScheme": "light",
+      "width": 360,
+      "height": 640,
+      "documentWidth": 360,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1483.609375
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 640
+        }
+      ]
+    },
+    {
+      "colorScheme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1518.1875
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 844
+        }
+      ]
+    },
+    {
+      "colorScheme": "light",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1024
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "colorScheme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 666.546875
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 414.703125
+        }
+      ]
+    },
+    {
+      "colorScheme": "light",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "desktop": true,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 768
+        },
+        {
+          "id": "about",
+          "inert": true,
+          "visibility": "hidden",
+          "height": 768
+        }
+      ]
+    },
+    {
+      "colorScheme": "light",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1483.609375
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 640
+        }
+      ]
+    },
+    {
+      "colorScheme": "light",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 864.765625
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 410.015625
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 360,
+      "height": 640,
+      "documentWidth": 360,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1483.609375
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 640
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1518.1875
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 844
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1024
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 666.546875
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 414.703125
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "desktop": true,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 768
+        },
+        {
+          "id": "about",
+          "inert": true,
+          "visibility": "hidden",
+          "height": 768
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 1483.609375
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 640
+        }
+      ]
+    },
+    {
+      "colorScheme": "dark",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "desktop": false,
+      "visible": [
+        {
+          "id": "home",
+          "inert": false,
+          "visibility": "visible",
+          "height": 864.765625
+        },
+        {
+          "id": "about",
+          "inert": false,
+          "visibility": "visible",
+          "height": 410.015625
+        }
+      ]
+    },
+    {
+      "noScript": true,
+      "links": 5,
+      "width": 390
+    }
+  ]
+}

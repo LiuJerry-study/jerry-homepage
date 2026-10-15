@@ -1,25 +1,5 @@
 /* ======================== 7. 导航卡片：悬停预览 + 整屏详情页 ======================== */
-  const ICONS = {
-    resume: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
-    pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
-    grid: '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/>',
-    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
-    user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-    mail: '<rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M3 7l9 6 9-6"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>',
-    arrow: '<path d="M7 17 17 7"/><path d="M8 7h9v9"/>',
-    search: '<circle cx="11" cy="11" r="6.6"/><path d="M20.2 20.2 15.8 15.8"/>',
-    bolt: '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"/>',
-    page: '<path d="M4 6h16M4 12h16M4 18h10"/>'
-  };
-
-  function icon(name) {
-    const d = ICONS[name] || ICONS.grid;
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"'
-      + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
-  }
-
-  const RING = '<span class="ring" aria-hidden="true"></span><span class="spot" aria-hidden="true"></span>';
+  const icon = CardMarkup.icon;
 
   const cardsBox = document.getElementById('cards');
   const peekEl = document.getElementById('card-peek');
@@ -40,16 +20,25 @@
       el.style.setProperty('--ry', '0deg');
       hidePeek();
     });
-    el.addEventListener('pointermove', (e) => {
-      const r = el.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top) / r.height;
-      el.style.setProperty('--mx', (px * 100).toFixed(2) + '%');
-      el.style.setProperty('--my', (py * 100).toFixed(2) + '%');
+    let moveRaf = 0, lastPoint = null, bounds = null;
+    const invalidate = () => { bounds = null; };
+    window.addEventListener('resize', invalidate, { passive: true });
+    window.addEventListener('scroll', invalidate, { passive: true, capture: true });
+    if (window.ResizeObserver) new ResizeObserver(invalidate).observe(el);
+    el.addEventListener('pointermove', e => {
       if (coarse || !motionOK) return;
-      el.style.setProperty('--rx', ((0.5 - py) * 7).toFixed(2) + 'deg');
-      el.style.setProperty('--ry', ((px - 0.5) * 9).toFixed(2) + 'deg');
+      lastPoint = { x: e.clientX, y: e.clientY };
+      if (moveRaf) return;
+      moveRaf = requestAnimationFrame(() => {
+        moveRaf = 0;
+        if (!motionOK || document.hidden || !el.matches(':hover')) return;
+        const r = bounds || (bounds = el.getBoundingClientRect());
+        if (!r.width || !r.height) return;
+        el.style.setProperty('--mx', ((lastPoint.x - r.left) / r.width * 100).toFixed(2) + '%');
+        el.style.setProperty('--my', ((lastPoint.y - r.top) / r.height * 100).toFixed(2) + '%');
+        el.style.setProperty('--rx', ((.5 - (lastPoint.y - r.top) / r.height) * 7).toFixed(2) + 'deg');
+        el.style.setProperty('--ry', (((lastPoint.x - r.left) / r.width - .5) * 9).toFixed(2) + 'deg');
+      });
     });
 
     /* 悬停预览：停够 420ms 才出，免得扫过去一片浮层乱闪 */
@@ -134,6 +123,7 @@
     if (sc) sc.scrollTop = 0;
 
     itemFocusBack = document.activeElement;
+    itemPage._focusTrigger = itemFocusBack;
     itemPage.hidden = false;
     itemPage.classList.remove('is-in');
     void itemPage.offsetWidth;               /* 从屏幕右侧开始滑，而不是直接跳到位 */
@@ -149,7 +139,7 @@
     clearTimeout(itemPage._closeTimer);
     itemPage._closeTimer = setTimeout(() => {
       if (!itemPage.classList.contains('is-in')) itemPage.hidden = true;
-    }, 640);
+    }, motionOK ? 600 : 0);
     if (itemFocusBack && itemFocusBack.focus) {
       try { itemFocusBack.focus(); } catch (e) { /* 忽略 */ }
     }
@@ -159,57 +149,20 @@
   function initCards() {
     if (!cardsBox) return;
     if (!featOn('home.cards')) return;           /* 开关：首屏卡片墙 */
-    const items = (Array.isArray(SITE.nav) ? SITE.nav : []).slice();
-    if (SITE.showAddCard !== false) {
-      items.push({
-        add: true,
-        title: '添加新站点',
-        desc: '往 content/site.js 的 nav 里加一个对象，卡片自己长出来',
-        badge: '开发用',
-        tags: ['开发', 'content', 'site', 'nav', '新增'],
-        details: [
-          '打开 content/site.js',
-          '往 nav 数组里加一个对象：title / desc / icon / href',
-          '想加详情就再写 details 和 tags，预览和搜索都会自动用上',
-          'href 填上之后，卡片自动变成真链接'
-        ]
-      });
-    }
+    const items = CardMarkup.items(SITE);
     cardData = items;
-
-    cardsBox.innerHTML = items.map((it, i) => {
-      const num = String(i + 1).padStart(2, '0');
-      if (it.add) {
-        return '<button class="card card-add" type="button" data-i="' + i + '">' + RING
-          + '<div class="card-inner">'
-          + '<div class="card-top"><span class="card-icon">' + icon('plus') + '</span>'
-          + '<span class="card-num mono">' + num + '</span></div>'
-          + '<div class="card-body"><strong class="card-title">添加新站点</strong>'
-          + '<span class="card-desc">' + esc(it.desc) + '</span></div>'
-          + '<div class="card-foot"><span class="badge">开发用</span>'
-          + '<span class="card-go">看一眼<span class="go-ico">' + icon('arrow') + '</span></span></div>'
-          + '</div></button>';
-      }
-      const live = !!(it.href && it.href !== '#');
-      const tag = live ? 'a' : 'button';
-      const attrs = live
-        ? ' href="' + esc(it.href) + '"'
-        : ' type="button"';
-      return '<' + tag + ' class="card ' + (live ? 'is-live' : 'is-soon') + '" data-i="' + i + '"' + attrs + '>' + RING
-        + '<div class="card-inner">'
-        + '<div class="card-top"><span class="card-icon">' + icon(it.icon) + '</span>'
-        + '<span class="card-num mono">' + num + '</span></div>'
-        + '<div class="card-body"><strong class="card-title">' + esc(it.title || '') + '</strong>'
-        + '<span class="card-desc">' + esc(it.desc || '') + '</span></div>'
-        + '<div class="card-foot"><span class="badge' + (live ? ' badge-live' : '') + '">'
-        + esc(it.badge || (live ? '已上线' : '筹备中')) + '</span>'
-        + '<span class="card-go">' + (live ? '前往' : '查看详情')
-        + '<span class="go-ico">' + icon('arrow') + '</span></span></div>'
-        + '</div></' + tag + '>';
-    }).join('');
-
+    if (!cardsBox.children.length) cardsBox.innerHTML = CardMarkup.render(items);
+    cardsBox.classList.add('cards-enhanced');
     cardEls = $$('.card', cardsBox);
-    cardEls.forEach((el, i) => bindCard(el, i));
+    cardEls.forEach((el, i) => {
+      bindCard(el, i);
+      if (!items[i].href || items[i].href === '#') {
+        el.setAttribute('role', 'button'); el.tabIndex = 0;
+        const summary = el.querySelector('summary');
+        if (summary) summary.tabIndex = -1;
+        el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openItem(i); } });
+      }
+    });
 
     cardsBox.addEventListener('click', (e) => {
       const t = e.target;
@@ -237,7 +190,8 @@
     itemPage.addEventListener('pointerdown', (e) => {
       if (e.button > 0) return;
       const t = e.target;
-      if (t && t.closest && t.closest('a, button')) return;
+      if (window.getSelection() && !window.getSelection().isCollapsed) return;
+      if (t && t.closest && t.closest('a, button, input, select, textarea, [contenteditable], p, li, h2')) return;
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, on: false };
     });
     itemPage.addEventListener('pointermove', (e) => {
@@ -252,21 +206,23 @@
       drag.dx = Math.max(0, dx);
       itemPage.style.transform = 'translate3d(' + drag.dx.toFixed(1) + 'px, 0, 0)';
     });
-    const endDrag = (e) => {
+    const endDrag = (e, cancelled) => {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       const far = drag.dx > 90;
+      const pointerId = drag.id;
       drag = null;
+      try { if (itemPage.hasPointerCapture(pointerId)) itemPage.releasePointerCapture(pointerId); } catch (err) { /* capture lost */ }
       itemPage.classList.remove('is-dragging');
       itemPage.style.transform = '';
-      if (far) closeItem();
+      if (far && !cancelled) closeItem();
     };
     itemPage.addEventListener('pointerup', endDrag);
-    itemPage.addEventListener('pointercancel', endDrag);
+    itemPage.addEventListener('pointercancel', e => endDrag(e, true));
+    itemPage.addEventListener('lostpointercapture', e => endDrag(e, true));
+    window.addEventListener('blur', () => endDrag(null, true));
 
     const sc = $('.item-scroll', itemPage);
     if (sc) sc.addEventListener('scroll', () => {
       itemPage.classList.toggle('is-stuck', sc.scrollTop > 4);
     }, { passive: true });
   }
-
-  

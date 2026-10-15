@@ -31,3 +31,10 @@
   .hero-tip { display: none; }
 }
 
+@media (max-width: 768px), (max-height: 600px) {
+  .btn, .icon-btn, .top-actions button, .section-nav a { min-width: 44px; min-height: 44px; }
+  .page-nav { flex-wrap: wrap; justify-content: flex-end; }
+  .page-nav-a { display: inline-flex; align-items: center; min-height: 44px; padding: 5px 9px; }
+  .topbar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+}
+

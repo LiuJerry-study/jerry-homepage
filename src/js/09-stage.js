@@ -27,6 +27,40 @@
     let lastFlipAt = 0;
     let wheelAcc = 0, wheelTimer = 0;
     let drag = null;
+    let wheelOwned = false, wheelUsed = false;
+    const layoutQuery = window.matchMedia('(min-width: 769px) and (min-height: 601px)');
+    let desktop = false;
+    function writeAddress(strategy) {
+      if (strategy === 'none') return;
+      try { history[strategy === 'replace' ? 'replaceState' : 'pushState']({ page: panels[idx].id }, '', '#' + panels[idx].id); } catch (e) { /* file:// */ }
+    }
+    function syncPanels() {
+      panels.forEach((p, i) => {
+        const hidden = desktop && i !== idx;
+        p.inert = hidden;
+        p.setAttribute('aria-hidden', String(hidden));
+        if (!hidden) $$('[data-reveal]', p).forEach(el => el.classList.add('is-in'));
+      });
+    }
+    function resetInput() {
+      endDrag(null, true);
+      clearTimeout(flipTimer); clearTimeout(wheelTimer);
+      pending = null; busy = false; wheelAcc = 0; wheelOwned = false; wheelUsed = false;
+      panels.forEach((p, i) => { clearTrans(p); p.classList.toggle('is-active', i === idx); });
+    }
+    function updateLayout() {
+      if (!desktop && layoutQuery.matches) {
+        const nearest = panels.reduce((best, p, i) => Math.abs(p.getBoundingClientRect().top - 80) < Math.abs(panels[best].getBoundingClientRect().top - 80) ? i : best, idx);
+        idx = nearest;
+      }
+      const changed = desktop !== layoutQuery.matches;
+      if (changed) resetInput();
+      desktop = layoutQuery.matches;
+      html.classList.toggle('stage-ready', desktop);
+      panels.forEach((p, i) => { p.classList.toggle('is-active', i === idx); });
+      syncPanels(); fitAll();
+      if (changed && !desktop) panels[idx].scrollIntoView({ block: 'start' });
+    }
 
     const scrollBox = (p) => $('.panel-scroll', p);
     const canScroll = (p, dy) => {
@@ -58,15 +92,15 @@
       let k = 1;
       for (let i = 0; i < 8; i++) {
         if (sc.scrollHeight <= sc.clientHeight + 1) break;
-        k = Math.max(0.64, k - 0.06);
+        k = Math.max(0.82, k - 0.06);
         panel.style.setProperty('--k', k.toFixed(2));
-        if (k <= 0.64) break;
+        if (k <= 0.82) break;
       }
       const over = sc.scrollHeight > sc.clientHeight + 1;
       panel.classList.toggle('is-scrollable', over);
     }
 
-    function fitAll() { panels.forEach(fit); paint(); }
+    function fitAll() { if (desktop) panels.forEach(fit); else panels.forEach(p => { p.style.setProperty('--k', '1'); p.classList.remove('is-scrollable'); }); paint(); }
 
     function paint(trans, instant) {
       const p = panels[idx];
@@ -86,12 +120,7 @@
         const tName = trans && !instant ? '<span class="meter-trans is-pop">' + esc(trans.name) + '</span>' : '';
         meter.innerHTML = '<b>' + pad(idx + 1) + '</b><span>/ ' + pad(panels.length) + ' 屏</span>' + tName + warn;
       }
-      /* 地址栏（file:// 下可能不让改，忽略即可） */
-      try {
-        const id = p.id;
-        if (history.pushState && !instant) history.pushState({ page: id }, '', '#' + id);
-        else if (history.replaceState) history.replaceState({ page: id }, '', '#' + id);
-      } catch (e) { /* 忽略 */ }
+
     }
 
     /* 每翻一屏，这一屏里的 [data-reveal] 重播一次入场 */
@@ -111,24 +140,25 @@
       });
       busy = false;
       if (pending != null) {
-        const to = pending;
+        const request = pending;
         pending = null;
-        go(to, { force: true });
+        go(request.i, request.opts);
       }
     }
 
     function go(i, opts) {
       opts = opts || {};
       i = clamp(i, 0, panels.length - 1);
+      if (opts.instant) pending = null;
+      if (busy && !opts.instant) { pending = i === idx ? null : { i, opts }; return false; }
       if (i === idx && !opts.force) return false;
-      if (busy && !opts.instant) { pending = i; return false; }
 
       const from = panels[idx];
       const to = panels[i];
       const dir = i >= idx ? 1 : -1;
       const trans = TRANSITIONS[0] && (opts.trans || forcedTrans || pickTrans());
       forcedTrans = null;
-      const instant = !!opts.instant;
+      const instant = !!opts.instant || !motionOK || !desktop;
 
       clearTimeout(flipTimer);
       panels.forEach(clearTrans);
@@ -147,6 +177,10 @@
 
       idx = i;
       stage.style.setProperty('--drag-y', '0px');
+      syncPanels();
+      writeAddress(opts.history || (opts.instant ? 'replace' : 'push'));
+      if (!desktop && !opts.initial) to.scrollIntoView({ block: 'start' });
+      if (from !== to && from.contains(document.activeElement)) { to.tabIndex = -1; to.focus({ preventScroll: true }); }
       paint(trans, instant);
       reveal(to, instant);
       if (to.id === 'home' && !instant) setTimeout(() => replayTitle(), 200);
@@ -177,7 +211,7 @@
 
     /* ---- 滚轮：文档不滚，滚轮只当翻页键 ---- */
     window.addEventListener('wheel', (e) => {
-      if (e.ctrlKey || e.metaKey) return;
+      if (!desktop || e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (openFlags.palette || openFlags.keys) return;
       if (openFlags.detail) {
         /* 详情页自己能滚（内容长时），别把它的滚轮也吃掉 */
@@ -187,7 +221,18 @@
       }
 
       const cur = panels[idx];
-      if (canScroll(cur, e.deltaY)) return;   /* 这一屏内部还没滚完：先让它滚 */
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => { wheelAcc = 0; wheelOwned = false; wheelUsed = false; }, 220);
+      let node = e.target;
+      let nested = false;
+      while (node && node !== cur) {
+        if (node.scrollHeight > node.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
+          if (e.deltaY > 0 ? node.scrollTop + node.clientHeight < node.scrollHeight - 2 : node.scrollTop > 2) nested = true;
+        }
+        node = node.parentElement;
+      }
+      if (nested || canScroll(cur, e.deltaY)) { wheelOwned = true; return; }
+      if (wheelOwned || wheelUsed) { e.preventDefault(); return; }
 
       e.preventDefault();
       let d = e.deltaY;
@@ -195,14 +240,13 @@
       else if (e.deltaMode === 2) d *= window.innerHeight;
       if (!d) return;
 
-      clearTimeout(wheelTimer);
-      wheelTimer = setTimeout(() => { wheelAcc = 0; }, 240);
       if (busy) { wheelAcc = 0; return; }
       if (performance.now() - lastFlipAt < 140) return;
       wheelAcc += d;
       if (Math.abs(wheelAcc) < 26) return;
       const dir = wheelAcc > 0 ? 1 : -1;
       wheelAcc = 0;
+      wheelUsed = true;
       go(idx + dir);
     }, { passive: false });
 
@@ -212,11 +256,11 @@
     }
 
     stage.addEventListener('pointerdown', (e) => {
-      if (e.button > 0) return;
+      if (!desktop || busy || e.button > 0 || (window.getSelection() && !window.getSelection().isCollapsed)) return;
       if (openFlags.palette || openFlags.keys || openFlags.detail) return;
       const t = e.target;
       if (!t || !t.closest) return;
-      if (t.closest('a, button, input, textarea, select, .card, .cmdk, .keys, #hero-title, [data-nodrag]')) return;
+      if (t.closest('a, button, input, textarea, select, .card, .cmdk, .keys, #hero-title, [contenteditable], p, h1, h2, h3, li, [data-nodrag]')) return;
       /* 这一屏要屏内滚动时，纵向手势让给浏览器 */
       drag = {
         id: e.pointerId, y0: e.clientY, dy: 0, v: 0,
@@ -246,13 +290,13 @@
       setDrag((drag.dy > 0 ? 1 : -1) * damp);
     });
 
-    function endDrag(e) {
+    function endDrag(e, cancelled) {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       const d = drag;
       drag = null;
+      try { if (stage.hasPointerCapture(d.id)) stage.releasePointerCapture(d.id); } catch (e) { /* capture may already be lost */ }
       stage.classList.remove('is-dragging');
-      try { stage.releasePointerCapture(d.id); } catch (err) { /* 忽略 */ }
-      if (d.blocked || !d.moved) { setDrag(0); return; }
+      if (cancelled || d.blocked || !d.moved) { setDrag(0); return; }
 
       const far = Math.abs(d.dy) > 76;
       const fast = Math.abs(d.v) > 0.5;
@@ -266,10 +310,13 @@
     }
 
     stage.addEventListener('pointerup', endDrag);
-    stage.addEventListener('pointercancel', endDrag);
+    stage.addEventListener('pointercancel', e => endDrag(e, true));
+    stage.addEventListener('lostpointercapture', e => endDrag(e, true));
+    window.addEventListener('blur', () => { resetInput(); syncPanels(); });
 
     /* ---- 站内锚点：交给统一的缓动，别用浏览器默认跳转 ---- */
     document.addEventListener('click', (e) => {
+      if (!desktop || e.defaultPrevented || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
       const t = e.target;
       const a = t && t.closest ? t.closest('a[href^="#"]') : null;
       if (!a) return;
@@ -286,7 +333,7 @@
 
     window.addEventListener('popstate', () => {
       const i = indexFromHash();
-      if (i >= 0) go(i, { instant: false });
+      if (i >= 0) go(i, { instant: true, history: 'none' });
     });
 
     function indexFromHash() {
@@ -296,15 +343,22 @@
       return -1;
     }
 
+    window.addEventListener('hashchange', () => { const i = indexFromHash(); if (i >= 0) go(i, { instant: true, history: 'none' }); });
     window.addEventListener('resize', () => {
       clearTimeout(initStage._rt);
-      initStage._rt = setTimeout(() => { fitAll(); }, 180);
+      initStage._rt = setTimeout(updateLayout, 120);
     });
 
+    let contentTimer = 0;
+    new MutationObserver(() => { clearTimeout(contentTimer); contentTimer = setTimeout(fitAll, 80); }).observe(stage, { childList: true, subtree: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+    updateLayout();
     buildDots();
 
     return {
       panels: panels,
+      active: () => desktop,
+      refresh: () => { resetInput(); updateLayout(); },
       go: (i, opts) => go(i, opts),
       next: next,
       prev: prev,
@@ -329,5 +383,3 @@
       emptyState: () => {}
     };
   }
-
-  

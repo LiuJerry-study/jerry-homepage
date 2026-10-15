@@ -39,6 +39,11 @@
   font-size: calc(clamp(2.1rem, min(5.8vw, 8.8vh), 4.2rem) * var(--k));
   margin: 0 auto calc(46px * var(--k));
 }
+/* 逐字元素会跟着动画移动；禁止浏览器为它们绘制触摸高亮方框。
+   保留 :focus-visible，外接键盘仍能看见焦点提示。 */
+.hero-title, .hero-title * { -webkit-tap-highlight-color: transparent; }
+.hero-title:focus:not(:focus-visible) { outline: none; }
+
 .hero-title:active { cursor: pointer; }
 .hero-title .ch {
   display: inline-block;

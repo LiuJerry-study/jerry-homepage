@@ -178,5 +178,3 @@
     if (motionOK) requestAnimationFrame(() => requestAnimationFrame(replayTitle));
     else replayTitle();
   }
-
-  

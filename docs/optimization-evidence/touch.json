@@ -1,0 +1,74 @@
+[
+  {
+    "js": true,
+    "width": 320,
+    "before": {
+      "y": 0,
+      "touch": "auto",
+      "overflow": "visible",
+      "navClip": "inset(50%)"
+    },
+    "down": 435,
+    "up": 0
+  },
+  {
+    "js": true,
+    "width": 390,
+    "before": {
+      "y": 0,
+      "touch": "auto",
+      "overflow": "visible",
+      "navClip": "inset(50%)"
+    },
+    "down": 435,
+    "up": 0
+  },
+  {
+    "js": true,
+    "width": 768,
+    "before": {
+      "y": 0,
+      "touch": "auto",
+      "overflow": "visible",
+      "navClip": "inset(50%)"
+    },
+    "down": 435,
+    "up": 0
+  },
+  {
+    "js": false,
+    "width": 320,
+    "before": {
+      "y": 0,
+      "touch": "auto",
+      "overflow": "visible",
+      "navClip": "inset(50%)"
+    },
+    "down": 622,
+    "up": 5
+  },
+  {
+    "js": false,
+    "width": 390,
+    "before": {
+      "y": 0,
+      "touch": "auto",
+      "overflow": "visible",
+      "navClip": "inset(50%)"
+    },
+    "down": 642,
+    "up": 14
+  },
+  {
+    "js": false,
+    "width": 768,
+    "before": {
+      "y": 0,
+      "touch": "auto",
+      "overflow": "visible",
+      "navClip": "inset(50%)"
+    },
+    "down": 649,
+    "up": 26
+  }
+]

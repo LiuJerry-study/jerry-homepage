@@ -1,0 +1,512 @@
+{
+  "version": "after",
+  "browser": "155.0.4283.45",
+  "platform": "win32",
+  "viewport": "1366x768",
+  "headless": true,
+  "summary": {
+    "idle": {
+      "lcp": 112,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 25,
+      "appRaf": 102,
+      "longTasks": 0,
+      "maxEventDuration": 0
+    },
+    "pointer": {
+      "lcp": 116,
+      "cls": 0,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.800000000000182,
+      "appRaf": 162,
+      "longTasks": 0,
+      "maxEventDuration": 0
+    },
+    "title": {
+      "lcp": 116,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 25.09999999999991,
+      "appRaf": 156,
+      "longTasks": 0,
+      "maxEventDuration": 72
+    },
+    "search": {
+      "lcp": 136,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.90000000000009,
+      "appRaf": 103,
+      "longTasks": 0,
+      "maxEventDuration": 160
+    },
+    "stage": {
+      "lcp": 124,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 17,
+      "appRaf": 208,
+      "longTasks": 0,
+      "maxEventDuration": 72
+    },
+    "debug-idle": {
+      "lcp": 128,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000068,
+      "maxFrame": 25.000000000000227,
+      "appRaf": 204,
+      "longTasks": 0,
+      "maxEventDuration": 0
+    }
+  },
+  "runs": [
+    {
+      "scenario": "idle",
+      "repeat": 0,
+      "lcp": 356,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000068,
+      "maxFrame": 41.700000000000045,
+      "appRaf": 100,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "idle",
+      "repeat": 1,
+      "lcp": 92,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 25,
+      "appRaf": 103,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "idle",
+      "repeat": 2,
+      "lcp": 112,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.800000000000182,
+      "appRaf": 102,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "pointer",
+      "repeat": 0,
+      "lcp": 144,
+      "cls": 0,
+      "p95": 16.799999999999955,
+      "maxFrame": 33.39999999999998,
+      "appRaf": 162,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "pointer",
+      "repeat": 1,
+      "lcp": 116,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.800000000000182,
+      "appRaf": 163,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "pointer",
+      "repeat": 2,
+      "lcp": 108,
+      "cls": 0,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.799999999999955,
+      "appRaf": 162,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "title",
+      "repeat": 0,
+      "lcp": 104,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 25.09999999999991,
+      "appRaf": 156,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 72
+        },
+        {
+          "name": "pointerup",
+          "duration": 72
+        },
+        {
+          "name": "click",
+          "duration": 72
+        }
+      ]
+    },
+    {
+      "scenario": "title",
+      "repeat": 1,
+      "lcp": 116,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 50,
+      "appRaf": 156,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 48
+        },
+        {
+          "name": "pointerup",
+          "duration": 48
+        },
+        {
+          "name": "click",
+          "duration": 48
+        }
+      ]
+    },
+    {
+      "scenario": "title",
+      "repeat": 2,
+      "lcp": 116,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 16.90000000000009,
+      "appRaf": 157,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        }
+      ]
+    },
+    {
+      "scenario": "search",
+      "repeat": 0,
+      "lcp": 116,
+      "cls": 0.00015804967372176336,
+      "p95": 16.90000000000009,
+      "maxFrame": 83.30000000000007,
+      "appRaf": 96,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 160
+        },
+        {
+          "name": "pointerup",
+          "duration": 160
+        },
+        {
+          "name": "click",
+          "duration": 160
+        },
+        {
+          "name": "keydown",
+          "duration": 40
+        },
+        {
+          "name": "keyup",
+          "duration": 40
+        }
+      ]
+    },
+    {
+      "scenario": "search",
+      "repeat": 1,
+      "lcp": 136,
+      "cls": 0,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.90000000000009,
+      "appRaf": 103,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        },
+        {
+          "name": "keydown",
+          "duration": 48
+        },
+        {
+          "name": "keyup",
+          "duration": 40
+        }
+      ]
+    },
+    {
+      "scenario": "search",
+      "repeat": 2,
+      "lcp": 144,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.90000000000009,
+      "appRaf": 104,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        },
+        {
+          "name": "keydown",
+          "duration": 64
+        },
+        {
+          "name": "keyup",
+          "duration": 56
+        }
+      ]
+    },
+    {
+      "scenario": "stage",
+      "repeat": 0,
+      "lcp": 124,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 33.39999999999998,
+      "appRaf": 208,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        },
+        {
+          "name": "pointerdown",
+          "duration": 40
+        },
+        {
+          "name": "pointerup",
+          "duration": 40
+        },
+        {
+          "name": "click",
+          "duration": 40
+        },
+        {
+          "name": "pointerdown",
+          "duration": 40
+        },
+        {
+          "name": "pointerup",
+          "duration": 40
+        },
+        {
+          "name": "click",
+          "duration": 40
+        },
+        {
+          "name": "pointerdown",
+          "duration": 40
+        },
+        {
+          "name": "pointerup",
+          "duration": 40
+        },
+        {
+          "name": "click",
+          "duration": 40
+        }
+      ]
+    },
+    {
+      "scenario": "stage",
+      "repeat": 1,
+      "lcp": 132,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000182,
+      "maxFrame": 17,
+      "appRaf": 208,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        },
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        },
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        },
+        {
+          "name": "pointerdown",
+          "duration": 56
+        },
+        {
+          "name": "pointerup",
+          "duration": 56
+        },
+        {
+          "name": "click",
+          "duration": 56
+        }
+      ]
+    },
+    {
+      "scenario": "stage",
+      "repeat": 2,
+      "lcp": 116,
+      "cls": 0.00015804967372176336,
+      "p95": 16.799999999999955,
+      "maxFrame": 16.90000000000009,
+      "appRaf": 209,
+      "long": [],
+      "events": [
+        {
+          "name": "pointerdown",
+          "duration": 72
+        },
+        {
+          "name": "pointerup",
+          "duration": 72
+        },
+        {
+          "name": "click",
+          "duration": 72
+        },
+        {
+          "name": "pointerdown",
+          "duration": 72
+        },
+        {
+          "name": "pointerup",
+          "duration": 72
+        },
+        {
+          "name": "click",
+          "duration": 72
+        },
+        {
+          "name": "pointerdown",
+          "duration": 72
+        },
+        {
+          "name": "pointerup",
+          "duration": 72
+        },
+        {
+          "name": "click",
+          "duration": 72
+        },
+        {
+          "name": "pointerdown",
+          "duration": 72
+        },
+        {
+          "name": "pointerup",
+          "duration": 72
+        },
+        {
+          "name": "click",
+          "duration": 72
+        }
+      ]
+    },
+    {
+      "scenario": "debug-idle",
+      "repeat": 0,
+      "lcp": 128,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000068,
+      "maxFrame": 16.90000000000009,
+      "appRaf": 206,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "debug-idle",
+      "repeat": 1,
+      "lcp": 152,
+      "cls": 0,
+      "p95": 16.799999999999955,
+      "maxFrame": 25.000000000000227,
+      "appRaf": 204,
+      "long": [],
+      "events": []
+    },
+    {
+      "scenario": "debug-idle",
+      "repeat": 2,
+      "lcp": 112,
+      "cls": 0.00015804967372176336,
+      "p95": 16.800000000000068,
+      "maxFrame": 25.200000000000273,
+      "appRaf": 204,
+      "long": [],
+      "events": []
+    }
+  ]
+}

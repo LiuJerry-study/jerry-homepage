@@ -26,6 +26,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { runInNewContext } from 'node:vm';
 
 import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h } from './lib/markdown.mjs';
 import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
@@ -144,6 +145,7 @@ const STYLE_MANIFEST = [
 const SCRIPT_MANIFEST = [
   '00-prologue.js',
   '01-core.js',
+  '00-card-render.js',
   '02-toast.js',
   '03-theme.js',
   '04-fx.js',
@@ -155,6 +157,7 @@ const SCRIPT_MANIFEST = [
   '10-palette.js',
   '11-keys.js',
   '12-clock.js',
+  '12-focus.js',
   '13-boot.js',
   '14-perf.js',
   'zz-epilogue.js',
@@ -411,7 +414,7 @@ function isSectionOff(out) {
  */
 function featureRuntimeScript() {
   const off = offHrefs(FEATURES);
-  const over = Object.assign({}, siteOverrides(FEATURES), { nav: SITE.nav || [] });
+  const over = Object.assign({}, siteOverrides(FEATURES), { nav: resolvedNav() });
   return '\n/* ↓ 由构建脚本追加：后台设置 + 卡片列表（见 content/settings.json 与后台「设置」页） */\n'
     + `window.SITE.features = ${JSON.stringify(FEATURES)};\n`
     + `window.SITE.settings = window.SITE.features;   /* 同一个对象的别名，读哪个都行 */\n`
@@ -420,7 +423,7 @@ function featureRuntimeScript() {
     + '  for (var k in o) window.SITE[k] = o[k];\n'
     + `  var off = ${JSON.stringify(off)};\n`
     + '  window.SITE.nav = (window.SITE.nav || []).filter(function (c) {\n'
-    + "    var href = String((c && c.href) || '');\n"
+    + "    var href = String((c && c.href) || '').replace(/^\\.\\//, '');\n"
     + '    return !href || !off.some(function (p) { return href === p || href.indexOf(p) === 0; });\n'
     + '  });\n'
     + '})();\n';
@@ -532,6 +535,11 @@ function buildImages() {
 }
 
 /* ------------------------------------------------------- 3. 站点配置 */
+
+function resolvedNav() {
+  const values = { posts: POSTS.length + ' 篇', projects: PROJECTS.length + ' 个', resume: RESUME && RESUME.count > 0 ? '已上线' : '筹备中' };
+  return JSON.parse(JSON.stringify(SITE.nav || []).replace(/\{\{(posts|projects|resume)\}\}/g, (_, key) => values[key]));
+}
 
 function buildSiteData() {
   head('3/7', '站点配置与搜索索引');
@@ -1021,6 +1029,13 @@ function buildHome() {
     html = html.split(k).join(h(v));
   }
 
+  const cardMarkup = runInNewContext(read('src/js/00-card-render.js') + ';CardMarkup');
+  const off = offHrefs(FEATURES);
+  const nav = resolvedNav().filter(c => !off.some(p => String(c.href || '').replace(/^\.\//, '') === p || String(c.href || '').replace(/^\.\//, '').startsWith(p)));
+  html = html.replace('{{CARDS}}', FEATURES['home.cards'] === false ? '' : cardMarkup.render(cardMarkup.items({ ...SITE, nav })));
+  if (FEATURES['home.aboutPanel'] === false) {
+    html = html.replace(/<section class="panel about[\s\S]*?<\/section>/, '').replace('<a href="#about">关于</a>', '');
+  }
   // 资源版本串：改了 CSS/JS 之后，访客不会拿到旧缓存
   for (const asset of ['assets/styles.css', 'assets/site-data.js', 'assets/main.js']) {
     html = html.split(`"${asset}"`).join(`"${asset}?v=${VERSION}"`);

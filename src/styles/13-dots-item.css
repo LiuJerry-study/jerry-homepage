@@ -109,8 +109,26 @@
     radial-gradient(120% 70% at 50% 118%, var(--accent-soft), transparent 60%),
     var(--bg);
   transform: translate3d(100%, 0, 0);
-  transition: transform .62s var(--ease-out);
+  transition: transform var(--duration-stage) var(--ease-out);
   will-change: transform;
+}
+/* 背景里那团很淡的 accent 光晕，缓慢漂移 —— 让整页不是死板一块 */
+.item-page::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 34% at 22% 26%, var(--accent-glow), transparent 70%),
+    radial-gradient(36% 30% at 78% 82%, var(--accent-2), transparent 72%);
+  opacity: .16;
+  animation: item-drift 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes item-drift {
+  from { transform: translate3d(-2%, -1.5%, 0) rotate(-1.2deg); }
+  to   { transform: translate3d(2.5%, 2%, 0) rotate(1.4deg); }
 }
 .item-page[hidden] { display: none; }
 .item-page.is-in { transform: none; }
@@ -148,6 +166,7 @@
 
 .detail-head { display: flex; align-items: flex-start; gap: 18px; margin-bottom: clamp(20px, 3.6vh, 34px); }
 .detail-icon {
+  position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -157,10 +176,49 @@
   border-radius: 17px;
   background: var(--accent-soft);
   color: var(--accent-text);
+  opacity: 0;
+  animation: detail-icon-in .55s var(--ease-out) both .08s;
+  transition: transform .45s var(--ease), box-shadow .45s var(--ease), border-color .45s var(--ease);
 }
 .detail-icon svg { width: 26px; height: 26px; }
-.detail-title { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 500; letter-spacing: .02em; }
-.detail-desc { margin-top: 8px; font-size: clamp(.95rem, 1.3vw, 1.08rem); color: var(--muted); }
+/* 图标呼吸：静止时也有一点生机；hover 时轻轻放大 + 发光 */
+.detail-icon::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 22px;
+  border: 1px solid var(--accent-soft);
+  opacity: 0;
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+}
+.item-page .detail-icon:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 10px 26px -12px var(--accent-glow);
+}
+.item-page .detail-icon:hover::after { opacity: 1; transform: scale(1.12); }
+@keyframes detail-icon-in {
+  from { opacity: 0; transform: translateY(10px) scale(.72) rotate(-8deg); }
+  to   { opacity: 1; transform: none; }
+}
+.detail-title {
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: .02em;
+  opacity: 0;
+  animation: detail-rise .5s var(--ease-out) both .16s;
+}
+.detail-desc {
+  margin-top: 8px;
+  font-size: clamp(.95rem, 1.3vw, 1.08rem);
+  color: var(--muted);
+  opacity: 0;
+  animation: detail-rise .5s var(--ease-out) both .26s;
+}
+@keyframes detail-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
 
 .detail-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 13px; }
 .detail-list li {
@@ -172,6 +230,7 @@
   opacity: 0;
   animation: detail-li .5s var(--ease-out) both;
   animation-delay: calc(var(--i) * 55ms + 90ms);
+  transition: transform .4s var(--ease), color .4s var(--ease), padding-left .4s var(--ease);
 }
 @keyframes detail-li {
   from { opacity: 0; transform: translateY(6px); }
@@ -187,8 +246,23 @@
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-glow);
+  transition: width .35s var(--ease), height .35s var(--ease), border-radius .35s var(--ease),
+    top .35s var(--ease), left .35s var(--ease), box-shadow .35s var(--ease);
 }
-.detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: clamp(20px, 3vh, 30px); }
+/* 列表项悬停：光点拉成一条小荧光、行右移一下、字色变亮 —— 有"跟手"的感觉 */
+.item-page .detail-list li:hover {
+  transform: translateX(4px);
+  color: var(--accent-text);
+}
+.item-page .detail-list li:hover::before {
+  width: 14px;
+  height: 2px;
+  border-radius: var(--r-pill);
+  top: .82em;
+  left: 0;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: clamp(20px, 3vh, 30px); opacity: 0; animation: detail-rise .5s var(--ease-out) both .4s; }
 .detail-tags span {
   padding: 4px 12px;
   border: 1px solid var(--border);
@@ -197,6 +271,13 @@
   font-size: 11px;
   letter-spacing: .06em;
   color: var(--muted);
+  transition: color .35s var(--ease), border-color .35s var(--ease), transform .35s var(--ease), background-color .35s var(--ease);
+}
+.detail-tags span:hover {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
 }
 .detail-foot {
   display: flex;
@@ -206,6 +287,8 @@
   margin-top: clamp(24px, 4vh, 44px);
   padding-top: 18px;
   border-top: 1px solid var(--border);
+  opacity: 0;
+  animation: detail-rise .5s var(--ease-out) both .52s;
 }
 .detail-note { font-size: 12px; color: var(--muted); }
 .detail-foot .btn { padding: .6em 1.15em; font-size: .85rem; }

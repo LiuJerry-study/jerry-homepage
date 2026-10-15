@@ -68,8 +68,74 @@
     ? SITE.burstStyle
     : (SITE.randomBurst === false ? 'new' : 'random');
   const FX_MODE = (FX_ARG === 'new' || FX_ARG === 'classic' || FX_ARG === 'random') ? FX_ARG : FX_STYLE;
+/* Pure card markup: shared by build, server and classic browser bundle. */
+const CardMarkup = (() => {
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ICONS = {
+    resume: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
+    pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/>',
+    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M3 7l9 6 9-6"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    arrow: '<path d="M7 17 17 7"/><path d="M8 7h9v9"/>',
+    search: '<circle cx="11" cy="11" r="6.6"/><path d="M20.2 20.2 15.8 15.8"/>',
+    bolt: '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"/>',
+    page: '<path d="M4 6h16M4 12h16M4 18h10"/>'
+  };
 
-  /* ======================== 1. 提示条 ======================== */
+  function icon(name) {
+    const d = ICONS[name] || ICONS.grid;
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"'
+      + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  }
+
+  const RING = '<span class="ring" aria-hidden="true"></span><span class="spot" aria-hidden="true"></span>';
+
+
+function items(SITE) {
+    const items = (Array.isArray(SITE.nav) ? SITE.nav : []).slice();
+    if (SITE.showAddCard !== false) {
+      items.push({
+        add: true,
+        title: '添加新站点',
+        desc: '往 content/site.js 的 nav 里加一个对象，卡片自己长出来',
+        badge: '开发用',
+        tags: ['开发', 'content', 'site', 'nav', '新增'],
+        details: [
+          '打开 content/site.js',
+          '往 nav 数组里加一个对象：title / desc / icon / href',
+          '想加详情就再写 details 和 tags，预览和搜索都会自动用上',
+          'href 填上之后，卡片自动变成真链接'
+        ]
+      });
+    }
+
+return items;
+}
+function render(items) {
+  return items.map((it, i) => {
+    const live = !!(it.href && it.href !== '#');
+    const tag = live ? 'a' : 'details';
+    const inner = live ? 'div' : 'summary';
+    const attrs = live ? ' href="' + esc(it.href) + '"' : '';
+    return '<' + tag + ' class="card ' + (it.add ? 'card-add' : live ? 'is-live' : 'is-soon') + '" data-i="' + i + '"' + attrs + '>' + RING
+      + '<' + inner + ' class="card-inner">'
+      + '<div class="card-top"><span class="card-icon">' + icon(it.add ? 'plus' : it.icon) + '</span>'
+      + '<span class="card-num mono">' + String(i + 1).padStart(2, '0') + '</span></div>'
+      + '<div class="card-body"><strong class="card-title">' + esc(it.title || '') + '</strong>'
+      + '<span class="card-desc">' + esc(it.desc || '') + '</span></div>'
+      + '<div class="card-foot"><span class="badge' + (live ? ' badge-live' : '') + '">' + esc(it.badge || (live ? '已上线' : '筹备中')) + '</span>'
+      + '<span class="card-go">' + (live ? '前往' : '查看详情') + '<span class="go-ico">' + icon('arrow') + '</span></span></div>'
+      + '</' + inner + '>'
+      + (!live ? '<ul class="card-fallback">' + (it.details || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '')
+      + '</' + tag + '>';
+  }).join('');
+}
+return { items, render, icon };
+})();
+/* ======================== 1. 提示条 ======================== */
   const toastEl = document.getElementById('toast');
   let toastTimer = 0;
   function toast(msg, sticky) {
@@ -121,7 +187,13 @@
     } catch (e) { run(); }
   }
 
-  /* ======================== 3. 背景：粒子 + 连线 + 爆点 + 文字粒子 ======================== */
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (opt('theme.mode', 'system') !== 'system') return;
+    try { if (localStorage.getItem(THEME_KEY)) return; } catch (err) { /* storage unavailable */ }
+    applyTheme(e.matches ? 'dark' : 'light', false);
+  });
+/* ======================== 3. 背景：粒子 + 连线 + 爆点 + 文字粒子 ======================== */
   function initFx() {
     const canvas = document.getElementById('fx-canvas');
     const bgEl = document.getElementById('bg');
@@ -156,6 +228,8 @@
     let dotPaths = null;                /* 小圆点按「颜色 × 透明度档」分组，逐帧复用 */
     let rgb = '18,184,134', line = '18,184,134', rgbHi = '78,216,168';
     let raf = 0, last = 0, rt = 0, paused = false, t0 = 0;
+    const lightQuality = coarse || opt('effects.quality', 'standard') === 'light';
+    html.dataset.fxQuality = lightQuality ? 'light' : 'standard';
     let nMotes = 0;        /* 文字散出来的「墨点」数量：单独限流，不去挤背景粒子 */
     let ovDirty = false;   /* 爆点层上一帧画过东西没有（没有就不用每帧清一遍） */
 
@@ -170,7 +244,7 @@
     }
 
     function seed() {
-      const n = clamp(Math.round((W * H) / 26000), 24, 84);
+      const n = clamp(Math.round((W * H) / (lightQuality ? 42000 : 26000)), lightQuality ? 16 : 24, lightQuality ? 48 : 84);
       parts = [];
       for (let i = 0; i < n; i++) {
         const soft = i % 7 === 0;
@@ -192,7 +266,7 @@
     }
 
     function resize() {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = Math.min(lightQuality ? 1.5 : 2, window.devicePixelRatio || 1);
       W = window.innerWidth;
       H = window.innerHeight;
       canvas.width = Math.max(1, Math.floor(W * dpr));
@@ -778,7 +852,7 @@
     }
 
     function start() {
-      if (raf || !motionOK || paused) return;
+      if (raf || !motionOK || paused || document.hidden) return;
       last = performance.now();
       raf = requestAnimationFrame(step);
     }
@@ -788,7 +862,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) stop(); else start();
+      if (document.hidden) { stop(); stopPoi(); } else { start(); wakePoi(); }
     });
     window.addEventListener('resize', () => {
       clearTimeout(rt);
@@ -805,11 +879,11 @@
        省两处：值没变就不写（鼠标停住时这块开销直接归零），以及降到 30Hz
        （本来就是慢速漂移，差一帧看不出来）。自定义属性一写，`#bg` 整棵子树都要重算样式 ——
        实测指针一直在动的时候，样式重算会从 ~250ms/3s 涨到 ~770ms/3s，钱就花在这儿。 */
-    let poiRaf = 0, poiTick = 0, poiX = 9, poiY = 9;
+    let poiRaf = 0, poiX = 9, poiY = 9;
     function poiLoop() {
-      poiRaf = requestAnimationFrame(poiLoop);
+      poiRaf = 0;
+      if (!motionOK || paused || document.hidden) return;
       if (!bgEl) return;
-      if ((poiTick++ & 1) === 0) return;
       const nx = clamp((state.px / window.innerWidth - .5) * 2, -1, 1);
       const ny = clamp((state.py / window.innerHeight - .5) * 2, -1, 1);
       if (Math.abs(nx - poiX) < .002 && Math.abs(ny - poiY) < .002) return;
@@ -818,9 +892,14 @@
       bgEl.style.setProperty('--poi-x', nx.toFixed(3));
       bgEl.style.setProperty('--poi-y', ny.toFixed(3));
     }
-    poiLoop();
+    function stopPoi() { if (poiRaf) cancelAnimationFrame(poiRaf); poiRaf = 0; }
+    function wakePoi() { if (!poiRaf && motionOK && !paused && !document.hidden) poiRaf = requestAnimationFrame(poiLoop); }
+    window.addEventListener('pointermove', wakePoi, { passive: true });
+    window.addEventListener('pointerleave', wakePoi);
+    wakePoi();
 
     return {
+      refreshMotion: () => { stopPoi(); if (!motionOK) { stop(); draw(performance.now()); } else { start(); wakePoi(); } },
       recolor: () => { readColors(); if (!motionOK) draw(performance.now()); },
       burst: burst,
       emit: emit,
@@ -828,21 +907,22 @@
       stats: () => ({ parts: parts.length, motes: nMotes, sparks: sparks.length, blasts: blasts.length }),
       setPaused: (v) => {
         paused = !!v;
-        if (paused) { stop(); draw(performance.now()); } else start();
+        if (paused) { stop(); stopPoi(); draw(performance.now()); } else { start(); wakePoi(); }
         return paused;
       },
       isPaused: () => paused
     };
   }
-
-  /* ======================== 4. 光标：光晕 + 磁吸 + 拖拽惯性 ======================== */
+/* ======================== 4. 光标：光晕 + 磁吸 + 拖拽惯性 ======================== */
   function initPointer() {
     const halo = featOn('effects.halo') ? document.getElementById('halo') : null;
 
-    if (!coarse && motionOK) {
+    if (!coarse) {
       window.addEventListener('pointermove', (e) => {
+        if (!motionOK || document.hidden) return;
         state.tx = e.clientX;
         state.ty = e.clientY;
+        if (!halo) { state.px = e.clientX; state.py = e.clientY; }
         if (!body.classList.contains('has-pointer')) body.classList.add('has-pointer');
         const hot = e.target && e.target.closest
           ? e.target.closest('a, button, .card, #hero-title, [data-hot]')
@@ -906,8 +986,9 @@
       return { dx: dx, dy: dy };
     }
 
-    if (mags.length && !coarse && motionOK) {
+    if (mags.length && !coarse) {
       window.addEventListener('pointermove', (e) => {
+        if (!motionOK || document.hidden) { magRelease(magOn); magOn = null; return; }
         /* ① 先挑出「离指针最近、且在感应圈里」的那一个 */
         let pick = null, pickB = null, pickD = 1e9, pickR = 1;
         for (let i = 0; i < mags.length; i++) {
@@ -939,10 +1020,13 @@
     }
 
     /* 光晕：跟手缓动，还会顺着移动方向稍微拉长（速度越快越明显） */
-    if (!halo || coarse || !motionOK) return;
+    if (!halo || coarse) return;
     let lx = state.px, ly = state.py, lastTf = '';
-    (function loop() {
-      requestAnimationFrame(loop);
+    let haloRaf = 0;
+    function wakeHalo() { if (!haloRaf && !mqReduce.matches && !document.hidden) haloRaf = requestAnimationFrame(loop); }
+    function loop() {
+      haloRaf = 0;
+      if (!motionOK || document.hidden) return;
       state.px += (state.tx - state.px) * 0.11;
       state.py += (state.ty - state.py) * 0.11;
       let ang = 0, st = 0;
@@ -958,10 +1042,14 @@
         + ' scale(' + (1 + st).toFixed(3) + ',' + (1 - st * 0.7).toFixed(3) + ')';
       /* 值没变就不写。写一次 transform 就是一次样式重算，而光晕绝大多数时间是不动的 */
       if (tf !== lastTf) { lastTf = tf; halo.style.transform = tf; }
-    })();
+      if (Math.abs(state.tx - state.px) + Math.abs(state.ty - state.py) > .1) wakeHalo();
+    }
+    window.addEventListener('pointermove', wakeHalo, { passive: true });
+    mqReduce.addEventListener('change', () => { cancelAnimationFrame(haloRaf); haloRaf = 0; wakeHalo(); });
+    document.addEventListener('visibilitychange', () => { cancelAnimationFrame(haloRaf); haloRaf = 0; wakeHalo(); });
+    wakeHalo();
   }
-
-  /* ======================== 5. 点击爆点 ======================== */
+/* ======================== 5. 点击爆点 ======================== */
   function initRipple() {
     if (!featOn('effects.burst')) return;        /* 开关：见 content/features.json */
     window.addEventListener('pointerdown', (e) => {
@@ -1176,29 +1264,8 @@
     if (motionOK) requestAnimationFrame(() => requestAnimationFrame(replayTitle));
     else replayTitle();
   }
-
-  /* ======================== 7. 导航卡片：悬停预览 + 整屏详情页 ======================== */
-  const ICONS = {
-    resume: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
-    pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
-    grid: '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/>',
-    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
-    user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-    mail: '<rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M3 7l9 6 9-6"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>',
-    arrow: '<path d="M7 17 17 7"/><path d="M8 7h9v9"/>',
-    search: '<circle cx="11" cy="11" r="6.6"/><path d="M20.2 20.2 15.8 15.8"/>',
-    bolt: '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"/>',
-    page: '<path d="M4 6h16M4 12h16M4 18h10"/>'
-  };
-
-  function icon(name) {
-    const d = ICONS[name] || ICONS.grid;
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"'
-      + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
-  }
-
-  const RING = '<span class="ring" aria-hidden="true"></span><span class="spot" aria-hidden="true"></span>';
+/* ======================== 7. 导航卡片：悬停预览 + 整屏详情页 ======================== */
+  const icon = CardMarkup.icon;
 
   const cardsBox = document.getElementById('cards');
   const peekEl = document.getElementById('card-peek');
@@ -1219,16 +1286,25 @@
       el.style.setProperty('--ry', '0deg');
       hidePeek();
     });
-    el.addEventListener('pointermove', (e) => {
-      const r = el.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top) / r.height;
-      el.style.setProperty('--mx', (px * 100).toFixed(2) + '%');
-      el.style.setProperty('--my', (py * 100).toFixed(2) + '%');
+    let moveRaf = 0, lastPoint = null, bounds = null;
+    const invalidate = () => { bounds = null; };
+    window.addEventListener('resize', invalidate, { passive: true });
+    window.addEventListener('scroll', invalidate, { passive: true, capture: true });
+    if (window.ResizeObserver) new ResizeObserver(invalidate).observe(el);
+    el.addEventListener('pointermove', e => {
       if (coarse || !motionOK) return;
-      el.style.setProperty('--rx', ((0.5 - py) * 7).toFixed(2) + 'deg');
-      el.style.setProperty('--ry', ((px - 0.5) * 9).toFixed(2) + 'deg');
+      lastPoint = { x: e.clientX, y: e.clientY };
+      if (moveRaf) return;
+      moveRaf = requestAnimationFrame(() => {
+        moveRaf = 0;
+        if (!motionOK || document.hidden || !el.matches(':hover')) return;
+        const r = bounds || (bounds = el.getBoundingClientRect());
+        if (!r.width || !r.height) return;
+        el.style.setProperty('--mx', ((lastPoint.x - r.left) / r.width * 100).toFixed(2) + '%');
+        el.style.setProperty('--my', ((lastPoint.y - r.top) / r.height * 100).toFixed(2) + '%');
+        el.style.setProperty('--rx', ((.5 - (lastPoint.y - r.top) / r.height) * 7).toFixed(2) + 'deg');
+        el.style.setProperty('--ry', (((lastPoint.x - r.left) / r.width - .5) * 9).toFixed(2) + 'deg');
+      });
     });
 
     /* 悬停预览：停够 420ms 才出，免得扫过去一片浮层乱闪 */
@@ -1313,6 +1389,7 @@
     if (sc) sc.scrollTop = 0;
 
     itemFocusBack = document.activeElement;
+    itemPage._focusTrigger = itemFocusBack;
     itemPage.hidden = false;
     itemPage.classList.remove('is-in');
     void itemPage.offsetWidth;               /* 从屏幕右侧开始滑，而不是直接跳到位 */
@@ -1328,7 +1405,7 @@
     clearTimeout(itemPage._closeTimer);
     itemPage._closeTimer = setTimeout(() => {
       if (!itemPage.classList.contains('is-in')) itemPage.hidden = true;
-    }, 640);
+    }, motionOK ? 600 : 0);
     if (itemFocusBack && itemFocusBack.focus) {
       try { itemFocusBack.focus(); } catch (e) { /* 忽略 */ }
     }
@@ -1338,57 +1415,20 @@
   function initCards() {
     if (!cardsBox) return;
     if (!featOn('home.cards')) return;           /* 开关：首屏卡片墙 */
-    const items = (Array.isArray(SITE.nav) ? SITE.nav : []).slice();
-    if (SITE.showAddCard !== false) {
-      items.push({
-        add: true,
-        title: '添加新站点',
-        desc: '往 content/site.js 的 nav 里加一个对象，卡片自己长出来',
-        badge: '开发用',
-        tags: ['开发', 'content', 'site', 'nav', '新增'],
-        details: [
-          '打开 content/site.js',
-          '往 nav 数组里加一个对象：title / desc / icon / href',
-          '想加详情就再写 details 和 tags，预览和搜索都会自动用上',
-          'href 填上之后，卡片自动变成真链接'
-        ]
-      });
-    }
+    const items = CardMarkup.items(SITE);
     cardData = items;
-
-    cardsBox.innerHTML = items.map((it, i) => {
-      const num = String(i + 1).padStart(2, '0');
-      if (it.add) {
-        return '<button class="card card-add" type="button" data-i="' + i + '">' + RING
-          + '<div class="card-inner">'
-          + '<div class="card-top"><span class="card-icon">' + icon('plus') + '</span>'
-          + '<span class="card-num mono">' + num + '</span></div>'
-          + '<div class="card-body"><strong class="card-title">添加新站点</strong>'
-          + '<span class="card-desc">' + esc(it.desc) + '</span></div>'
-          + '<div class="card-foot"><span class="badge">开发用</span>'
-          + '<span class="card-go">看一眼<span class="go-ico">' + icon('arrow') + '</span></span></div>'
-          + '</div></button>';
-      }
-      const live = !!(it.href && it.href !== '#');
-      const tag = live ? 'a' : 'button';
-      const attrs = live
-        ? ' href="' + esc(it.href) + '"'
-        : ' type="button"';
-      return '<' + tag + ' class="card ' + (live ? 'is-live' : 'is-soon') + '" data-i="' + i + '"' + attrs + '>' + RING
-        + '<div class="card-inner">'
-        + '<div class="card-top"><span class="card-icon">' + icon(it.icon) + '</span>'
-        + '<span class="card-num mono">' + num + '</span></div>'
-        + '<div class="card-body"><strong class="card-title">' + esc(it.title || '') + '</strong>'
-        + '<span class="card-desc">' + esc(it.desc || '') + '</span></div>'
-        + '<div class="card-foot"><span class="badge' + (live ? ' badge-live' : '') + '">'
-        + esc(it.badge || (live ? '已上线' : '筹备中')) + '</span>'
-        + '<span class="card-go">' + (live ? '前往' : '查看详情')
-        + '<span class="go-ico">' + icon('arrow') + '</span></span></div>'
-        + '</div></' + tag + '>';
-    }).join('');
-
+    if (!cardsBox.children.length) cardsBox.innerHTML = CardMarkup.render(items);
+    cardsBox.classList.add('cards-enhanced');
     cardEls = $$('.card', cardsBox);
-    cardEls.forEach((el, i) => bindCard(el, i));
+    cardEls.forEach((el, i) => {
+      bindCard(el, i);
+      if (!items[i].href || items[i].href === '#') {
+        el.setAttribute('role', 'button'); el.tabIndex = 0;
+        const summary = el.querySelector('summary');
+        if (summary) summary.tabIndex = -1;
+        el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openItem(i); } });
+      }
+    });
 
     cardsBox.addEventListener('click', (e) => {
       const t = e.target;
@@ -1416,7 +1456,8 @@
     itemPage.addEventListener('pointerdown', (e) => {
       if (e.button > 0) return;
       const t = e.target;
-      if (t && t.closest && t.closest('a, button')) return;
+      if (window.getSelection() && !window.getSelection().isCollapsed) return;
+      if (t && t.closest && t.closest('a, button, input, select, textarea, [contenteditable], p, li, h2')) return;
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, on: false };
     });
     itemPage.addEventListener('pointermove', (e) => {
@@ -1431,24 +1472,27 @@
       drag.dx = Math.max(0, dx);
       itemPage.style.transform = 'translate3d(' + drag.dx.toFixed(1) + 'px, 0, 0)';
     });
-    const endDrag = (e) => {
+    const endDrag = (e, cancelled) => {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       const far = drag.dx > 90;
+      const pointerId = drag.id;
       drag = null;
+      try { if (itemPage.hasPointerCapture(pointerId)) itemPage.releasePointerCapture(pointerId); } catch (err) { /* capture lost */ }
       itemPage.classList.remove('is-dragging');
       itemPage.style.transform = '';
-      if (far) closeItem();
+      if (far && !cancelled) closeItem();
     };
     itemPage.addEventListener('pointerup', endDrag);
-    itemPage.addEventListener('pointercancel', endDrag);
+    itemPage.addEventListener('pointercancel', e => endDrag(e, true));
+    itemPage.addEventListener('lostpointercapture', e => endDrag(e, true));
+    window.addEventListener('blur', () => endDrag(null, true));
 
     const sc = $('.item-scroll', itemPage);
     if (sc) sc.addEventListener('scroll', () => {
       itemPage.classList.toggle('is-stuck', sc.scrollTop > 4);
     }, { passive: true });
   }
-
-  /* ======================== 8. 舞台：一屏一页 ======================== */
+/* ======================== 8. 舞台：一屏一页 ======================== */
   const TRANSITIONS = [
     { id: 'fade', name: '淡入', dur: 600 },
     { id: 'push', name: '推移', dur: 660 },
@@ -1477,6 +1521,40 @@
     let lastFlipAt = 0;
     let wheelAcc = 0, wheelTimer = 0;
     let drag = null;
+    let wheelOwned = false, wheelUsed = false;
+    const layoutQuery = window.matchMedia('(min-width: 769px) and (min-height: 601px)');
+    let desktop = false;
+    function writeAddress(strategy) {
+      if (strategy === 'none') return;
+      try { history[strategy === 'replace' ? 'replaceState' : 'pushState']({ page: panels[idx].id }, '', '#' + panels[idx].id); } catch (e) { /* file:// */ }
+    }
+    function syncPanels() {
+      panels.forEach((p, i) => {
+        const hidden = desktop && i !== idx;
+        p.inert = hidden;
+        p.setAttribute('aria-hidden', String(hidden));
+        if (!hidden) $$('[data-reveal]', p).forEach(el => el.classList.add('is-in'));
+      });
+    }
+    function resetInput() {
+      endDrag(null, true);
+      clearTimeout(flipTimer); clearTimeout(wheelTimer);
+      pending = null; busy = false; wheelAcc = 0; wheelOwned = false; wheelUsed = false;
+      panels.forEach((p, i) => { clearTrans(p); p.classList.toggle('is-active', i === idx); });
+    }
+    function updateLayout() {
+      if (!desktop && layoutQuery.matches) {
+        const nearest = panels.reduce((best, p, i) => Math.abs(p.getBoundingClientRect().top - 80) < Math.abs(panels[best].getBoundingClientRect().top - 80) ? i : best, idx);
+        idx = nearest;
+      }
+      const changed = desktop !== layoutQuery.matches;
+      if (changed) resetInput();
+      desktop = layoutQuery.matches;
+      html.classList.toggle('stage-ready', desktop);
+      panels.forEach((p, i) => { p.classList.toggle('is-active', i === idx); });
+      syncPanels(); fitAll();
+      if (changed && !desktop) panels[idx].scrollIntoView({ block: 'start' });
+    }
 
     const scrollBox = (p) => $('.panel-scroll', p);
     const canScroll = (p, dy) => {
@@ -1508,15 +1586,15 @@
       let k = 1;
       for (let i = 0; i < 8; i++) {
         if (sc.scrollHeight <= sc.clientHeight + 1) break;
-        k = Math.max(0.64, k - 0.06);
+        k = Math.max(0.82, k - 0.06);
         panel.style.setProperty('--k', k.toFixed(2));
-        if (k <= 0.64) break;
+        if (k <= 0.82) break;
       }
       const over = sc.scrollHeight > sc.clientHeight + 1;
       panel.classList.toggle('is-scrollable', over);
     }
 
-    function fitAll() { panels.forEach(fit); paint(); }
+    function fitAll() { if (desktop) panels.forEach(fit); else panels.forEach(p => { p.style.setProperty('--k', '1'); p.classList.remove('is-scrollable'); }); paint(); }
 
     function paint(trans, instant) {
       const p = panels[idx];
@@ -1536,12 +1614,7 @@
         const tName = trans && !instant ? '<span class="meter-trans is-pop">' + esc(trans.name) + '</span>' : '';
         meter.innerHTML = '<b>' + pad(idx + 1) + '</b><span>/ ' + pad(panels.length) + ' 屏</span>' + tName + warn;
       }
-      /* 地址栏（file:// 下可能不让改，忽略即可） */
-      try {
-        const id = p.id;
-        if (history.pushState && !instant) history.pushState({ page: id }, '', '#' + id);
-        else if (history.replaceState) history.replaceState({ page: id }, '', '#' + id);
-      } catch (e) { /* 忽略 */ }
+
     }
 
     /* 每翻一屏，这一屏里的 [data-reveal] 重播一次入场 */
@@ -1561,24 +1634,25 @@
       });
       busy = false;
       if (pending != null) {
-        const to = pending;
+        const request = pending;
         pending = null;
-        go(to, { force: true });
+        go(request.i, request.opts);
       }
     }
 
     function go(i, opts) {
       opts = opts || {};
       i = clamp(i, 0, panels.length - 1);
+      if (opts.instant) pending = null;
+      if (busy && !opts.instant) { pending = i === idx ? null : { i, opts }; return false; }
       if (i === idx && !opts.force) return false;
-      if (busy && !opts.instant) { pending = i; return false; }
 
       const from = panels[idx];
       const to = panels[i];
       const dir = i >= idx ? 1 : -1;
       const trans = TRANSITIONS[0] && (opts.trans || forcedTrans || pickTrans());
       forcedTrans = null;
-      const instant = !!opts.instant;
+      const instant = !!opts.instant || !motionOK || !desktop;
 
       clearTimeout(flipTimer);
       panels.forEach(clearTrans);
@@ -1597,6 +1671,10 @@
 
       idx = i;
       stage.style.setProperty('--drag-y', '0px');
+      syncPanels();
+      writeAddress(opts.history || (opts.instant ? 'replace' : 'push'));
+      if (!desktop && !opts.initial) to.scrollIntoView({ block: 'start' });
+      if (from !== to && from.contains(document.activeElement)) { to.tabIndex = -1; to.focus({ preventScroll: true }); }
       paint(trans, instant);
       reveal(to, instant);
       if (to.id === 'home' && !instant) setTimeout(() => replayTitle(), 200);
@@ -1627,7 +1705,7 @@
 
     /* ---- 滚轮：文档不滚，滚轮只当翻页键 ---- */
     window.addEventListener('wheel', (e) => {
-      if (e.ctrlKey || e.metaKey) return;
+      if (!desktop || e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (openFlags.palette || openFlags.keys) return;
       if (openFlags.detail) {
         /* 详情页自己能滚（内容长时），别把它的滚轮也吃掉 */
@@ -1637,7 +1715,18 @@
       }
 
       const cur = panels[idx];
-      if (canScroll(cur, e.deltaY)) return;   /* 这一屏内部还没滚完：先让它滚 */
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => { wheelAcc = 0; wheelOwned = false; wheelUsed = false; }, 220);
+      let node = e.target;
+      let nested = false;
+      while (node && node !== cur) {
+        if (node.scrollHeight > node.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(node).overflowY)) {
+          if (e.deltaY > 0 ? node.scrollTop + node.clientHeight < node.scrollHeight - 2 : node.scrollTop > 2) nested = true;
+        }
+        node = node.parentElement;
+      }
+      if (nested || canScroll(cur, e.deltaY)) { wheelOwned = true; return; }
+      if (wheelOwned || wheelUsed) { e.preventDefault(); return; }
 
       e.preventDefault();
       let d = e.deltaY;
@@ -1645,14 +1734,13 @@
       else if (e.deltaMode === 2) d *= window.innerHeight;
       if (!d) return;
 
-      clearTimeout(wheelTimer);
-      wheelTimer = setTimeout(() => { wheelAcc = 0; }, 240);
       if (busy) { wheelAcc = 0; return; }
       if (performance.now() - lastFlipAt < 140) return;
       wheelAcc += d;
       if (Math.abs(wheelAcc) < 26) return;
       const dir = wheelAcc > 0 ? 1 : -1;
       wheelAcc = 0;
+      wheelUsed = true;
       go(idx + dir);
     }, { passive: false });
 
@@ -1662,11 +1750,11 @@
     }
 
     stage.addEventListener('pointerdown', (e) => {
-      if (e.button > 0) return;
+      if (!desktop || busy || e.button > 0 || (window.getSelection() && !window.getSelection().isCollapsed)) return;
       if (openFlags.palette || openFlags.keys || openFlags.detail) return;
       const t = e.target;
       if (!t || !t.closest) return;
-      if (t.closest('a, button, input, textarea, select, .card, .cmdk, .keys, #hero-title, [data-nodrag]')) return;
+      if (t.closest('a, button, input, textarea, select, .card, .cmdk, .keys, #hero-title, [contenteditable], p, h1, h2, h3, li, [data-nodrag]')) return;
       /* 这一屏要屏内滚动时，纵向手势让给浏览器 */
       drag = {
         id: e.pointerId, y0: e.clientY, dy: 0, v: 0,
@@ -1696,13 +1784,13 @@
       setDrag((drag.dy > 0 ? 1 : -1) * damp);
     });
 
-    function endDrag(e) {
+    function endDrag(e, cancelled) {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       const d = drag;
       drag = null;
+      try { if (stage.hasPointerCapture(d.id)) stage.releasePointerCapture(d.id); } catch (e) { /* capture may already be lost */ }
       stage.classList.remove('is-dragging');
-      try { stage.releasePointerCapture(d.id); } catch (err) { /* 忽略 */ }
-      if (d.blocked || !d.moved) { setDrag(0); return; }
+      if (cancelled || d.blocked || !d.moved) { setDrag(0); return; }
 
       const far = Math.abs(d.dy) > 76;
       const fast = Math.abs(d.v) > 0.5;
@@ -1716,10 +1804,13 @@
     }
 
     stage.addEventListener('pointerup', endDrag);
-    stage.addEventListener('pointercancel', endDrag);
+    stage.addEventListener('pointercancel', e => endDrag(e, true));
+    stage.addEventListener('lostpointercapture', e => endDrag(e, true));
+    window.addEventListener('blur', () => { resetInput(); syncPanels(); });
 
     /* ---- 站内锚点：交给统一的缓动，别用浏览器默认跳转 ---- */
     document.addEventListener('click', (e) => {
+      if (!desktop || e.defaultPrevented || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
       const t = e.target;
       const a = t && t.closest ? t.closest('a[href^="#"]') : null;
       if (!a) return;
@@ -1736,7 +1827,7 @@
 
     window.addEventListener('popstate', () => {
       const i = indexFromHash();
-      if (i >= 0) go(i, { instant: false });
+      if (i >= 0) go(i, { instant: true, history: 'none' });
     });
 
     function indexFromHash() {
@@ -1746,15 +1837,22 @@
       return -1;
     }
 
+    window.addEventListener('hashchange', () => { const i = indexFromHash(); if (i >= 0) go(i, { instant: true, history: 'none' }); });
     window.addEventListener('resize', () => {
       clearTimeout(initStage._rt);
-      initStage._rt = setTimeout(() => { fitAll(); }, 180);
+      initStage._rt = setTimeout(updateLayout, 120);
     });
 
+    let contentTimer = 0;
+    new MutationObserver(() => { clearTimeout(contentTimer); contentTimer = setTimeout(fitAll, 80); }).observe(stage, { childList: true, subtree: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+    updateLayout();
     buildDots();
 
     return {
       panels: panels,
+      active: () => desktop,
+      refresh: () => { resetInput(); updateLayout(); },
       go: (i, opts) => go(i, opts),
       next: next,
       prev: prev,
@@ -1779,8 +1877,7 @@
       emptyState: () => {}
     };
   }
-
-  /* ======================== 9. 命令面板（Ctrl / ⌘ + K） ======================== */
+/* ======================== 9. 命令面板（Ctrl / ⌘ + K） ======================== */
   function initPalette() {
     const root = document.getElementById('cmdk');
     const input = document.getElementById('cmdk-input');
@@ -1996,6 +2093,7 @@
       items = buildItems();
       isOpen = true;
       openFlags.palette = true;
+      root._focusTrigger = document.activeElement;
       root.hidden = false;
       input.value = '';
       sel = 0;
@@ -2060,15 +2158,14 @@
       key: (e) => {
         if (!isOpen) return false;
         if (e.key === 'Escape') { e.preventDefault(); close(); return true; }
-        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) { e.preventDefault(); move(1); return true; }
-        if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); move(-1); return true; }
-        if (e.key === 'Enter') { e.preventDefault(); run(sel); return true; }
+        if (e.key === 'ArrowDown') { e.preventDefault(); move(1); return true; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); return true; }
+        if (e.key === 'Enter' && e.target === input) { e.preventDefault(); run(sel); return true; }
         return false;
       }
     };
   }
-
-  /* ======================== 10. 快捷键一览 ======================== */
+/* ======================== 10. 快捷键一览 ======================== */
   let keysEl = null;
   const KEY_ROWS = [
     { k: ['滚轮', '空格', '↓'], d: '翻到下一屏' },
@@ -2082,7 +2179,7 @@
     { k: ['Esc'], d: '关掉当前浮层 / 详情页' },
     { k: ['拖动空白处'], d: '拖拽翻屏：跟手、松手有惯性，够远或够快就翻' },
     { k: ['点标题'], d: '整行字散成粒子（鼠标能推开它们、还会连线）；约两秒后自己聚回来' },
-    { k: ['点击任意处'], d: '核心闪光 + 冲击波 + 火星拖尾，鼠标附近的粒子会被推开' },
+    { k: ['可选点击爆点'], d: '可在设置中开启；默认关闭辅助爆点' },
     { k: ['悬停卡片'], d: '停留一下看这条目的预览' },
     { k: ['点击卡片'], d: '从右侧滑进整屏详情页（返回按钮 / Esc / 向右滑回来）' }
   ];
@@ -2106,6 +2203,7 @@
   function openKeys() {
     if (!keysEl) return;
     openFlags.keys = true;
+    keysEl._focusTrigger = document.activeElement;
     keysEl.hidden = false;
     const close = $('.keys-head .icon-btn', keysEl);
     if (close) close.focus();
@@ -2115,8 +2213,7 @@
     openFlags.keys = false;
     keysEl.hidden = true;
   }
-
-  /* ======================== 11. 时钟与年份 ======================== */
+/* ======================== 11. 时钟与年份 ======================== */
   function initClock() {
     if (!featOn('home.clock')) return;           /* 开关：页脚时钟 */
     const clock = document.getElementById('clock');
@@ -2132,7 +2229,43 @@
     setInterval(paint, 1000);
   }
 
-  /* ======================== 12. 启动 ======================== */
+  /* Shared modal focus management; inert state outside the dialog is restored exactly. */
+  function initModalFocus() {
+    const dialogs = $$('[role="dialog"][aria-modal="true"]');
+    const saved = new Map();
+    let current = null, trigger = null;
+    const focusable = d => $$('a[href], button, input, select, textarea, [tabindex]', d).filter(el => !el.disabled && el.tabIndex >= 0 && !el.closest('[hidden], [inert]') && el.getClientRects().length);
+    function restore() { saved.forEach((value, el) => { el.inert = value; }); saved.clear(); }
+    function sync() {
+      const next = dialogs.filter(d => !d.hidden).pop() || null;
+      if (next === current) return;
+      restore();
+      if (next) {
+        if (!current) trigger = next._focusTrigger || document.activeElement;
+        current = next;
+        Array.from(body.children).forEach(el => { if (el !== next && !el.contains(next) && !/^(SCRIPT|STYLE)$/.test(el.tagName)) { saved.set(el, el.inert); el.inert = true; } });
+        const target = focusable(next)[0] || next;
+        if (target === next) next.tabIndex = -1;
+        if (!next.contains(document.activeElement)) target.focus({ preventScroll: true });
+      } else {
+        current = null;
+        if (trigger && trigger.isConnected && !trigger.closest('[inert], [hidden]')) trigger.focus({ preventScroll: true });
+        else { const fallback = document.querySelector('.panel:not([inert]) a[href], .topbar a[href]'); if (fallback) fallback.focus({ preventScroll: true }); }
+        trigger = null;
+      }
+    }
+    const observer = new MutationObserver(sync);
+    dialogs.forEach(d => observer.observe(d, { attributes: true, attributeFilter: ['hidden'] }));
+    document.addEventListener('keydown', e => {
+      if (!current || e.key !== 'Tab') return;
+      const list = focusable(current), first = list[0], last = list[list.length - 1];
+      if (!first) { e.preventDefault(); current.focus(); return; }
+      if (e.shiftKey && (document.activeElement === first || !current.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !current.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+    }, true);
+    sync();
+  }
+/* ======================== 12. 启动 ======================== */
   let palette = null;
 
   function initGlobalKeys() {
@@ -2147,7 +2280,7 @@
       }
 
       const t = e.target;
-      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
       if (typing) return;
 
       if (e.ctrlKey || e.metaKey) {
@@ -2162,8 +2295,20 @@
 
       /* 详情页开着时，翻屏键别去动底下的舞台 —— 它是整屏页面，不是小浮层 */
       if (openFlags.detail && (/^(ArrowDown|ArrowUp|PageDown|PageUp|Home|End| )$/.test(e.key) || /^[1-9]$/.test(e.key))) {
-        e.preventDefault();
         return;
+      }
+
+      const stageKey = /^(ArrowDown|ArrowUp|PageDown|PageUp|Home|End| )$/.test(e.key) || /^[1-9]$/.test(e.key);
+      if (stageKey && (!scroller.active() || onControl)) return;
+      if (stageKey && !/^[1-9]$/.test(e.key)) {
+        const direction = /^(ArrowUp|PageUp|Home)$/.test(e.key) || (e.key === ' ' && e.shiftKey) ? -1 : 1;
+        let node = t;
+        while (node && node !== body) {
+          if (node.scrollHeight > node.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(node).overflowY) && (direction > 0 ? node.scrollTop + node.clientHeight < node.scrollHeight - 2 : node.scrollTop > 2)) return;
+          node = node.parentElement;
+        }
+        const box = scroller.scrollBox();
+        if (box && (direction > 0 ? box.scrollTop + box.clientHeight < box.scrollHeight - 2 : box.scrollTop > 2)) return;
       }
 
       switch (e.key) {
@@ -2173,7 +2318,7 @@
           e.preventDefault(); scroller.prev(); return;
         case ' ':
           if (onControl) return;
-          e.preventDefault(); scroller.next(); return;
+          e.preventDefault(); e.shiftKey ? scroller.prev() : scroller.next(); return;
         case 'Home':
           e.preventDefault(); scroller.go(0); return;
         case 'End':
@@ -2221,80 +2366,89 @@
   }
 
   function boot() {
-    /* 「关于」屏必须赶在 initStage() 之前摘掉 ——
-       那一屏的元素是 initStage() 里一次性采集的，摘晚了它还会占着一屏
-       （圆点会多一个、翻屏计数也会算上它）。 */
-    if (!featOn('home.aboutPanel')) drop('#about');
+    try {
+      /* 「关于」屏必须赶在 initStage() 之前摘掉 ——
+         那一屏的元素是 initStage() 里一次性采集的，摘晚了它还会占着一屏
+         （圆点会多一个、翻屏计数也会算上它）。 */
+      if (!featOn('home.aboutPanel')) drop('#about');
 
-    /* 后台「设置」里能关掉的那些零碎。一律"连元素一起摘掉"——
-       留在屏幕上却点不动、或者空占一块地方，比没有更难懂。
-       注意顺序：摘 .foot 要在 initClock() 之前，免得它抓到一个已经被摘掉的 #clock。 */
-    if (!featOn('home.heroTitle')) drop('#hero-title');
-    if (!featOn('home.footer')) {
-      drop('#about .foot');
-    } else {
-      if (!featOn('home.clock')) drop('#clock');
-      if (!featOn('home.tips')) drop('.kbd-hint');
-    }
-    if (!featOn('effects.wash')) drop('#bg .wash');
-    if (!featOn('effects.noise')) drop('#bg .noise');
-    if (!featOn('tools.meter')) drop('#meter');
-
-    /* 转场：总开关关掉、或者风格选了"只用淡入"，都是同一件事 ——
-       把 SITE.randomTransition 置 false（09-stage.js 的 pickTrans() 读的就是它） */
-    if (!featOn('effects.transition') || opt('effects.transitionStyle') === 'fade') {
-      /* 注意改的是本文件顶部的 SITE（第 01 节的常量），不是 window.SITE ——
-         01-core.js 当初是 Object.assign 复制出来的，改 window.SITE 那份它看不见。
-         （这个开关以前就是这么失效的：写 window.SITE，09-stage.js 读的却是 SITE。） */
-      SITE.randomTransition = false;
-    }
-
-    fx = featOn('effects.particles') ? initFx() : null;
-    applyTheme(html.dataset.theme || 'light', false);
-
-    initTitle();
-    initCards();
-    initItemLayer();
-    initPointer();
-    initRipple();
-    scroller = initStage();
-    palette = featOn('tools.cmdk') ? initPalette() : null;
-    if (featOn('tools.keys')) initKeys(); else drop('#keys-btn');
-    initClock();
-
-    if (!featOn('tools.cmdk')) drop('#cmdk-open');
-
-    const toggle = document.getElementById('theme-toggle');
-    if (toggle && featOn('tools.themeToggle')) toggle.addEventListener('click', toggleTheme);
-    if (!featOn('tools.themeToggle')) drop('#theme-toggle');
-    const topBtn = document.getElementById('top-btn');
-    if (topBtn) topBtn.addEventListener('click', () => scroller.go(0));
-    const keysBtn = document.getElementById('keys-btn');
-    if (keysBtn) keysBtn.addEventListener('click', openKeys);
-
-    if (!motionOK) body.classList.add('no-fx');
-
-    /* 先把三屏的紧凑度量好，再决定开头停在第几屏 */
-    scroller.fitAll();
-    let start = 0;
-    const hash = (location.hash || '').replace(/^#/, '');
-    if (hash) {
-      for (let i = 0; i < scroller.count(); i++) {
-        if (scroller.panels[i].id === hash) { start = i; break; }
+      /* 后台「设置」里能关掉的那些零碎。一律"连元素一起摘掉"——
+         留在屏幕上却点不动、或者空占一块地方，比没有更难懂。
+         注意顺序：摘 .foot 要在 initClock() 之前，免得它抓到一个已经被摘掉的 #clock。 */
+      if (!featOn('home.heroTitle')) drop('#hero-title');
+      if (!featOn('home.footer')) {
+        drop('#about .foot');
+      } else {
+        if (!featOn('home.clock')) drop('#clock');
+        if (!featOn('home.tips')) drop('.kbd-hint');
       }
+      if (!featOn('effects.wash')) drop('#bg .wash');
+      if (!featOn('effects.noise')) drop('#bg .noise');
+      if (!featOn('tools.meter')) drop('#meter');
+
+      /* 转场：总开关关掉、或者风格选了"只用淡入"，都是同一件事 ——
+         把 SITE.randomTransition 置 false（09-stage.js 的 pickTrans() 读的就是它） */
+      SITE.randomTransition = featOn('effects.transition') && opt('effects.transitionStyle', 'random') === 'random';
+      if (!SITE.randomTransition) {
+        /* 注意改的是本文件顶部的 SITE（第 01 节的常量），不是 window.SITE ——
+           01-core.js 当初是 Object.assign 复制出来的，改 window.SITE 那份它看不见。
+           （这个开关以前就是这么失效的：写 window.SITE，09-stage.js 读的却是 SITE。） */
+        SITE.randomTransition = false;
+      }
+
+      fx = featOn('effects.particles') ? initFx() : null;
+      applyTheme(html.dataset.theme || 'light', false);
+
+      initTitle();
+      initCards();
+      initItemLayer();
+      initPointer();
+      initRipple();
+      scroller = initStage();
+      palette = featOn('tools.cmdk') ? initPalette() : null;
+      if (featOn('tools.keys')) initKeys(); else drop('#keys-btn');
+      initClock();
+
+      if (!featOn('tools.cmdk')) drop('#cmdk-open');
+
+      const toggle = document.getElementById('theme-toggle');
+      if (toggle && featOn('tools.themeToggle')) toggle.addEventListener('click', toggleTheme);
+      if (!featOn('tools.themeToggle')) drop('#theme-toggle');
+      const topBtn = document.getElementById('top-btn');
+      if (topBtn) topBtn.addEventListener('click', () => scroller.go(0));
+      const keysBtn = document.getElementById('keys-btn');
+      if (keysBtn) keysBtn.addEventListener('click', openKeys);
+
+      if (!motionOK) body.classList.add('no-fx');
+
+      /* 先把三屏的紧凑度量好，再决定开头停在第几屏 */
+      scroller.fitAll();
+      let start = 0;
+      const hash = (location.hash || '').replace(/^#/, '');
+      if (hash) {
+        for (let i = 0; i < scroller.count(); i++) {
+          if (scroller.panels[i].id === hash) { start = i; break; }
+        }
+      }
+      scroller.go(start, { force: true, instant: true, initial: true });
+
+      initModalFocus();
+      initGlobalKeys();
+      html.classList.add('app-ready');
+      initPerf();                       /* 只在 ?perf=1 时真的建东西，见第 13 节 */
+
+      mqReduce.addEventListener && mqReduce.addEventListener('change', () => {
+        motionOK = !mqReduce.matches;
+        body.classList.toggle('no-fx', !motionOK);
+        replayTitle();
+        if (fx && fx.refreshMotion) fx.refreshMotion();
+        if (scroller.refresh) scroller.refresh();
+      });
+    } catch (error) {
+      html.classList.remove('stage-ready', 'app-ready');
+      document.querySelectorAll('.panel').forEach(p => { p.inert = false; p.setAttribute('aria-hidden', 'false'); });
+      console.error(error);
     }
-    scroller.go(start, { force: true, instant: true });
-    scroller.panels.forEach((p, i) => {
-      p.setAttribute('aria-hidden', i === start ? 'false' : 'true');
-    });
-
-    initGlobalKeys();
-    initPerf();                       /* 只在 ?perf=1 时真的建东西，见第 13 节 */
-
-    mqReduce.addEventListener && mqReduce.addEventListener('change', () => {
-      motionOK = !mqReduce.matches;
-      body.classList.toggle('no-fx', !motionOK);
-    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
@@ -2338,8 +2492,11 @@
         (peak ? '   峰值 ' + peak + ' 颗' : '');
     }
 
+    let perfRaf = 0;
     function tick(now) {
-      requestAnimationFrame(tick);
+      perfRaf = 0;
+      if (document.hidden || mqReduce.matches) return;
+      perfRaf = requestAnimationFrame(tick);
       const gap = now - last;
       last = now;
       const s = stat();
@@ -2356,7 +2513,15 @@
         sample();
       }
     }
-    requestAnimationFrame(tick);
+    function wake() {
+      cancelAnimationFrame(perfRaf); perfRaf = 0;
+      if (document.hidden || mqReduce.matches) return;
+      last = t0 = performance.now(); frames = 0;
+      perfRaf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', wake);
+    mqReduce.addEventListener('change', wake);
+    wake();
 
     /* 消散的开始 / 结束不用去改第 6 节：那两下本来就会给标题加、摘 .is-gone，
        这里盯着 class 变化就够了，两边逻辑互不打扰。 */
@@ -2376,5 +2541,4 @@
     }
     sample();
   }
-
-  })();
+})();

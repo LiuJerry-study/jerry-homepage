@@ -214,6 +214,7 @@
       items = buildItems();
       isOpen = true;
       openFlags.palette = true;
+      root._focusTrigger = document.activeElement;
       root.hidden = false;
       input.value = '';
       sel = 0;
@@ -278,12 +279,10 @@
       key: (e) => {
         if (!isOpen) return false;
         if (e.key === 'Escape') { e.preventDefault(); close(); return true; }
-        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) { e.preventDefault(); move(1); return true; }
-        if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); move(-1); return true; }
-        if (e.key === 'Enter') { e.preventDefault(); run(sel); return true; }
+        if (e.key === 'ArrowDown') { e.preventDefault(); move(1); return true; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); return true; }
+        if (e.key === 'Enter' && e.target === input) { e.preventDefault(); run(sel); return true; }
         return false;
       }
     };
   }
-
-  

@@ -1,0 +1,23 @@
+{
+  "browser": "155.0.4283.45",
+  "passed": [
+    "HTTP boot, static cards reused and default effects",
+    "history replay and resize never append history",
+    "modal traps Tab and restores trigger focus",
+    "pointer cancel, lost capture and blur never commit a drag",
+    "keyboard reads long panel before navigating",
+    "nested wheel gesture cannot flip at its content boundary",
+    "cross breakpoint clears inert and returns to nearest section",
+    "manual theme persists across pages",
+    "reduced motion stops decorative RAF and keeps title visible",
+    "blocked main script still has readable navigation",
+    "hidden lifecycle cancels all application RAF",
+    "enabled experimental effects obey reduced motion and idle halo converges",
+    "system theme changes before manual override",
+    "rapid navigation retains only the final request",
+    "detail and shortcuts modal restore their own triggers",
+    "server rendering matches build output",
+    "file protocol and no-script links open"
+  ],
+  "failures": []
+}

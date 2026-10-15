@@ -63,7 +63,8 @@ window.SITE = {
      手动切过一次（按 T 或点右上角）就会记住，不再随机。
      false = 按系统偏好（system dark mode）。
      网址上写 ?theme=light / ?theme=dark 永远优先。 */
-  randomTheme: true,
+  randomTheme: false,
+  themeMode: 'system',
 
   /* 导航卡片（建议 4~8 个，太多就不「简约」了） */
   nav: [

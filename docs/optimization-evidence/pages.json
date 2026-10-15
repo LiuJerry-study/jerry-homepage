@@ -1,0 +1,1408 @@
+{
+  "browser": "155.0.4283.45",
+  "limitations": "CSS alpha compositing; does not sample moving canvas pixels or gradient backgrounds behind text.",
+  "results": [
+    {
+      "theme": "light",
+      "file": "index.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [
+        {
+          "tag": "CANVAS",
+          "cls": "",
+          "width": 1280
+        },
+        {
+          "tag": "SPAN",
+          "cls": "blob blob-b",
+          "width": 112.45822143554688
+        },
+        {
+          "tag": "DIV",
+          "cls": "halo",
+          "width": 540
+        },
+        {
+          "tag": "CANVAS",
+          "cls": "",
+          "width": 1280
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "index.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [
+        {
+          "tag": "SPAN",
+          "cls": "blob blob-b",
+          "width": 136.5990447998047
+        },
+        {
+          "tag": "DIV",
+          "cls": "halo",
+          "width": 540
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 176.875,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 161.125,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "index.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [
+        {
+          "tag": "SPAN",
+          "cls": "blob blob-b",
+          "width": 267.2165832519531
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 5.653422230883107,
+          "width": 105.171875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 142.890625,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 127.140625,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "index.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 5.653422230883107,
+          "width": 105.171875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 142.890625,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 127.140625,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "index.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 5.653422230883107,
+          "width": 178.671875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "index.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 5.653422230883107,
+          "width": 105.171875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 142.890625,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 127.140625,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 440.4375
+        },
+        {
+          "tag": "SPAN",
+          "cls": "tok-fn",
+          "width": 32.625
+        },
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 470.25
+        },
+        {
+          "tag": "SPAN",
+          "cls": "tok-com",
+          "width": 160.3125
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 440.4375
+        },
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 470.25
+        },
+        {
+          "tag": "SPAN",
+          "cls": "tok-com",
+          "width": 160.3125
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "projects/personal-portal.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "projects/personal-portal.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "projects/personal-portal.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "projects/personal-portal.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "projects/personal-portal.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "projects/personal-portal.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "resume.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "resume.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "resume.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "resume.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "resume.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "resume.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "about.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "about.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "about.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "about.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "about.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "file": "about.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 5.653422230883107,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 5.4355983884466745,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "index.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [
+        {
+          "tag": "DIV",
+          "cls": "halo",
+          "width": 540
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 280,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 280,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "index.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [
+        {
+          "tag": "DIV",
+          "cls": "halo",
+          "width": 540
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 176.875,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 161.125,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "index.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [
+        {
+          "tag": "SPAN",
+          "cls": "blob blob-b",
+          "width": 266.4505310058594
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 6.525600237404438,
+          "width": 105.171875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 142.890625,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 127.140625,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "index.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 6.525600237404438,
+          "width": 105.171875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 142.890625,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 127.140625,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "index.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 6.525600237404438,
+          "width": 178.671875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "index.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "cmdk-open magnetic",
+          "ratio": 6.525600237404438,
+          "width": 105.171875,
+          "height": 44
+        },
+        {
+          "selector": "icon-btn theme-toggle magnetic",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 142.890625,
+          "height": 45.90625
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 127.140625,
+          "height": 45.90625
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 440.4375
+        },
+        {
+          "tag": "SPAN",
+          "cls": "tok-fn",
+          "width": 32.625
+        },
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 470.25
+        },
+        {
+          "tag": "SPAN",
+          "cls": "tok-com",
+          "width": 160.3125
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 440.4375
+        },
+        {
+          "tag": "CODE",
+          "cls": "language-js",
+          "width": 470.25
+        },
+        {
+          "tag": "SPAN",
+          "cls": "tok-com",
+          "width": 160.3125
+        }
+      ],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "blog/canvas-particle-grid.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "projects/personal-portal.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "projects/personal-portal.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "projects/personal-portal.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "projects/personal-portal.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "projects/personal-portal.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "projects/personal-portal.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "resume.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "resume.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "resume.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "resume.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "resume.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "resume.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "about.html",
+      "width": 320,
+      "height": 640,
+      "documentWidth": 320,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "about.html",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "about.html",
+      "width": 768,
+      "height": 1024,
+      "documentWidth": 768,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "about.html",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "about.html",
+      "width": 1366,
+      "height": 768,
+      "documentWidth": 1366,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "file": "about.html",
+      "width": 683,
+      "height": 384,
+      "documentWidth": 683,
+      "overflowElements": [],
+      "textContrastFailures": [],
+      "controls": [
+        {
+          "selector": "icon-btn",
+          "ratio": 6.525600237404438,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "selector": "btn btn-ghost magnetic",
+          "ratio": 7.02134102485656,
+          "width": 126.640625,
+          "height": 51.984375
+        }
+      ]
+    }
+  ]
+}

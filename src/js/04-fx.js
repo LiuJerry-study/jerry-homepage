@@ -33,6 +33,8 @@
     let dotPaths = null;                /* 小圆点按「颜色 × 透明度档」分组，逐帧复用 */
     let rgb = '18,184,134', line = '18,184,134', rgbHi = '78,216,168';
     let raf = 0, last = 0, rt = 0, paused = false, t0 = 0;
+    const lightQuality = coarse || opt('effects.quality', 'standard') === 'light';
+    html.dataset.fxQuality = lightQuality ? 'light' : 'standard';
     let nMotes = 0;        /* 文字散出来的「墨点」数量：单独限流，不去挤背景粒子 */
     let ovDirty = false;   /* 爆点层上一帧画过东西没有（没有就不用每帧清一遍） */
 
@@ -47,7 +49,7 @@
     }
 
     function seed() {
-      const n = clamp(Math.round((W * H) / 26000), 24, 84);
+      const n = clamp(Math.round((W * H) / (lightQuality ? 42000 : 26000)), lightQuality ? 16 : 24, lightQuality ? 48 : 84);
       parts = [];
       for (let i = 0; i < n; i++) {
         const soft = i % 7 === 0;
@@ -69,7 +71,7 @@
     }
 
     function resize() {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = Math.min(lightQuality ? 1.5 : 2, window.devicePixelRatio || 1);
       W = window.innerWidth;
       H = window.innerHeight;
       canvas.width = Math.max(1, Math.floor(W * dpr));
@@ -655,7 +657,7 @@
     }
 
     function start() {
-      if (raf || !motionOK || paused) return;
+      if (raf || !motionOK || paused || document.hidden) return;
       last = performance.now();
       raf = requestAnimationFrame(step);
     }
@@ -665,7 +667,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) stop(); else start();
+      if (document.hidden) { stop(); stopPoi(); } else { start(); wakePoi(); }
     });
     window.addEventListener('resize', () => {
       clearTimeout(rt);
@@ -682,11 +684,11 @@
        省两处：值没变就不写（鼠标停住时这块开销直接归零），以及降到 30Hz
        （本来就是慢速漂移，差一帧看不出来）。自定义属性一写，`#bg` 整棵子树都要重算样式 ——
        实测指针一直在动的时候，样式重算会从 ~250ms/3s 涨到 ~770ms/3s，钱就花在这儿。 */
-    let poiRaf = 0, poiTick = 0, poiX = 9, poiY = 9;
+    let poiRaf = 0, poiX = 9, poiY = 9;
     function poiLoop() {
-      poiRaf = requestAnimationFrame(poiLoop);
+      poiRaf = 0;
+      if (!motionOK || paused || document.hidden) return;
       if (!bgEl) return;
-      if ((poiTick++ & 1) === 0) return;
       const nx = clamp((state.px / window.innerWidth - .5) * 2, -1, 1);
       const ny = clamp((state.py / window.innerHeight - .5) * 2, -1, 1);
       if (Math.abs(nx - poiX) < .002 && Math.abs(ny - poiY) < .002) return;
@@ -695,9 +697,14 @@
       bgEl.style.setProperty('--poi-x', nx.toFixed(3));
       bgEl.style.setProperty('--poi-y', ny.toFixed(3));
     }
-    poiLoop();
+    function stopPoi() { if (poiRaf) cancelAnimationFrame(poiRaf); poiRaf = 0; }
+    function wakePoi() { if (!poiRaf && motionOK && !paused && !document.hidden) poiRaf = requestAnimationFrame(poiLoop); }
+    window.addEventListener('pointermove', wakePoi, { passive: true });
+    window.addEventListener('pointerleave', wakePoi);
+    wakePoi();
 
     return {
+      refreshMotion: () => { stopPoi(); if (!motionOK) { stop(); draw(performance.now()); } else { start(); wakePoi(); } },
       recolor: () => { readColors(); if (!motionOK) draw(performance.now()); },
       burst: burst,
       emit: emit,
@@ -705,11 +712,9 @@
       stats: () => ({ parts: parts.length, motes: nMotes, sparks: sparks.length, blasts: blasts.length }),
       setPaused: (v) => {
         paused = !!v;
-        if (paused) { stop(); draw(performance.now()); } else start();
+        if (paused) { stop(); stopPoi(); draw(performance.now()); } else { start(); wakePoi(); }
         return paused;
       },
       isPaused: () => paused
     };
   }
-
-  

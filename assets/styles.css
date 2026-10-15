@@ -30,6 +30,9 @@
   --pad-top: clamp(88px, 12.5vh, 124px);
   --pad-bot: clamp(64px, 9.5vh, 100px);
 
+  --duration-button: 450ms;
+  --duration-card: 550ms;
+  --duration-stage: 600ms;
   --ease: cubic-bezier(.22, .61, .36, 1);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
 
@@ -129,9 +132,8 @@ html[data-theme="dark"] {
 /* 版式的根：整站锁在一屏里，文档永远不滚。
    要滚的只有「某一屏真的装不下」时那一屏内部（见第 7 节 .panel-scroll） */
 html, body {
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
+  min-height: 100%;
+  overflow-x: clip;
 }
 
 html { -webkit-text-size-adjust: 100%; scroll-behavior: auto; }
@@ -157,10 +159,9 @@ img, svg { display: block; }
 /* 能点、能拖的东西一律不可选中 —— 桌面上手一滑、手机上长按，就变成「选中文字 → 拽去搜索」，
    而整站全是按钮和导航，没有一处需要选中。真正要复制的地方在下面单开（第 13 节详情正文）。 */
 body {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;    /* iOS 长按不弹「拷贝 / 查询」气泡 */
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;    /* iOS 长按不弹「拷贝 / 查询」气泡 */
 }
 a, img, svg { -webkit-user-drag: none; }
 input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
@@ -204,6 +205,12 @@ kbd {
   transition: top .3s var(--ease);
 }
 .skip:focus { top: 14px; }
+
+html.stage-ready, .stage-ready body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid var(--accent-text); outline-offset: 4px; }
+html:not([data-layout="page"]):not(.app-ready) .top-actions { visibility: hidden; }
+.hero-heading { margin: 0; font: inherit; }
+button.hero-title { display: block; padding: 0; border: 0; background: none; color: inherit; font-family: inherit; text-align: inherit; }
 
 /* ---------- 3. 背景层：色洗 / 粒子 / 光斑 / 颗粒 ---------- */
 .bg {
@@ -388,8 +395,8 @@ body[data-page="about"]  .halo { filter: blur(18px) hue-rotate(16deg) saturate(.
   cursor: pointer;
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  transition: border-color .35s var(--ease), color .35s var(--ease),
-              background-color .35s var(--ease), box-shadow .35s var(--ease);
+  transition: border-color var(--duration-button) var(--ease), color var(--duration-button) var(--ease),
+              background-color var(--duration-button) var(--ease), box-shadow var(--duration-button) var(--ease);
 }
 .cmdk-open svg { width: 15px; height: 15px; }
 .cmdk-open kbd { background: transparent; border-color: var(--border); }
@@ -420,8 +427,8 @@ body[data-page="about"]  .halo { filter: blur(18px) hue-rotate(16deg) saturate(.
                          clamp(calc(-1 * var(--mag, 9px)), var(--mty, 0px), var(--mag, 9px)), 0);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  transition: transform .4s var(--ease), background-color .4s var(--ease),
-              border-color .4s var(--ease), color .4s var(--ease), box-shadow .4s var(--ease);
+  transition: transform var(--duration-button) var(--ease), background-color var(--duration-button) var(--ease),
+              border-color var(--duration-button) var(--ease), color var(--duration-button) var(--ease), box-shadow var(--duration-button) var(--ease);
 }
 .icon-btn:hover {
   transform: translate3d(clamp(calc(-1 * var(--mag, 9px)), var(--mtx, 0px), var(--mag, 9px)),
@@ -435,10 +442,12 @@ body[data-page="about"]  .halo { filter: blur(18px) hue-rotate(16deg) saturate(.
   position: absolute;
   width: 17px;
   height: 17px;
-  transition: opacity .4s var(--ease), transform .55s var(--ease);
+  transition: opacity var(--duration-button) var(--ease), transform var(--duration-card) var(--ease);
 }
 html[data-theme="light"] .ico-moon { opacity: 0; transform: rotate(-50deg) scale(.6); }
 html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(.6); }
+
+.cmdk-open, .icon-btn { min-height: 44px; min-width: 44px; }
 
 /* ---------- 7. 舞台与面板（一屏一页的根） ---------- */
 .stage {
@@ -479,7 +488,7 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   /* 触屏：屏内可滚时把纵向手势让给浏览器；排得下时交给拖拽翻屏 */
   touch-action: pan-y;
 }
-.panel:not(.is-scrollable) .panel-scroll { overflow: hidden; touch-action: none; }
+.stage-ready .panel:not(.is-scrollable) .panel-scroll { overflow: hidden; touch-action: none; }
 .panel-scroll::-webkit-scrollbar { width: 8px; }
 .panel-scroll::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
@@ -499,6 +508,22 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
 /* 拖拽跟手时不要有过渡，松手才回弹 */
 .stage.is-dragging .panel.is-active { transition: none; }
 .stage:not(.is-dragging) .panel { transition: transform .5s var(--ease-out); }
+
+/* 基础页面与文档流模式：桌面初始化成功后才启用上方舞台。 */
+html:not(.stage-ready) .stage { position: relative; overflow: visible; }
+html:not(.stage-ready) .panel { position: relative; inset: auto; opacity: 1; visibility: visible; overflow: visible; transform: none; min-height: 100svh; }
+html:not(.stage-ready) .panel-scroll { overflow: visible; max-height: none; touch-action: auto; padding: var(--pad-top) max(var(--gutter), env(safe-area-inset-left)) max(var(--pad-bot), env(safe-area-inset-bottom)); mask-image: none; -webkit-mask-image: none; }
+html:not(.stage-ready) [data-reveal] { opacity: 1; transform: none; }
+html:not(.stage-ready) .dots, html:not(.stage-ready) .stage-meter { display: none; }
+.section-nav { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.section-nav:focus-within { top: 76px; left: var(--gutter); z-index: 20; width: auto; height: auto; margin: 0; padding: 8px 14px; clip-path: none; display: flex; gap: 16px; background: var(--surface); border: 1px solid var(--border-hi); border-radius: var(--r-md); }
+.section-nav a { display: inline-flex; align-items: center; text-decoration: none; }
+.stage-ready .section-nav { display: none; }
+.panel { scroll-margin-top: 70px; }
+
+@media (max-width: 768px), (max-height: 600px) {
+  html:not(.stage-ready) #home .panel-scroll { padding-top: 140px; }
+}
 
 /* ---------- 8. 分屏转场（六套，方向由 .stage[data-dir] 决定） ---------- */
 .stage[data-dir="1"]  { --push: 7%;  --rot: 9deg;  --ct: 100%; --cb: 0%;   --zi: .93; --zo: 1.06; }
@@ -613,6 +638,11 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   font-size: calc(clamp(2.1rem, min(5.8vw, 8.8vh), 4.2rem) * var(--k));
   margin: 0 auto calc(46px * var(--k));
 }
+/* 逐字元素会跟着动画移动；禁止浏览器为它们绘制触摸高亮方框。
+   保留 :focus-visible，外接键盘仍能看见焦点提示。 */
+.hero-title, .hero-title * { -webkit-tap-highlight-color: transparent; }
+.hero-title:focus:not(:focus-visible) { outline: none; }
+
 .hero-title:active { cursor: pointer; }
 .hero-title .ch {
   display: inline-block;
@@ -735,6 +765,7 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   display: inline-flex;
   align-items: center;
   gap: .55em;
+  min-height: 44px;
   padding: .82em 1.55em;
   border: 1px solid transparent;
   border-radius: var(--r-pill);
@@ -748,11 +779,11 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   --mag: 9px;
   transform: translate3d(clamp(calc(-1 * var(--mag, 9px)), var(--mtx, 0px), var(--mag, 9px)),
                          clamp(calc(-1 * var(--mag, 9px)), var(--mty, 0px), var(--mag, 9px)), 0);
-  transition: transform .45s var(--ease), background-color .4s var(--ease),
-              border-color .4s var(--ease), color .4s var(--ease), box-shadow .45s var(--ease);
+  transition: transform var(--duration-button) var(--ease), background-color var(--duration-button) var(--ease),
+              border-color var(--duration-button) var(--ease), color var(--duration-button) var(--ease), box-shadow var(--duration-button) var(--ease);
 }
 .magnetic.is-pulling { transition: transform .12s linear; }
-.btn-ico { display: inline-block; transition: transform .45s var(--ease); }
+.btn-ico { display: inline-block; transition: transform var(--duration-button) var(--ease); }
 .btn:hover .btn-ico { transform: translateY(2px); }
 
 .btn-primary {
@@ -773,6 +804,8 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   color: var(--ink);
   background: var(--accent-soft);
 }
+
+.btn-ghost { border-color: var(--muted); }
 
 /* ---------- 11. 导航卡片 ---------- */
 .cards {
@@ -803,8 +836,8 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
 @media (max-width: 1000px) { .cards.is-hero .card { flex-basis: calc((100% - 2 * var(--cgap)) / 3); } }
 @media (max-width: 760px)  { .cards.is-hero .card { flex-basis: calc((100% - var(--cgap)) / 2); } }
 .cards.is-focus .card:not(.is-open) { opacity: .38; filter: blur(1.5px); }
-.card { transition: transform .55s var(--ease), box-shadow .55s var(--ease),
-                   border-color .55s var(--ease), background-color .55s var(--ease),
+.card { transition: transform var(--duration-card) var(--ease), box-shadow var(--duration-card) var(--ease),
+                   border-color var(--duration-card) var(--ease), background-color var(--duration-card) var(--ease),
                    opacity .35s var(--ease), filter .35s var(--ease); }
 
 .card {
@@ -848,7 +881,7 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
-  transition: opacity .45s var(--ease);
+  transition: opacity var(--duration-card) var(--ease);
 }
 .card .spot {
   position: absolute;
@@ -858,7 +891,7 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   pointer-events: none;
   background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%),
               var(--accent-soft), transparent 70%);
-  transition: opacity .45s var(--ease);
+  transition: opacity var(--duration-card) var(--ease);
 }
 .card.is-hot .ring,
 .card.is-hot .spot { opacity: 1; }
@@ -891,8 +924,8 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   background: var(--faint);
   color: var(--accent-text);
   transform: translateZ(24px);
-  transition: background-color .45s var(--ease), border-color .45s var(--ease),
-              color .45s var(--ease), transform .45s var(--ease);
+  transition: background-color var(--duration-card) var(--ease), border-color var(--duration-card) var(--ease),
+              color var(--duration-card) var(--ease), transform var(--duration-card) var(--ease);
 }
 .card-icon svg { width: 20px; height: 20px; }
 .card.is-hot .card-icon {
@@ -949,9 +982,9 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   font-size: 12.5px;
   letter-spacing: .04em;
   color: var(--muted);
-  transition: color .4s var(--ease);
+  transition: color var(--duration-card) var(--ease);
 }
-.card-go svg { width: 15px; height: 15px; transition: transform .4s var(--ease); }
+.card-go svg { width: 15px; height: 15px; transition: transform var(--duration-card) var(--ease); }
 .card.is-hot .card-go { color: var(--accent-text); }
 .card.is-hot .card-go svg { transform: translate(2px, -2px); }
 
@@ -965,6 +998,11 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
 
 .noscript-list { margin: 18px 0 0; padding-left: 20px; color: var(--muted); }
 
+.cards-enhanced .card-fallback { display: none; }
+.card-fallback { padding-left: 20px; margin-top: 16px; color: var(--ink-2); font-size: 16px; }
+
+summary.card-inner { list-style: none; }
+summary.card-inner::-webkit-details-marker { display: none; }
 /* ---------- 12. 结尾 / 页脚 ---------- */
 .lede {
   max-width: 30ch;
@@ -1105,8 +1143,26 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
     radial-gradient(120% 70% at 50% 118%, var(--accent-soft), transparent 60%),
     var(--bg);
   transform: translate3d(100%, 0, 0);
-  transition: transform .62s var(--ease-out);
+  transition: transform var(--duration-stage) var(--ease-out);
   will-change: transform;
+}
+/* 背景里那团很淡的 accent 光晕，缓慢漂移 —— 让整页不是死板一块 */
+.item-page::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 34% at 22% 26%, var(--accent-glow), transparent 70%),
+    radial-gradient(36% 30% at 78% 82%, var(--accent-2), transparent 72%);
+  opacity: .16;
+  animation: item-drift 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes item-drift {
+  from { transform: translate3d(-2%, -1.5%, 0) rotate(-1.2deg); }
+  to   { transform: translate3d(2.5%, 2%, 0) rotate(1.4deg); }
 }
 .item-page[hidden] { display: none; }
 .item-page.is-in { transform: none; }
@@ -1144,6 +1200,7 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
 
 .detail-head { display: flex; align-items: flex-start; gap: 18px; margin-bottom: clamp(20px, 3.6vh, 34px); }
 .detail-icon {
+  position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -1153,10 +1210,49 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   border-radius: 17px;
   background: var(--accent-soft);
   color: var(--accent-text);
+  opacity: 0;
+  animation: detail-icon-in .55s var(--ease-out) both .08s;
+  transition: transform .45s var(--ease), box-shadow .45s var(--ease), border-color .45s var(--ease);
 }
 .detail-icon svg { width: 26px; height: 26px; }
-.detail-title { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 500; letter-spacing: .02em; }
-.detail-desc { margin-top: 8px; font-size: clamp(.95rem, 1.3vw, 1.08rem); color: var(--muted); }
+/* 图标呼吸：静止时也有一点生机；hover 时轻轻放大 + 发光 */
+.detail-icon::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 22px;
+  border: 1px solid var(--accent-soft);
+  opacity: 0;
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+}
+.item-page .detail-icon:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 10px 26px -12px var(--accent-glow);
+}
+.item-page .detail-icon:hover::after { opacity: 1; transform: scale(1.12); }
+@keyframes detail-icon-in {
+  from { opacity: 0; transform: translateY(10px) scale(.72) rotate(-8deg); }
+  to   { opacity: 1; transform: none; }
+}
+.detail-title {
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: .02em;
+  opacity: 0;
+  animation: detail-rise .5s var(--ease-out) both .16s;
+}
+.detail-desc {
+  margin-top: 8px;
+  font-size: clamp(.95rem, 1.3vw, 1.08rem);
+  color: var(--muted);
+  opacity: 0;
+  animation: detail-rise .5s var(--ease-out) both .26s;
+}
+@keyframes detail-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
 
 .detail-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 13px; }
 .detail-list li {
@@ -1168,6 +1264,7 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   opacity: 0;
   animation: detail-li .5s var(--ease-out) both;
   animation-delay: calc(var(--i) * 55ms + 90ms);
+  transition: transform .4s var(--ease), color .4s var(--ease), padding-left .4s var(--ease);
 }
 @keyframes detail-li {
   from { opacity: 0; transform: translateY(6px); }
@@ -1183,8 +1280,23 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-glow);
+  transition: width .35s var(--ease), height .35s var(--ease), border-radius .35s var(--ease),
+    top .35s var(--ease), left .35s var(--ease), box-shadow .35s var(--ease);
 }
-.detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: clamp(20px, 3vh, 30px); }
+/* 列表项悬停：光点拉成一条小荧光、行右移一下、字色变亮 —— 有"跟手"的感觉 */
+.item-page .detail-list li:hover {
+  transform: translateX(4px);
+  color: var(--accent-text);
+}
+.item-page .detail-list li:hover::before {
+  width: 14px;
+  height: 2px;
+  border-radius: var(--r-pill);
+  top: .82em;
+  left: 0;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: clamp(20px, 3vh, 30px); opacity: 0; animation: detail-rise .5s var(--ease-out) both .4s; }
 .detail-tags span {
   padding: 4px 12px;
   border: 1px solid var(--border);
@@ -1193,6 +1305,13 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   font-size: 11px;
   letter-spacing: .06em;
   color: var(--muted);
+  transition: color .35s var(--ease), border-color .35s var(--ease), transform .35s var(--ease), background-color .35s var(--ease);
+}
+.detail-tags span:hover {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
 }
 .detail-foot {
   display: flex;
@@ -1202,6 +1321,8 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   margin-top: clamp(24px, 4vh, 44px);
   padding-top: 18px;
   border-top: 1px solid var(--border);
+  opacity: 0;
+  animation: detail-rise .5s var(--ease-out) both .52s;
 }
 .detail-note { font-size: 12px; color: var(--muted); }
 .detail-foot .btn { padding: .6em 1.15em; font-size: .85rem; }
@@ -1527,6 +1648,13 @@ html[data-theme="dark"]  .ico-sun  { opacity: 0; transform: rotate(50deg) scale(
   .hero-tip { display: none; }
 }
 
+@media (max-width: 768px), (max-height: 600px) {
+  .btn, .icon-btn, .top-actions button, .section-nav a { min-width: 44px; min-height: 44px; }
+  .page-nav { flex-wrap: wrap; justify-content: flex-end; }
+  .page-nav-a { display: inline-flex; align-items: center; min-height: 44px; padding: 5px 9px; }
+  .topbar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+}
+
 /* ---------- 20. 跟随系统减弱动效 ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1820,7 +1948,7 @@ body.page {
 /* 语法高亮：全部落在「墨绿灰阶 + 强调绿」里，不加彩虹色 */
 .tok-com { color: var(--muted); font-style: italic; }
 .tok-kw  { color: var(--accent-text); font-weight: 600; }
-.tok-str { color: var(--accent-2); }
+.tok-str { color: var(--accent-text); }
 .tok-num { color: var(--ink); }
 .tok-fn  { color: var(--ink); }
 .tok-attr { color: var(--accent-text); }
@@ -2062,6 +2190,9 @@ a.page-no:hover { border-color: var(--border); color: var(--ink); }
   .pagination { font-size: 13px; }
   .page-no { min-width: 26px; }
 }
+/* Long inline identifiers wrap; code blocks retain their local horizontal scrollbar. */
+.prose :not(pre) > code { overflow-wrap: anywhere; word-break: break-word; }
+.prose { overflow-wrap: anywhere; }
 /* ======================== 关于页（/about.html） ========================
    这一页只干一件事：让访客一眼看清"你是谁"。
    技能胶囊和经历时间线**不在这里重新实现** —— 它们直接复用简历页的

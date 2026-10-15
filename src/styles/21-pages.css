@@ -276,7 +276,7 @@ body.page {
 /* 语法高亮：全部落在「墨绿灰阶 + 强调绿」里，不加彩虹色 */
 .tok-com { color: var(--muted); font-style: italic; }
 .tok-kw  { color: var(--accent-text); font-weight: 600; }
-.tok-str { color: var(--accent-2); }
+.tok-str { color: var(--accent-text); }
 .tok-num { color: var(--ink); }
 .tok-fn  { color: var(--ink); }
 .tok-attr { color: var(--accent-text); }
@@ -518,3 +518,6 @@ a.page-no:hover { border-color: var(--border); color: var(--ink); }
   .pagination { font-size: 13px; }
   .page-no { min-width: 26px; }
 }
+/* Long inline identifiers wrap; code blocks retain their local horizontal scrollbar. */
+.prose :not(pre) > code { overflow-wrap: anywhere; word-break: break-word; }
+.prose { overflow-wrap: anywhere; }

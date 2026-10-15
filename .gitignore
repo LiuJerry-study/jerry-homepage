@@ -16,3 +16,6 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# 后台编辑的历史快照（保存前自动留档）
+.history/

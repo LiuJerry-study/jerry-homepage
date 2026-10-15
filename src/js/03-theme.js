@@ -35,4 +35,9 @@
     } catch (e) { run(); }
   }
 
-  
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (opt('theme.mode', 'system') !== 'system') return;
+    try { if (localStorage.getItem(THEME_KEY)) return; } catch (err) { /* storage unavailable */ }
+    applyTheme(e.matches ? 'dark' : 'light', false);
+  });
