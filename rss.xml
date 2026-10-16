@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>个人门户</title>
+    <title>主页</title>
     <link>https://xixid.cloud/</link>
     <description>一个极简的个人门户：简历、博客、作品集、笔记库的入口。一屏一页，页面本身不滚动。</description>
     <language>zh-CN</language>
