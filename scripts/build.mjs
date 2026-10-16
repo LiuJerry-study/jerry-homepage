@@ -29,7 +29,7 @@ import { createHash } from 'node:crypto';
 import { runInNewContext } from 'node:vm';
 
 import { renderMarkdown, extractExcerpt, frontMatter, slugify, escapeHtml as h } from './lib/markdown.mjs';
-import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript } from './lib/templates.mjs';
+import { pageShell, pageHead, tags as tagList, prettyDate, isoDate, themeBootScript, jsonLdString } from './lib/templates.mjs';
 import { imageSizeOfFile } from './lib/images.mjs';
 import { loadSiteObject } from './lib/site-config.mjs';
 import { loadSettings, seedFromSite, siteOverrides, sectionOn, offHrefs } from './lib/features.mjs';
@@ -1050,7 +1050,7 @@ function buildHome() {
     ].filter((o) => o.url),
   };
   if (ld['@graph'].length) {
-    html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
+    html = html.replace('</head>', `<script type="application/ld+json">${jsonLdString(ld)}</script>\n</head>`);
   }
 
   emit('index.html', html);

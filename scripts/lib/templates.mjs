@@ -13,6 +13,21 @@ import { escapeHtml as h } from './markdown.mjs';
 
 export { h };
 
+/**
+ * JSON-LD 安全序列化。
+ * JSON.stringify 不转义 `<` / `>` / `&` / U+2028 / U+2029 —— 标题里带个
+ * `</script>` 就能直接逃出 <script type="application/ld+json"> 块，执行任意脚本。
+ * 这里把危险字符转成 \u 转义（JSON 里是等价的，不会改变数据本身）。
+ */
+export function jsonLdString(obj) {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 /** 和舞台页 <meta name="theme-color"> 保持一致 */
 const THEME_COLOR = { light: '#F4F9F5', dark: '#07130F' };
 
@@ -174,7 +189,7 @@ export function pageShell(o) {
     ogImage ? `<meta property="og:image" content="${h(absoluteImage(ogImage, home))}">` : '',
     `<meta name="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">`,
     site.favicon ? `<link rel="icon" href="${h(site.favicon)}">` : '',
-    o.jsonLd ? `<script type="application/ld+json">${JSON.stringify(o.jsonLd)}</script>` : '',
+    o.jsonLd ? `<script type="application/ld+json">${jsonLdString(o.jsonLd)}</script>` : '',
   ].filter(Boolean).join('\n');
 
   return `<!DOCTYPE html>

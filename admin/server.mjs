@@ -242,7 +242,7 @@ async function publish() {
    content/（内容源）、admin/admin.env（里面可能有密码）、.git/、scripts/…… 全是敏感文件。
    注意：这只管后台端口这一层；公网站点那边由 deploy.sh 只同步公开文件来保证。 */
 const PUBLIC_FILES = new Set([
-  "index.html", "resume.html", "404.html",
+  "index.html", "resume.html", "about.html", "404.html",
   "sitemap.xml", "rss.xml", "robots.txt", "favicon.ico",
 ]);
 const PUBLIC_DIRS = ["assets/", "blog/", "projects/", "tags/", "proto/"];

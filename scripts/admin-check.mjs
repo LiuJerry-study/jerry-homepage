@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { getDashboardData } from '../admin/lib/dashboard.mjs';
 import { layout } from '../admin/lib/ui.mjs';
 
@@ -77,6 +78,39 @@ try { readHistory('posts', '../../admin/plans', '2026-01-01T00-00-00-000'); } ca
 if (!c1ok) throw new Error('readHistory 未拦截路径穿越');
 try { restoreHistory('posts', 'a/b', '2026-01-01T00-00-00-000'); } catch (e) { c1ok = true; }
 if (!c1ok) throw new Error('restoreHistory 未拦截非法 slug');
+
+/* B1：hidden 浮层必须真的藏住 —— .pick{display:grid} 曾盖过 [hidden]{display:none}，
+   * 弹窗一进后台就铺满全屏且关不掉（关闭按钮只改属性、画面没反应）。 */
+if (!editorHtml.includes('[hidden]{display:none !important}')) throw new Error('后台 CSS 缺少 [hidden] 兜底规则');
+if (!/<div class="pick" id="pick" hidden>/.test(editorHtml)) throw new Error('图库浮层必须默认带 hidden');
+if (!editorHtml.includes('closePick()')) throw new Error('图库浮层缺少统一关闭函数');
+const historyHtml = (await import('../admin/lib/ui.mjs')).historyPage({ kind: 'posts', slug: 'demo', items: [] });
+if (!/<div class="pick" id="pick" hidden>/.test(historyHtml)) throw new Error('历史浮层必须默认带 hidden');
+if (!historyHtml.includes('function closePick()')) throw new Error('历史浮层缺少统一关闭函数');
+
+/* B2：JSON-LD 序列化必须转义 </script> —— JSON.stringify 不转义 `<`，
+   标题里带个 </script> 就能逃出 ld+json 块执行任意脚本（存储型 XSS）。 */
+const { jsonLdString } = await import('./lib/templates.mjs');
+const injJson = jsonLdString({ headline: 'x</script><script>alert(1)</script>' });
+if (injJson.includes('</script>')) throw new Error('jsonLdString 未转义 </script>');
+if (!injJson.includes('\\u003c')) throw new Error('jsonLdString 未把 < 转义成 \\u003c');
+
+/* B3：历史列表接口拒绝路径穿越 —— 曾直接拼路径，slug=../.. 会列出仓库根目录文件名 */
+const { listHistory, serializeMarkdown } = await import('../admin/lib/store.mjs');
+if (listHistory('posts', '../..').length !== 0) throw new Error('listHistory 未拦截路径穿越');
+if (listHistory('posts', '..').length !== 0) throw new Error('listHistory 未拦截 ..');
+
+/* B4：front-matter 里"长得像数字/布尔"的字符串必须加引号，
+   否则 title: 2026 保存后读回来变成 number，title: 0 还会被 || 当空丢掉。 */
+const { frontMatter } = await import('./lib/markdown.mjs');
+for (const t of ['2026', 'true', 'false', '0']) {
+  const parsed = frontMatter(serializeMarkdown({ title: t, date: '2026-01-01' }, '')).data.title;
+  if (parsed !== t) throw new Error(`yamlValue 未给数字/布尔字符串加引号：${t} → ${JSON.stringify(parsed)}`);
+}
+
+/* B5：后台端口静态白名单必须包含 about.html（漏了会在后台端口打开关于页时 404） */
+const serverSrc = readFileSync(new URL('../admin/server.mjs', import.meta.url), 'utf8');
+if (!/"about\.html"/.test(serverSrc)) throw new Error('后台静态白名单缺少 about.html');
 
 const { listContent, readNav } = await import('../admin/lib/store.mjs');
 const realPosts = listContent('posts');

@@ -10,11 +10,17 @@
    ========================================================================== */
 
 import { readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { renderMarkdown, extractExcerpt, escapeHtml as h } from '../../scripts/lib/markdown.mjs';
 import { pageShell, pageHead, tags as tagList, prettyDate, isoDate } from '../../scripts/lib/templates.mjs';
 import { imageSizeOfFile } from '../../scripts/lib/images.mjs';
 import { loadSiteObject } from '../../scripts/lib/site-config.mjs';
+
+/* 仓库根。之前这里用 process.cwd() 找 content/images，进程换个目录启动
+   （systemd / supervisor / 别的 cwd）图片尺寸就读不到、预览图全 404。
+   跟 store.mjs 一样从模块路径推导，不赌工作目录。 */
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 /**
  * 读站点配置。带 mtime 缓存：改完 content/site.js 不用重启后台。
@@ -37,8 +43,10 @@ export function loadSite(root) {
 function previewImage(src) {
   const m = /^\.?\/?images\/(.+)$/.exec(src);
   if (!m) return null;
-  const size = imageSizeOfFile(join(process.cwd(), 'content/images', m[1]));
-  return { url: `/assets/images/${m[1]}`, width: size ? size.width : 0, height: size ? size.height : 0 };
+  const rel = m[1].split('/').filter((p) => p && p !== '.' && p !== '..').join('/');
+  if (rel !== m[1]) return null;   // 带 .. / 空段的引用不解析，预览不跟着越权读文件
+  const size = imageSizeOfFile(join(ROOT, 'content/images', rel));
+  return { url: `/assets/images/${rel}`, width: size ? size.width : 0, height: size ? size.height : 0 };
 }
 
 /** 渲染正文（编辑器右侧的实时预览） */

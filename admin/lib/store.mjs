@@ -141,9 +141,13 @@ export function snapshot(kind, id, absFile) {
   return dst;
 }
 
-/** 某个内容的历史版本列表（新的在前） */
+/** 某个内容的历史版本列表（新的在前）。id 必须过 safeSlug ——
+ *  这里曾直接拿调用方传进来的字符串拼路径，`slug=../..` 能把仓库根目录
+ *  的文件名都列出来（readdirSync 不设防）。 */
 export function listHistory(kind, id) {
-  const dir = join(HISTORY_ROOT, kind, id);
+  const safeId = safeSlug(id);
+  if (!safeId) return [];
+  const dir = join(HISTORY_ROOT, kind, safeId);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((f) => /\.(md|json)$/.test(f))
@@ -212,8 +216,11 @@ function yamlValue(v) {
   if (Array.isArray(v)) return `[${v.map((x) => String(x)).join(', ')}]`;
   if (typeof v === 'boolean' || typeof v === 'number') return String(v);
   const s = String(v == null ? '' : v);
-  // 含冒号、井号、引号、或以特殊字符开头时加引号，避免被自己的解析器读错
-  if (s === '' || /[:#'"]/.test(s) || /^[\s\-[{]/.test(s) || /\s$/.test(s)) {
+  // 含冒号、井号、引号、或以特殊字符开头时加引号，避免被自己的解析器读错。
+  // 纯数字 / true / false 的字符串也得加引号 —— 不引的话存成 title: 2026，
+  // 再读回来就变成 number，标题 "0" 还会因为 0 是 falsy 被丢成文件名。
+  if (s === '' || /[:#'"]/.test(s) || /^[\s\-[{]/.test(s) || /\s$/.test(s)
+    || /^(true|false)$/i.test(s) || /^-?\d+(\.\d+)?$/.test(s)) {
     return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return s;

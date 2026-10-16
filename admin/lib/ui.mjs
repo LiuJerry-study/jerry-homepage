@@ -26,6 +26,11 @@ const CSS = `
     --line:rgba(255,255,255,.10); }
 }
 *{box-sizing:border-box}
+/* [hidden] 兜底（别删）：.pick 浮层自己写了 display:grid，而作者样式优先级高于
+   浏览器默认的 [hidden]{display:none} —— 结果带 hidden 的浮层照样铺满全屏，
+   关闭按钮只改了属性、画面上什么都不变，整个后台就"卡"在弹窗里点不动。
+   这条 !important 让 hidden 属性重新说了算，所有 <div hidden> 都真正隐藏。 */
+[hidden]{display:none !important}
 body{margin:0;background:var(--bg);color:var(--ink);
   font:15px/1.7 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
 a{color:var(--accent-2)}
@@ -643,7 +648,7 @@ export function editorPage({ kind, slug, data, body, exists, lastBuild }) {
       <pre class="log" id="log"></pre>
 
       <div class="pick" id="pick" hidden>
-        <div class="pick-box">
+        <div class="pick-box" role="dialog" aria-modal="true" aria-label="从图库插入图片">
           <div class="pick-head"><h3>从图库插入图片</h3><span style="flex:1"></span><button class="btn" id="pick-close" type="button">关闭</button></div>
           <p class="meta">点一张图，以 <span class="mono">![alt](images/文件名)</span> 插入到光标处；也可以 <a href="/admin/images" target="_blank" rel="noopener">去图片库上传 ↗</a></p>
           <div class="pick-grid" id="pick-grid"></div>
@@ -777,18 +782,32 @@ export function editorPage({ kind, slug, data, body, exists, lastBuild }) {
       ).join('');
     } catch (e) { grid.innerHTML = '<p class="err">图库加载失败：' + escHtml(String(e.message || e)) + '</p>'; }
   }
+  function closePick() {
+    const pick = $('pick');
+    if (!pick || pick.hidden) return;
+    pick.hidden = true;
+    const op = $('open-pick');
+    if (op) op.focus();
+  }
   function initPick() {
     const pick = $('pick');
     if (!pick) return;
-    $('pick-close').addEventListener('click', () => { pick.hidden = true; });
+    $('pick-close').addEventListener('click', closePick);
+    // 除了按钮和点空白处，再留一条出路：Esc 关浮层
+    window.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape' || pick.hidden) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;   // 正在选内容时 Esc 先取消选择，不关窗
+      closePick();
+    });
     pick.addEventListener('click', (ev) => {
-      if (ev.target === pick) { pick.hidden = true; return; }
+      if (ev.target === pick) { closePick(); return; }
       const b = ev.target.closest('[data-name]');
       if (!b) return;
       const name = b.dataset.name;
       const alt = String(name).replace(/\.[^.]+$/, '');
       insertText('![' + alt + '](images/' + name + ')');
-      pick.hidden = true;
+      closePick();
     });
   }
 
@@ -1889,7 +1908,7 @@ export function historyPage({ kind = 'posts', slug = '', items = [], lastBuild =
       <pre class="log" id="log"></pre>
 
       <div class="pick" id="pick" hidden>
-        <div class="pick-box">
+        <div class="pick-box" role="dialog" aria-modal="true" aria-label="历史版本内容">
           <div class="pick-head"><h3>历史版本内容</h3><span style="flex:1"></span><button class="btn" id="pick-close" type="button">关闭</button></div>
           <pre id="pick-text" style="white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;max-height:56vh;overflow:auto;font-size:12.5px"></pre>
         </div>
@@ -1930,9 +1949,11 @@ export function historyPage({ kind = 'posts', slug = '', items = [], lastBuild =
       setTimeout(() => location.reload(), 800);
     }
   });
-  $('pick-close').addEventListener('click', () => { $('pick').hidden = true; });
   const pick = $('pick');
-  pick.addEventListener('click', (e) => { if (e.target === pick) pick.hidden = true; });
+  function closePick() { pick.hidden = true; }
+  $('pick-close').addEventListener('click', closePick);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pick.hidden) closePick(); });
+  pick.addEventListener('click', (e) => { if (e.target === pick) closePick(); });
 })();
 </script>`,
   });
