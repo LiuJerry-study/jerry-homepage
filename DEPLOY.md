@@ -128,6 +128,14 @@ DEPLOY_TARGET=root@你的服务器IP
 DEPLOY_PATH=/var/www/personal-site
 ```
 
+> **ssh 账号不是站点目录属主时**（比如阿里云那台是 `admin`，而目录属主是 `nginx`）：
+> 再加两行 `DEPLOY_SUDO=1` 和 `DEPLOY_OWNER=nginx:nginx` —— 远端 rsync 走 sudo，
+> 同步完自动把属主改回去。临时用也可以直接 `bash scripts/deploy.sh --sudo`。
+>
+> **本机没装 rsync**（Windows 上很常见）：脚本会自动改走「本地打包 → ssh 传 →
+> 服务器端解包并用 rsync 同步」，语义完全一样（含 `--delete`），不用额外准备；
+> 想强制走这条路就加 `--tar`。
+
 然后每次发布就是一条命令：
 
 ```bash

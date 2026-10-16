@@ -63,8 +63,14 @@ if [ -n "${GIT_REMOTE:-}" ]; then
 
   if [ ! -d "$MIRROR/.git" ]; then
     echo "第一次：clone $GIT_REMOTE → $MIRROR"
-    mkdir -p "$(dirname "$MIRROR")"
-    git clone --quiet "$GIT_REMOTE" "$MIRROR"
+    mkdir -p "$(dirname "$MIRROR")" 2>/dev/null || true
+    # 仓库还没建 / deploy key 还没贴时，clone 必然失败 ——
+    # 那只是"镜像这一档还没接上"，不该让每天一次的备份整体变成失败
+    # （tar 那份上面已经打好了）。接上之后这里自然会成功。
+    if ! git clone --quiet "$GIT_REMOTE" "$MIRROR"; then
+      echo "⚠ 克隆失败，这次跳过 GitHub 镜像（仓库还没建？deploy key 还没贴？）—— tar 备份不受影响" >&2
+      exit 0
+    fi
   fi
 
   cd "$MIRROR"
